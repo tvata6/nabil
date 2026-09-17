@@ -1,0 +1,1161 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#19222D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="مسار">
+<title>مسار</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --asphalt:#19222D; --asphalt-2:#243140; --asphalt-line:#34424F;
+  --paper:#F2F4F6; --surface:#FFFFFF; --line:#DCE1E6; --line-2:#EBEEF1;
+  --ink:#19222D; --muted:#5E6A77; --faint:#8A95A1;
+  --petrol:#0D5C75; --petrol-press:#0A4A5E; --petrol-tint:#E3EFF3;
+  --amber:#E9A20C; --amber-ink:#8A5A00; --amber-tint:#FDF3DC;
+  --in:#15803D; --in-tint:#E5F4EA; --out:#B42318; --out-tint:#FBE9E7;
+  --r-sheet:22px; --r-card:14px; --r-ctl:12px;
+  --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+  --font:"Readex Pro",system-ui,"Segoe UI",Tahoma,Arial,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5}
+body{min-height:100dvh;overscroll-behavior-y:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+:focus-visible{outline:2px solid var(--petrol);outline-offset:2px;border-radius:8px}
+.num{font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+.hidden{display:none!important}
+svg.i{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- App frame ---------- */
+#app{max-width:520px;margin:0 auto;min-height:100dvh;position:relative;padding-bottom:calc(84px + var(--safe-b))}
+.tabbar{position:fixed;inset-inline:0;bottom:0;margin:0 auto;max-width:520px;background:var(--surface);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(5,1fr);padding:6px 6px calc(6px + var(--safe-b));z-index:20}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:var(--faint);font-size:11.5px;font-weight:500;position:relative}
+.tab[aria-current="page"]{color:var(--petrol)}
+.tab .badge{position:absolute;top:2px;inset-inline-start:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--amber);color:var(--asphalt);font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 5px}
+.tab-plus{align-self:center;justify-self:center;width:54px;height:54px;border-radius:17px;background:var(--petrol);color:#fff;display:grid;place-items:center;margin-top:-22px;box-shadow:0 6px 16px rgba(13,92,117,.35)}
+.tab-plus:active{background:var(--petrol-press)}
+.tab-plus svg.i{width:26px;height:26px;stroke-width:2.2}
+
+/* ---------- Hero (asphalt) ---------- */
+.hero{background:var(--asphalt);color:#fff;padding:calc(14px + var(--safe-t)) 18px 20px;border-radius:0 0 26px 26px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;inset-inline:0;bottom:0;height:3px;
+  background:repeating-linear-gradient(90deg,transparent 0 18px,rgba(255,255,255,.14) 18px 40px)}
+.hero-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.box-switch{display:flex;align-items:center;gap:10px;padding:6px 10px 6px 12px;margin-inline-start:-10px;border-radius:12px;text-align:start}
+.box-switch:active{background:var(--asphalt-2)}
+.box-switch .glyph{width:36px;height:36px;border-radius:10px;background:var(--asphalt-2);display:grid;place-items:center;color:#C9D3DC}
+.box-switch b{display:block;font-size:16px;font-weight:600;line-height:1.3}
+.box-switch small{display:flex;align-items:center;gap:4px;color:#9AA7B3;font-size:12.5px}
+.icon-btn{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:#C9D3DC}
+.icon-btn:active{background:var(--asphalt-2)}
+.icon-btn.spin svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.bal-label{margin:22px 0 8px;color:#9AA7B3;font-size:13px}
+.odo-wrap{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.odo{display:flex;direction:ltr;gap:3px;align-items:flex-end}
+.odo-d{width:30px;height:46px;border-radius:6px;background:linear-gradient(#0F161E,#1D2834 48%,#141C25 52%,#0F161E);
+  box-shadow:inset 0 0 0 1px #2E3B48;overflow:hidden;position:relative}
+.odo-reel{display:flex;flex-direction:column;transition:transform .9s cubic-bezier(.2,.8,.2,1)}
+.odo-reel span{height:46px;display:grid;place-items:center;font-size:27px;font-weight:600;font-variant-numeric:tabular-nums;color:#F4F7F9}
+.odo-sep{width:7px;height:46px;display:grid;align-items:end;justify-items:center;color:#6F7D8A;font-size:22px;padding-bottom:4px}
+.odo-minus{width:18px;height:46px;display:grid;place-items:center;color:#FF8A7A;font-size:26px;font-weight:600}
+.odo.neg .odo-reel span{color:#FFB4A8}
+.odo-cur{color:#9AA7B3;font-size:15px;padding-bottom:6px}
+@media (max-width:370px){.odo-d{width:25px;height:40px}.odo-reel span,.odo-sep,.odo-minus{height:40px}.odo-reel span{font-size:23px}}
+.fx-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.fx{background:var(--asphalt-2);border-radius:999px;padding:3px 10px;font-size:12.5px;color:#C9D3DC}
+.transit{display:flex;align-items:center;gap:8px;margin-top:14px;padding:9px 12px;border-radius:12px;background:rgba(233,162,12,.12);color:#F6C866;font-size:13.5px}
+.transit .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 0 rgba(233,162,12,.6);animation:pulse 2s infinite}
+.transit.out{background:rgba(255,255,255,.06);color:#B9C4CE}
+.transit.out .dot{background:#8A95A1;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 7px rgba(233,162,12,0)}100%{box-shadow:0 0 0 0 rgba(233,162,12,0)}}
+
+.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px}
+.quick button{background:var(--asphalt-2);border-radius:14px;padding:12px 6px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;color:#E6ECF1;font-size:13px;font-weight:500}
+.quick button:active{background:var(--asphalt-line)}
+.quick .qi{width:34px;height:34px;border-radius:10px;display:grid;place-items:center}
+.qi.in{background:rgba(21,128,61,.22);color:#6FD39A}.qi.out{background:rgba(180,35,24,.22);color:#FF9C8F}.qi.tr{background:rgba(13,92,117,.35);color:#8ED0E4}
+
+/* ---------- Content ---------- */
+.page{padding:18px 16px 8px}
+.page-head{padding:calc(18px + var(--safe-t)) 16px 6px;display:flex;align-items:center;justify-content:space-between}
+.page-head h1{margin:0;font-size:22px;font-weight:600}
+.page-head .icon-btn{color:var(--muted)}
+.page-head .icon-btn:active{background:var(--line-2)}
+.sec{margin-top:22px}
+.sec:first-child{margin-top:4px}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;margin:0 2px 10px}
+.sec-h h2{margin:0;font-size:16px;font-weight:600}
+.link{color:var(--petrol);font-size:13.5px;font-weight:500}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card)}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:12px 14px;width:100%;text-align:start;border-bottom:1px solid var(--line-2)}
+.row:last-child{border-bottom:0}
+.row:active{background:#F7F9FA}
+.row-ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex:none}
+.row-ic svg.i{width:19px;height:19px}
+.row-ic.in{background:var(--in-tint);color:var(--in)}.row-ic.out{background:var(--out-tint);color:var(--out)}
+.row-ic.tr{background:var(--petrol-tint);color:var(--petrol)}.row-ic.void{background:var(--line-2);color:var(--faint)}
+.row-main{flex:1;min-width:0}
+.row-title{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-sub{display:flex;gap:10px;color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden}
+.row-end{text-align:end;flex:none}
+.amt{font-weight:600;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate;white-space:nowrap}
+.amt.in{color:var(--in)}.amt.out{color:var(--ink)}.amt.voided{color:var(--faint);text-decoration:line-through}
+.row-bal{display:block;color:var(--faint);font-size:12px;font-variant-numeric:tabular-nums}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:500;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.tag.amber{background:var(--amber-tint);color:var(--amber-ink)}.tag.green{background:var(--in-tint);color:var(--in)}
+.tag.red{background:var(--out-tint);color:var(--out)}.tag.grey{background:var(--line-2);color:var(--muted)}
+
+.today{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.today .card{padding:12px 14px}
+.today small{color:var(--muted);font-size:12.5px;display:flex;align-items:center;gap:6px}
+.today .amt{display:block;font-size:18px;margin-top:2px}
+
+/* Incoming transfer card */
+.tcard{background:var(--surface);border:1px solid var(--line);border-inline-start:4px solid var(--amber);border-radius:var(--r-card);padding:14px;margin-bottom:10px}
+.tcard.done{border-inline-start-color:var(--line)}
+.t-route{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+.t-route b{color:var(--ink);font-weight:500}
+.t-amt{font-size:24px;font-weight:600;margin:6px 0 2px}
+.t-amt small{font-size:14px;color:var(--muted);font-weight:400}
+.t-meta{display:flex;flex-wrap:wrap;gap:4px 12px;color:var(--muted);font-size:12.5px}
+.t-note{margin-top:8px;padding:8px 10px;border-radius:10px;background:var(--paper);font-size:13px;color:var(--muted)}
+.t-actions{display:flex;gap:8px;margin-top:12px}
+.t-actions .btn{flex:1}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 16px;border-radius:var(--r-ctl);font-weight:600;font-size:15px;white-space:nowrap}
+.btn-primary{background:var(--petrol);color:#fff}.btn-primary:active{background:var(--petrol-press)}
+.btn-primary[disabled]{background:#B9C7CE;color:#fff;cursor:not-allowed}
+.btn-soft{background:var(--petrol-tint);color:var(--petrol)}
+.btn-ghost{background:var(--surface);border:1px solid var(--line);color:var(--ink)}
+.btn-danger{background:var(--out-tint);color:var(--out)}
+.btn-text{height:40px;color:var(--muted);font-weight:500}
+.btn-block{width:100%}
+.btn .spinner{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;animation:spin .7s linear infinite}
+.btn-sm{height:38px;font-size:13.5px;padding:0 12px}
+
+/* Chips / segmented */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:13.5px;font-weight:500;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--asphalt);border-color:var(--asphalt);color:#fff}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--line-2);border-radius:12px;padding:3px}
+.seg button{height:36px;border-radius:9px;font-size:13.5px;font-weight:500;color:var(--muted);position:relative}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(25,34,45,.12)}
+.seg .count{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-inline-start:4px;border-radius:9px;background:var(--amber);color:var(--asphalt);font-size:11px;font-weight:700;padding:0 4px}
+
+/* Empty & skeleton */
+.empty{padding:28px 20px;text-align:center;color:var(--muted)}
+.empty svg.i{width:34px;height:34px;color:var(--faint);margin-bottom:6px}
+.empty b{display:block;color:var(--ink);font-weight:500;margin-bottom:2px}
+.sk{background:linear-gradient(90deg,#E6EAEE,#F1F3F5,#E6EAEE);background-size:200% 100%;animation:sk 1.2s infinite;border-radius:10px}
+.hero .sk{background:linear-gradient(90deg,#243140,#2E3B48,#243140);background-size:200% 100%}
+@keyframes sk{to{background-position:-200% 0}}
+.date-h{margin:18px 4px 8px;color:var(--muted);font-size:13px;font-weight:500}
+
+/* ---------- Sheets ---------- */
+.scrim{position:fixed;inset:0;background:rgba(15,22,30,.45);z-index:40;opacity:0;transition:opacity .2s}
+.scrim.show{opacity:1}
+.sheet{position:fixed;inset-inline:0;bottom:0;margin:0 auto;max-width:520px;background:var(--surface);border-radius:var(--r-sheet) var(--r-sheet) 0 0;
+  z-index:41;max-height:92dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+.sheet.show{transform:none}
+.sheet.full{top:0;max-height:none;border-radius:0}
+.sheet-grip{width:40px;height:4px;border-radius:2px;background:var(--line);margin:8px auto 2px}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 10px 18px;gap:8px}
+.sheet.full .sheet-head{padding-top:calc(10px + var(--safe-t));border-bottom:1px solid var(--line-2)}
+.sheet-head h3{margin:0;font-size:18px;font-weight:600}
+.sheet-head .icon-btn{color:var(--muted)}
+.sheet-body{padding:6px 18px 18px;overflow-y:auto;flex:1}
+.sheet-foot{padding:12px 18px calc(12px + var(--safe-b));border-top:1px solid var(--line-2);background:var(--surface)}
+.sheet p.lead{margin:0 0 14px;color:var(--muted)}
+
+/* Option tiles */
+.opt{display:flex;align-items:center;gap:14px;width:100%;padding:14px;border:1px solid var(--line);border-radius:var(--r-card);margin-bottom:10px;text-align:start}
+.opt:active{background:var(--paper)}
+.opt .row-ic{width:44px;height:44px;border-radius:12px}
+.opt b{display:block;font-weight:600}
+.opt small{color:var(--muted);font-size:13px}
+.opt.soon{opacity:.55}
+
+/* Forms */
+.field{margin-bottom:18px}
+.field > label,.field-l{display:block;font-weight:500;margin-bottom:8px}
+.field-l small{color:var(--faint);font-weight:400}
+.input{width:100%;height:50px;border:1px solid var(--line);border-radius:var(--r-ctl);padding:0 14px;background:var(--surface);font-size:16px}
+textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
+.input:focus{outline:none;border-color:var(--petrol);box-shadow:0 0 0 3px var(--petrol-tint)}
+.hint{color:var(--muted);font-size:12.5px;margin-top:6px}
+.hint.warn{color:var(--amber-ink)}
+.hint.err{color:var(--out)}
+.suggest{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.suggest button{height:32px;padding:0 12px;border-radius:999px;background:var(--paper);font-size:13px;color:var(--muted)}
+.reveal{animation:reveal .22s ease-out}
+@keyframes reveal{from{opacity:0;transform:translateY(6px)}}
+
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cat{min-height:48px;padding:6px 8px;border-radius:12px;border:1px solid var(--line);font-size:13px;font-weight:500;line-height:1.3;color:var(--ink);background:var(--surface)}
+.cat[aria-pressed="true"]{border-color:var(--petrol);background:var(--petrol-tint);color:var(--petrol);box-shadow:inset 0 0 0 1px var(--petrol)}
+
+.pick{display:flex;align-items:center;gap:12px;width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;text-align:start}
+.pick[aria-pressed="true"]{border-color:var(--petrol);background:var(--petrol-tint);box-shadow:inset 0 0 0 1px var(--petrol)}
+.pick .radio{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex:none;display:grid;place-items:center}
+.pick[aria-pressed="true"] .radio{border-color:var(--petrol)}
+.pick[aria-pressed="true"] .radio::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--petrol)}
+.pick b{display:block;font-weight:500}.pick small{color:var(--muted);font-size:12.5px}
+
+/* Amount + keypad */
+.amount-box{border:1px solid var(--line);border-radius:var(--r-card);padding:14px 14px 10px;background:var(--surface)}
+.amount-box.active{border-color:var(--petrol);box-shadow:0 0 0 3px var(--petrol-tint)}
+.amount-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.amount-val{font-size:32px;font-weight:600;min-height:48px;display:flex;align-items:center;gap:8px;direction:ltr;justify-content:flex-end;flex:1;overflow:hidden}
+.amount-val .ph{color:#C3CBD3}
+.amount-val .num::after,.amount-val .ph::after{content:"";display:inline-block;width:2px;height:30px;margin-left:4px;vertical-align:middle;background:var(--petrol);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.cur-pill{height:34px;padding:0 10px;border-radius:9px;background:var(--paper);font-size:13.5px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:4px}
+.amount-hint{color:var(--muted);font-size:13px;min-height:20px;text-align:end}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;direction:ltr}
+.key{height:54px;border-radius:12px;background:var(--paper);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.key:active{background:var(--line)}
+.key.fn{font-size:16px;color:var(--muted)}
+.key svg.i{margin:auto}
+
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px}
+.switch-row b{display:block;font-weight:500}.switch-row small{color:var(--muted);font-size:12.5px}
+.switch{width:48px;height:28px;border-radius:14px;background:var(--line);position:relative;flex:none;transition:background .2s}
+.switch::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:inset-inline-start .2s}
+.switch[aria-checked="true"]{background:var(--amber)}
+.switch[aria-checked="true"]::after{inset-inline-start:23px}
+
+.date-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--line);border-radius:12px}
+.date-row input{border:0;background:transparent;font-size:15px;direction:ltr}
+
+/* Detail list */
+.dl{margin:0;border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden}
+.dl div{display:flex;justify-content:space-between;gap:16px;padding:11px 14px;border-bottom:1px solid var(--line-2)}
+.dl div:last-child{border-bottom:0}
+.dl dt{color:var(--muted)}.dl dd{margin:0;text-align:end;font-weight:500}
+
+/* Success */
+.success{text-align:center;padding:18px 6px 6px}
+.check{width:72px;height:72px;border-radius:50%;background:var(--in-tint);color:var(--in);display:grid;place-items:center;margin:0 auto 14px}
+.check svg{width:38px;height:38px;stroke-width:2.4;stroke-dasharray:30;stroke-dashoffset:30;animation:draw .45s .1s ease-out forwards}
+.check.amber{background:var(--amber-tint);color:var(--amber-ink)}
+@keyframes draw{to{stroke-dashoffset:0}}
+.success h3{margin:0 0 4px;font-size:20px;font-weight:600}
+.success p{margin:0;color:var(--muted)}
+.success .big{font-size:30px;font-weight:600;margin:14px 0 4px}
+.success .after{display:inline-flex;gap:6px;padding:6px 12px;border-radius:999px;background:var(--paper);font-size:13.5px;color:var(--muted);margin-top:6px}
+
+/* Toast */
+#toast{position:fixed;inset-inline:16px;bottom:calc(96px + var(--safe-b));z-index:60;display:flex;justify-content:center;pointer-events:none}
+.toast{max-width:480px;background:var(--asphalt);color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.2);display:flex;gap:10px;align-items:center;animation:reveal .2s}
+.toast.err{background:#7A1A12}
+
+/* Login */
+.login{min-height:100dvh;display:flex;flex-direction:column;background:var(--asphalt);color:#fff}
+@media (min-width:600px){
+  .login{align-items:center;justify-content:center;padding:32px}
+  .login-top{flex:none;width:100%;max-width:440px;padding:0 4px 28px;min-height:220px}
+  .login-card{width:100%;max-width:440px;border-radius:26px;padding:28px 26px}
+}
+.login-top{flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:40px 26px 28px;position:relative;overflow:hidden}
+.road{position:absolute;inset:0;opacity:.9;pointer-events:none}
+.brand{display:flex;align-items:center;gap:12px;position:relative}
+.brand-mark{width:52px;height:52px;border-radius:15px;background:#fff;display:grid;place-items:center}
+.brand h1{margin:0;font-size:30px;font-weight:700;line-height:1}
+.brand p{margin:4px 0 0;color:#9AA7B3;font-size:14px}
+.login-card{background:var(--surface);color:var(--ink);border-radius:26px 26px 0 0;padding:26px 22px calc(22px + var(--safe-b))}
+.login-card h2{margin:0 0 4px;font-size:20px;font-weight:600}
+.login-card > p{margin:0 0 20px;color:var(--muted)}
+.pw-wrap{position:relative}
+.pw-wrap .icon-btn{position:absolute;left:5px;top:5px;color:var(--faint)}
+.pw-wrap .input{padding-left:50px}
+.login-links{display:flex;justify-content:space-between;margin-top:14px}
+.form-err{background:var(--out-tint);color:var(--out);padding:10px 12px;border-radius:10px;font-size:13.5px;margin-bottom:14px}
+.demo-bar{background:var(--amber);color:var(--asphalt);font-size:12.5px;font-weight:500;text-align:center;padding:4px 10px}
+
+.profile{display:flex;align-items:center;gap:14px;padding:16px}
+.avatar{width:52px;height:52px;border-radius:16px;background:var(--asphalt);color:#fff;display:grid;place-items:center;font-size:20px;font-weight:600}
+.profile b{display:block;font-size:17px;font-weight:600}
+.menu .row{min-height:56px}
+.menu .row-ic{background:var(--paper);color:var(--muted)}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="sheets"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* =========================================================
+   مسار: تطبيق الصناديق للهاتف
+   ضع رابط Apps Script (ينتهي بـ /exec) هنا، أو أدخله من شاشة الدخول.
+   ========================================================= */
+const CONFIG = { API_URL: '' };
+
+const LS = { token: 'masar.token', api: 'masar.api', demo: 'masar.demo' };
+const S = {
+  api: CONFIG.API_URL || localStorage.getItem(LS.api) || '',
+  demo: localStorage.getItem(LS.demo) === '1',
+  token: localStorage.getItem(LS.token),
+  me: null, ov: null, boxId: null, view: 'home', busy: false,
+  hist: { filter: 'all', items: [], total: 0, loaded: false, boxId: null },
+  trf: { tab: 'wait', items: [], loaded: false },
+  cats: null, targets: null, odo: {}
+};
+
+/* ---------------- Icons ---------------- */
+const I = {
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  in:'<path d="M12 5v14M6 13l6 6 6-6"/>',
+  out:'<path d="M12 19V5M6 11l6-6 6 6"/>',
+  swap:'<path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',
+  home:'<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/>',
+  list:'<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>',
+  send:'<path d="M5 12h14M13 6l6 6-6 6"/><path d="M5 6v12" opacity=".35"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+  refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
+  chev:'<path d="m15 6-6 6 6 6"/>',
+  down:'<path d="m6 9 6 6 6-6"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  check:'<path d="M5 12.5 10 17.5 19 7"/>',
+  box:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
+  back:'<path d="m9 6 6 6-6 6"/>',
+  eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  logout:'<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10"/>',
+  server:'<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  del:'<path d="M20 7H9l-5 5 5 5h11a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1zM12 10l4 4M16 10l-4 4"/>',
+  car:'<path d="M5 16h14M6.5 16v2M17.5 16v2M4 16v-3l2-5h12l2 5v3"/><path d="M7.5 13h.01M16.5 13h.01"/>',
+  pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'
+};
+const ic = (n, cls='') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
+const MARK = `<svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="M9 29 14 3h4l5 26z" fill="#19222D"/><path d="M16 7v3.5M16 14v3.5M16 21v4" stroke="#E9A20C" stroke-width="2.2" stroke-linecap="round"/></svg>`;
+
+/* ---------------- Helpers ---------------- */
+const $ = (s, r=document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
+const fmt = n => nf.format(Math.abs(Number(n) || 0));
+const CUR = { DZD:'دج', EUR:'€', USD:'$', SAR:'ريال', LYD:'دينار ليبي' };
+const money = (n, c='DZD') => `<span class="num">${fmt(n)}</span> ${CUR[c]||c}`;
+const todayStr = () => localDate(new Date());
+function localDate(d){ const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+const dateFmt = new Intl.DateTimeFormat('ar-DZ-u-nu-latn', { day:'numeric', month:'long' });
+function dayLabel(s){
+  if (!s) return '';
+  const t = todayStr(); const y = localDate(new Date(Date.now()-864e5));
+  if (s === t) return 'اليوم'; if (s === y) return 'أمس';
+  const [Y,M,D] = s.split('-').map(Number); return dateFmt.format(new Date(Y, M-1, D));
+}
+const timeOf = s => (s||'').slice(11,16);
+function ago(h){
+  if (h == null) return '';
+  if (h < 1) return 'منذ أقل من ساعة';
+  if (h < 24) return h === 1 ? 'منذ ساعة' : h === 2 ? 'منذ ساعتين' : `منذ ${h} ساعات`;
+  const d = Math.floor(h/24); return d === 1 ? 'منذ يوم' : d === 2 ? 'منذ يومين' : `منذ ${d} أيام`;
+}
+function millions(v){
+  const n = Number(v); if (!n || n < 10000) return '';
+  const m = n / 10000; return `${nf.format(Math.round(m*100)/100)} مليون`;
+}
+const ROLE = { ADMIN:'مدير', ACCOUNTANT:'محاسب', KEEPER:'صاحب صندوق' };
+
+function toast(msg, err=false){
+  const t = $('#toast'); t.innerHTML = `<div class="toast ${err?'err':''}">${esc(msg)}</div>`;
+  clearTimeout(toast._t); toast._t = setTimeout(()=> t.innerHTML='', err ? 4500 : 2600);
+}
+
+/* ---------------- API ---------------- */
+async function api(action, payload={}){
+  if (S.demo) return Mock.handle(action, payload, S.token);
+  if (!S.api) throw Object.assign(new Error('لم يُضبط رابط الخادم بعد'), { code:'NO_API' });
+  let res;
+  try {
+    res = await fetch(S.api, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, token:S.token, payload }) });
+  } catch(e){ throw Object.assign(new Error('تعذّر الاتصال بالخادم. تحقق من الإنترنت وأعد المحاولة'), { code:'NETWORK' }); }
+  let j; try { j = await res.json(); } catch(e){ throw Object.assign(new Error('رد غير مفهوم من الخادم. تحقق من رابط النشر'), { code:'BAD_RESPONSE' }); }
+  if (!j.ok){
+    if (['SESSION_EXPIRED','NO_SESSION','USER_DISABLED'].includes(j.error.code) && action !== 'login'){ signOutLocal(); }
+    throw Object.assign(new Error(j.error.message), { code:j.error.code });
+  }
+  return j.data;
+}
+
+/* ---------------- Boot & auth ---------------- */
+function boot(){ if (S.token) loadApp(); else renderLogin(); }
+
+function renderLogin(err=''){
+  closeSheet(true);
+  $('#root').innerHTML = `
+  <div class="login">
+    <div class="login-top">
+      <svg class="road" viewBox="0 0 400 400" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+        <path d="M40 400 C 70 300, 150 250, 130 130 S 170 0, 200 -40" fill="none" stroke="#243140" stroke-width="70"/>
+        <path d="M40 400 C 70 300, 150 250, 130 130 S 170 0, 200 -40" fill="none" stroke="#E9A20C" stroke-width="3" stroke-dasharray="16 20" opacity=".7"/>
+      </svg>
+      <div class="brand"><div class="brand-mark">${MARK}</div><div><h1>مسار</h1><p>صناديق وتحويلات استيراد السيارات</p></div></div>
+    </div>
+    <form class="login-card" id="loginForm" novalidate>
+      <h2>تسجيل الدخول</h2><p>استعمل الحساب الذي أنشأه لك المدير.</p>
+      ${err ? `<div class="form-err">${esc(err)}</div>` : ''}
+      <div class="field"><label for="u">اسم المستخدم</label>
+        <input class="input" id="u" autocomplete="username" autocapitalize="none" spellcheck="false" dir="ltr" required></div>
+      <div class="field"><label for="p">كلمة المرور</label>
+        <div class="pw-wrap"><input class="input" id="p" type="password" autocomplete="current-password" dir="ltr" required>
+        <button type="button" class="icon-btn" data-act="pw-toggle" aria-label="إظهار كلمة المرور">${ic('eye')}</button></div></div>
+      <button class="btn btn-primary btn-block" id="loginBtn">دخول</button>
+      <div class="login-links">
+        <button type="button" class="btn-text" data-act="server">${S.api ? 'تغيير رابط الخادم' : 'ضبط رابط الخادم'}</button>
+        <button type="button" class="btn-text" data-act="demo">تجربة بدون خادم</button>
+      </div>
+    </form>
+  </div>`;
+  $('#loginForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const u = $('#u').value.trim(), p = $('#p').value;
+    if (!u || !p) return renderLoginErr('أدخل اسم المستخدم وكلمة المرور');
+    if (!S.api && !S.demo) return openServerSheet();
+    setBtnBusy($('#loginBtn'), true);
+    try {
+      const r = await api('login', { username:u, password:p });
+      S.token = r.token; localStorage.setItem(LS.token, r.token);
+      loadApp();
+    } catch(x){ setBtnBusy($('#loginBtn'), false, 'دخول'); renderLoginErr(x.message); }
+  });
+}
+function renderLoginErr(m){
+  const f = $('#loginForm'); let box = $('.form-err', f);
+  if (!box){ box = document.createElement('div'); box.className='form-err'; f.insertBefore(box, $('.field', f)); }
+  box.textContent = m;
+}
+
+function signOutLocal(){
+  S.token = null; S.me = null; S.ov = null; localStorage.removeItem(LS.token);
+  S.hist = { filter:'all', items:[], total:0, loaded:false }; S.trf = { tab:'wait', items:[], loaded:false };
+  renderLogin();
+}
+
+async function loadApp(){
+  renderShell(true);
+  try {
+    S.me = await api('getMe');
+    const ids = S.me.boxes.map(b => b.box_id);
+    S.boxId = ids.includes(S.me.default_box_id) ? S.me.default_box_id : (ids[0] || null);
+    await refresh(true);
+  } catch(x){ if (S.token) { renderShell(false); toast(x.message, true); } }
+}
+
+async function refresh(silent){
+  const btn = $('[data-act="refresh"]'); btn && btn.classList.add('spin');
+  try {
+    S.ov = await api('getOverview');
+    S.hist.loaded = false; S.trf.loaded = false;
+    renderShell(false);
+    if (!silent) toast('تم التحديث');
+  } catch(x){ toast(x.message, true); }
+  finally { const b = $('[data-act="refresh"]'); b && b.classList.remove('spin'); }
+}
+
+/* ---------------- Shell & tabs ---------------- */
+function currentBox(){ return S.ov ? S.ov.boxes.find(b => b.box_id === S.boxId) : null; }
+function incomingCount(){ return S.ov ? S.ov.my_incoming_transfers.length : 0; }
+
+function renderShell(loading){
+  const tabs = [['home','home','الرئيسية'],['history','list','السجل'],['plus'],['transfers','swap','التحويلات'],['account','user','حسابي']];
+  const n = incomingCount();
+  $('#root').innerHTML = `
+  ${S.demo ? '<div class="demo-bar">وضع التجربة: البيانات وهمية ولا تُحفظ</div>' : ''}
+  <div id="app"><main id="view">${loading ? skeleton() : renderView()}</main></div>
+  <nav class="tabbar" aria-label="التنقل">
+    ${tabs.map(t => t[0]==='plus'
+      ? `<button class="tab-plus" data-act="new-op" aria-label="عملية جديدة">${ic('plus')}</button>`
+      : `<button class="tab" data-act="tab" data-v="${t[0]}" ${S.view===t[0]?'aria-current="page"':''}>${ic(t[1])}<span>${t[2]}</span>${t[0]==='transfers'&&n?`<span class="badge">${n}</span>`:''}</button>`).join('')}
+  </nav>`;
+  if (!loading) afterRender();
+}
+function renderView(){
+  if (!S.ov) return skeleton();
+  if (S.view === 'history') return viewHistory();
+  if (S.view === 'transfers') return viewTransfers();
+  if (S.view === 'account') return viewAccount();
+  return viewHome();
+}
+function rerender(){ $('#view').innerHTML = renderView(); afterRender(); }
+function afterRender(){
+  animateOdo();
+  if (S.view === 'history' && !S.hist.loaded) loadHistory();
+  if (S.view === 'transfers' && !S.trf.loaded) loadTransfers();
+}
+function skeleton(){
+  return `<section class="hero"><div class="sk" style="width:150px;height:40px"></div>
+    <div class="sk" style="width:90px;height:14px;margin:24px 0 10px"></div><div class="sk" style="width:260px;height:46px"></div>
+    <div class="quick">${'<div class="sk" style="height:74px;border-radius:14px"></div>'.repeat(3)}</div></section>
+    <div class="page"><div class="sk" style="height:120px;border-radius:14px"></div><div class="sk" style="height:220px;border-radius:14px;margin-top:16px"></div></div>`;
+}
+
+/* ---------------- Odometer ---------------- */
+function odometer(value, key){
+  const neg = value < 0; const str = fmt(value);
+  const prev = S.odo[key]; const prevStr = prev != null ? fmt(prev) : null;
+  let di = 0;
+  const cells = [...str].map((ch, idx) => {
+    if (ch === ',' || ch === '.') return `<span class="odo-sep">${ch}</span>`;
+    const from = prevStr && prevStr.length === str.length && /\d/.test(prevStr[idx]) ? +prevStr[idx] : 0;
+    di++;
+    return `<span class="odo-d"><span class="odo-reel" data-to="${ch}" style="transform:translateY(-${from*10}%)">${'0123456789'.split('').map(d=>`<span>${d}</span>`).join('')}</span></span>`;
+  }).join('');
+  S.odo[key] = value;
+  return `<div class="odo ${neg?'neg':''}" role="img" aria-label="${neg?'سالب ':''}${str} دينار">${neg?'<span class="odo-minus">−</span>':''}${cells}</div>`;
+}
+function animateOdo(){
+  requestAnimationFrame(()=> requestAnimationFrame(()=>
+    document.querySelectorAll('.odo-reel[data-to]').forEach(r => r.style.transform = `translateY(-${r.dataset.to*10}%)`)));
+}
+
+/* ---------------- Home ---------------- */
+function viewHome(){
+  const box = currentBox();
+  if (!box) return `<div class="page-head"><h1>مسار</h1></div><div class="page"><div class="card empty">${ic('box')}<b>لا يوجد صندوق مرتبط بحسابك</b>اطلب من المدير إضافتك إلى صندوق، ثم حدّث الصفحة.</div></div>`;
+  const bal = box.balances || {}; const dzd = bal.DZD || 0;
+  const fx = Object.keys(bal).filter(c => c !== 'DZD' && bal[c]);
+  const pin = box.pending_in?.DZD || 0, pout = box.pending_out?.DZD || 0;
+  const incoming = S.ov.my_incoming_transfers.filter(t => t.to_box_id === box.box_id);
+  const otherIncoming = S.ov.my_incoming_transfers.length - incoming.length;
+  const entries = S.ov.recent_entries.filter(e => e.box_id === box.box_id).slice(0, 6);
+  const multi = S.ov.boxes.filter(b => b.type !== 'SYSTEM').length > 1;
+  const t = S.ov.today;
+
+  return `
+  <section class="hero">
+    <div class="hero-top">
+      <button class="box-switch" data-act="${multi?'switch-box':''}" ${multi?'':'disabled'}>
+        <span class="glyph">${ic('box')}</span>
+        <span><b>${esc(box.name)}</b><small>${box.location?esc(box.location):ROLE[S.me.user.role]}${multi?ic('down','sm'):''}</small></span>
+      </button>
+      <button class="icon-btn" data-act="refresh" aria-label="تحديث">${ic('refresh')}</button>
+    </div>
+    <div class="bal-label">رصيد الصندوق</div>
+    <div class="odo-wrap">${odometer(dzd, box.box_id)}<span class="odo-cur">دج</span></div>
+    ${fx.length ? `<div class="fx-row">${fx.map(c=>`<span class="fx">${money(bal[c], c)}</span>`).join('')}</div>` : ''}
+    ${pin ? `<div class="transit"><span class="dot"></span>في الطريق إليك ${money(pin)}</div>` : ''}
+    ${pout ? `<div class="transit out"><span class="dot"></span>أرسلت ${money(pout)} ولم يؤكَّد استلامها بعد</div>` : ''}
+    <div class="quick">
+      <button data-act="op" data-type="income"><span class="qi in">${ic('in')}</span>استلام مبلغ</button>
+      <button data-act="op" data-type="expense"><span class="qi out">${ic('out')}</span>مصروف</button>
+      <button data-act="op" data-type="transfer"><span class="qi tr">${ic('swap')}</span>تحويل</button>
+    </div>
+  </section>
+  <div class="page">
+    ${incoming.length ? `<section class="sec"><div class="sec-h"><h2>تنتظر تأكيدك</h2></div>${incoming.map(transferCard).join('')}</section>` : ''}
+    ${otherIncoming ? `<button class="card row" data-act="tab" data-v="transfers" style="margin-top:12px">${ic('clock')}<span class="row-main">${otherIncoming} تحويل ينتظر تأكيدك في صناديق أخرى</span>${ic('chev')}</button>` : ''}
+    <section class="sec">
+      <div class="sec-h"><h2>اليوم</h2><span class="hint" style="margin:0">${t.count} عملية</span></div>
+      <div class="today">
+        <div class="card"><small><span class="tag green">${ic('in')}</span>دخل</small><span class="amt in">${fmt(t.in.DZD||0)}</span></div>
+        <div class="card"><small><span class="tag red">${ic('out')}</span>مصروف</small><span class="amt out">${fmt(t.out.DZD||0)}</span></div>
+      </div>
+    </section>
+    <section class="sec">
+      <div class="sec-h"><h2>آخر العمليات</h2>${entries.length?'<button class="link" data-act="tab" data-v="history">السجل كاملاً</button>':''}</div>
+      ${entries.length ? `<div class="list">${entries.map(entryRow).join('')}</div>`
+        : `<div class="card empty">${ic('list')}<b>لا توجد عمليات بعد</b>سجّل أول استلام أو مصروف من الأزرار في الأعلى.</div>`}
+    </section>
+  </div>`;
+}
+
+function entryMeta(e){
+  const tr = /^TRANSFER_/.test(e.entry_type);
+  const voided = e.status === 'VOIDED' || e.entry_type === 'REVERSAL';
+  const cls = voided ? 'void' : tr ? 'tr' : e.direction === 'IN' ? 'in' : 'out';
+  const icon = tr ? 'swap' : e.direction === 'IN' ? 'in' : 'out';
+  let title = e.counterparty || e.category_name || e.entry_type_label;
+  if (e.entry_type === 'EXPENSE') title = e.description || e.category_name;
+  if (e.entry_type === 'TRANSFER_OUT') title = 'إلى ' + e.counterparty;
+  if (e.entry_type === 'TRANSFER_IN') title = 'من ' + e.counterparty;
+  if (e.entry_type === 'OPENING') title = 'رصيد افتتاحي';
+  return { cls, icon, title, voided };
+}
+function entryRow(e){
+  const m = entryMeta(e);
+  const sign = e.direction === 'IN' ? '+' : '−';
+  return `<button class="row" data-act="entry" data-id="${e.entry_id}">
+    <span class="row-ic ${m.cls}">${ic(m.icon)}</span>
+    <span class="row-main"><span class="row-title">${esc(m.title)}</span>
+      <span class="row-sub"><span>${esc(e.entry_type==='EXPENSE'?e.category_name:e.entry_type_label)}</span><span>${timeOf(e.created_at)}</span>
+      ${!e.verified?'<span class="tag amber">غير مؤكد</span>':''}${e.status==='VOIDED'?'<span class="tag grey">ملغى</span>':''}</span></span>
+    <span class="row-end"><span class="amt ${e.status==='VOIDED'?'voided':e.direction==='IN'?'in':'out'}">${sign} ${fmt(e.amount)}${e.currency!=='DZD'?' '+(CUR[e.currency]||e.currency):''}</span>
+      ${e.balance_after!=null?`<span class="row-bal num">${fmt(e.balance_after)}</span>`:''}</span>
+  </button>`;
+}
+
+function transferCard(t){
+  const pending = t.status === 'PENDING';
+  const statusTag = { PENDING:'amber', CONFIRMED:'green', REJECTED:'red', CANCELLED:'grey' }[t.status];
+  const diff = t.received_amount != null && t.received_amount !== t.amount;
+  return `<article class="tcard ${pending?'':'done'}">
+    <div class="t-route"><b>${esc(t.from_box_name)}</b>${ic('chev')}<b>${esc(t.to_box_name)}</b>
+      <span style="margin-inline-start:auto" class="tag ${statusTag}">${t.status_label}</span></div>
+    <div class="t-amt">${money(t.amount, t.currency)}</div>
+    <div class="t-meta">${t.via?`<span>عن طريق ${esc(t.via)}</span>`:''}<span>أرسله ${esc(t.created_by_name)}</span><span>${pending?ago(t.age_hours):dayLabel(t.created_at.slice(0,10))}</span></div>
+    ${diff?`<div class="t-note">استُلم ${money(t.received_amount, t.currency)} فقط${t.response_note?': '+esc(t.response_note):''}</div>`:''}
+    ${!diff && t.response_note && !pending?`<div class="t-note">${esc(t.response_note)}</div>`:''}
+    ${t.description?`<div class="t-note">${esc(t.description)}</div>`:''}
+    ${pending && t.can_confirm && !isMineSender(t) ? `<div class="t-actions">
+      <button class="btn btn-primary" data-act="t-confirm" data-id="${t.transfer_id}">${ic('check')}استلمت</button>
+      <button class="btn btn-ghost" data-act="t-more" data-id="${t.transfer_id}">مشكلة؟</button></div>` : ''}
+    ${pending && t.can_cancel && isMineSender(t) ? `<div class="t-actions"><button class="btn btn-ghost btn-sm" data-act="t-cancel" data-id="${t.transfer_id}">إلغاء التحويل</button></div>` : ''}
+  </article>`;
+}
+function isMineSender(t){
+  if (S.me.user.role !== 'KEEPER') return !S.ov.my_incoming_transfers.some(x => x.transfer_id === t.transfer_id);
+  return S.me.boxes.some(b => b.box_id === t.from_box_id) && !S.me.boxes.some(b => b.box_id === t.to_box_id);
+}
+
+/* ---------------- History ---------------- */
+const HIST_FILTERS = [['all','الكل'],['in','دخل'],['out','مصروف'],['tr','تحويلات']];
+function viewHistory(){
+  const box = currentBox();
+  const items = S.hist.items.filter(e => {
+    const tr = /^TRANSFER_/.test(e.entry_type);
+    if (S.hist.filter === 'tr') return tr;
+    if (S.hist.filter === 'in') return !tr && e.direction === 'IN';
+    if (S.hist.filter === 'out') return !tr && e.direction === 'OUT';
+    return true;
+  });
+  const groups = [];
+  items.forEach(e => { const g = groups[groups.length-1]; if (g && g.d === e.entry_date) g.items.push(e); else groups.push({ d:e.entry_date, items:[e] }); });
+  return `<div class="page-head"><h1>السجل</h1>${box?`<button class="link" data-act="switch-box">${esc(box.name)}</button>`:''}</div>
+  <div class="page" style="padding-top:8px">
+    <div class="chips" role="group" aria-label="تصفية">${HIST_FILTERS.map(f=>`<button class="chip" data-act="hfilter" data-f="${f[0]}" aria-pressed="${S.hist.filter===f[0]}">${f[1]}</button>`).join('')}</div>
+    ${!S.hist.loaded ? `<div class="sk" style="height:300px;margin-top:16px;border-radius:14px"></div>`
+      : !groups.length ? `<div class="card empty" style="margin-top:16px">${ic('list')}<b>لا توجد عمليات هنا</b>جرّب تصفية أخرى.</div>`
+      : groups.map(g=>`<div class="date-h">${dayLabel(g.d)}</div><div class="list">${g.items.map(entryRow).join('')}</div>`).join('')}
+    ${S.hist.loaded && S.hist.items.length < S.hist.total ? `<button class="btn btn-ghost btn-block" style="margin-top:14px" data-act="hmore">عرض عمليات أقدم</button>`:''}
+  </div>`;
+}
+async function loadHistory(more){
+  if (!S.boxId) { S.hist.loaded = true; return rerender(); }
+  try {
+    const r = await api('listEntries', { box_id:S.boxId, limit:60, offset: more ? S.hist.items.length : 0 });
+    S.hist.items = more ? S.hist.items.concat(r.items) : r.items; S.hist.total = r.total; S.hist.loaded = true;
+    if (S.view === 'history') rerender();
+  } catch(x){ S.hist.loaded = true; toast(x.message, true); }
+}
+
+/* ---------------- Transfers ---------------- */
+function viewTransfers(){
+  const mine = new Set(S.me.boxes.map(b=>b.box_id));
+  const wait = S.trf.items.filter(t => t.status==='PENDING' && t.can_confirm && !isMineSender(t));
+  const sent = S.trf.items.filter(t => mine.has(t.from_box_id) && (t.status==='PENDING' ? isMineSender(t) : true) && !(S.me.user.role!=='KEEPER' && !mine.has(t.from_box_id)));
+  const list = S.trf.tab === 'wait' ? wait : S.trf.tab === 'sent' ? sent : S.trf.items;
+  return `<div class="page-head"><h1>التحويلات</h1><button class="icon-btn" data-act="refresh" aria-label="تحديث">${ic('refresh')}</button></div>
+  <div class="page" style="padding-top:8px">
+    <div class="seg" role="group">
+      <button data-act="ttab" data-t="wait" aria-pressed="${S.trf.tab==='wait'}">بانتظاري${wait.length?`<span class="count">${wait.length}</span>`:''}</button>
+      <button data-act="ttab" data-t="sent" aria-pressed="${S.trf.tab==='sent'}">أرسلتها</button>
+      <button data-act="ttab" data-t="all" aria-pressed="${S.trf.tab==='all'}">الكل</button>
+    </div>
+    <div style="margin-top:14px">
+    ${!S.trf.loaded ? '<div class="sk" style="height:160px;border-radius:14px"></div>'
+      : list.length ? list.map(transferCard).join('')
+      : `<div class="card empty">${ic('swap')}<b>${S.trf.tab==='wait'?'لا شيء ينتظر تأكيدك':'لا توجد تحويلات'}</b>${S.trf.tab==='wait'?'عندما يرسل لك أحد مبلغاً سيظهر هنا.':''}</div>`}
+    </div>
+    <button class="btn btn-soft btn-block" style="margin-top:6px" data-act="op" data-type="transfer">${ic('swap')}تحويل جديد</button>
+  </div>`;
+}
+async function loadTransfers(){
+  try { const r = await api('listTransfers', { limit:100 }); S.trf.items = r.items; S.trf.loaded = true; if (S.view==='transfers') rerender(); }
+  catch(x){ S.trf.loaded = true; toast(x.message, true); }
+}
+
+/* ---------------- Account ---------------- */
+function viewAccount(){
+  const u = S.me.user; const box = currentBox();
+  return `<div class="page-head"><h1>حسابي</h1></div>
+  <div class="page" style="padding-top:8px">
+    <div class="card profile"><div class="avatar">${esc((u.full_name||'?').trim()[0])}</div>
+      <div><b>${esc(u.full_name)}</b><span class="hint" style="margin:0">${ROLE[u.role]}</span></div></div>
+    <div class="list menu" style="margin-top:14px">
+      <button class="row" data-act="switch-box"><span class="row-ic">${ic('box')}</span><span class="row-main"><span class="row-title">الصندوق الافتراضي</span><span class="row-sub">${box?esc(box.name):'غير محدد'}</span></span>${ic('chev')}</button>
+      <button class="row" data-act="password"><span class="row-ic">${ic('lock')}</span><span class="row-main"><span class="row-title">تغيير كلمة المرور</span></span>${ic('chev')}</button>
+      <div class="row"><span class="row-ic">${ic('server')}</span><span class="row-main"><span class="row-title">الخادم</span><span class="row-sub">${S.demo?'وضع التجربة':'متصل'}</span></span></div>
+    </div>
+    <div class="list menu" style="margin-top:14px">
+      <button class="row" data-act="logout" style="color:var(--out)"><span class="row-ic" style="background:var(--out-tint);color:var(--out)">${ic('logout')}</span><span class="row-main"><span class="row-title">تسجيل الخروج</span></span></button>
+    </div>
+    <p class="hint" style="text-align:center;margin-top:18px">مسار، الإصدار 1.0</p>
+  </div>`;
+}
+
+/* ---------------- Sheets ---------------- */
+function openSheet(html, { full=false, onMount }={}){
+  closeSheet(true);
+  $('#sheets').innerHTML = `<div class="scrim" data-act="close-sheet"></div>
+    <div class="sheet ${full?'full':''}" role="dialog" aria-modal="true">${full?'':'<div class="sheet-grip"></div>'}${html}</div>`;
+  const sh = $('.sheet'), sc = $('.scrim');
+  requestAnimationFrame(()=>{ sh.classList.add('show'); sc.classList.add('show'); });
+  onMount && onMount(sh);
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet(instant){
+  const sh = $('.sheet'), sc = $('.scrim');
+  document.body.style.overflow = '';
+  if (!sh) return;
+  if (instant){ $('#sheets').innerHTML = ''; return; }
+  sh.classList.remove('show'); sc.classList.remove('show');
+  setTimeout(()=>{ if (!$('.sheet.show')) $('#sheets').innerHTML=''; }, 280);
+}
+const sheetHead = (title, back) => `<div class="sheet-head"><h3>${title}</h3><button class="icon-btn" data-act="${back||'close-sheet'}" aria-label="إغلاق">${ic('x')}</button></div>`;
+
+function setBtnBusy(btn, busy, label){
+  if (!btn) return;
+  if (busy){ btn.dataset.label = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'; }
+  else { btn.disabled = false; btn.innerHTML = label || btn.dataset.label; }
+}
+
+function openServerSheet(){
+  openSheet(`${sheetHead('رابط الخادم')}
+    <div class="sheet-body"><p class="lead">الصق رابط تطبيق الويب من Apps Script. ينتهي بـ <span class="num">/exec</span></p>
+    <div class="field"><input class="input" id="apiUrl" dir="ltr" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(S.api)}"></div>
+    <div class="hint err hidden" id="apiErr"></div></div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="save-server">حفظ واختبار الاتصال</button></div>`);
+}
+async function saveServer(btn){
+  const url = $('#apiUrl').value.trim(); const err = $('#apiErr');
+  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)){ err.textContent='الرابط يجب أن يبدأ بـ https://script.google.com وينتهي بـ /exec'; err.classList.remove('hidden'); return; }
+  setBtnBusy(btn, true);
+  const old = S.api, oldDemo = S.demo; S.api = url; S.demo = false;
+  try { await api('ping'); localStorage.setItem(LS.api, url); localStorage.removeItem(LS.demo); closeSheet(); toast('تم الاتصال بالخادم'); renderLogin(); }
+  catch(x){ S.api = old; S.demo = oldDemo; setBtnBusy(btn, false); err.textContent = x.message; err.classList.remove('hidden'); }
+}
+
+function openBoxSwitch(){
+  const boxes = S.ov.boxes.filter(b => b.type !== 'SYSTEM');
+  openSheet(`${sheetHead('اختر الصندوق')}<div class="sheet-body">
+    <p class="lead">سيبقى محفوظاً على حسابك في المرة القادمة.</p>
+    ${boxes.map(b=>`<button class="pick" data-act="pick-box" data-id="${b.box_id}" aria-pressed="${b.box_id===S.boxId}">
+      <span class="radio"></span><span class="row-main"><b>${esc(b.name)}</b><small>${esc(b.location||'')}</small></span>
+      <span class="amt ${(b.balances.DZD||0)<0?'':'out'}" style="${(b.balances.DZD||0)<0?'color:var(--out)':''}">${(b.balances.DZD||0)<0?'−':''}${fmt(b.balances.DZD||0)}</span></button>`).join('')}
+  </div>`);
+}
+async function pickBox(id){
+  S.boxId = id; S.hist.loaded = false; closeSheet(); rerender();
+  try { await api('setDefaultBox', { box_id:id }); } catch(x){ toast(x.message, true); }
+}
+
+/* ---------------- Entry detail & void ---------------- */
+function findEntry(id){ return S.hist.items.find(e=>e.entry_id===id) || S.ov.recent_entries.find(e=>e.entry_id===id); }
+function openEntry(id){
+  const e = findEntry(id); if (!e) return;
+  const m = entryMeta(e);
+  const rows = [
+    ['النوع', e.entry_type_label], e.category_name && ['التصنيف', e.category_name],
+    e.counterparty && [e.direction==='IN'?'من':'إلى', e.counterparty],
+    ['الصندوق', e.box_name], ['تاريخ العملية', dayLabel(e.entry_date)],
+    ['سجّلها', e.created_by_name], ['وقت التسجيل', `<span class="num">${e.created_at}</span>`],
+    ['رقم القيد', `<span class="num">${e.entry_id}</span>`],
+    e.balance_after!=null && ['الرصيد بعدها', money(e.balance_after, e.currency)],
+    ['الحالة', e.status==='VOIDED'?'<span class="tag grey">ملغى</span>':e.verified?'<span class="tag green">مؤكد</span>':'<span class="tag amber">غير مؤكد</span>']
+  ].filter(Boolean);
+  openSheet(`${sheetHead('تفاصيل العملية')}<div class="sheet-body">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><span class="row-ic ${m.cls}" style="width:46px;height:46px">${ic(m.icon)}</span>
+      <div><div class="amt ${e.direction==='IN'?'in':'out'}" style="font-size:24px">${e.direction==='IN'?'+':'−'} ${fmt(e.amount)} ${CUR[e.currency]||e.currency}</div><div class="hint" style="margin:0">${esc(m.title)}</div></div></div>
+    ${e.description?`<div class="t-note" style="margin:0 0 14px">${esc(e.description)}</div>`:''}
+    <dl class="dl">${rows.map(r=>`<div><dt>${r[0]}</dt><dd>${r[1].startsWith&&r[1].startsWith('<')?r[1]:esc(r[1])}</dd></div>`).join('')}</dl>
+  </div>
+  ${e.can_void?`<div class="sheet-foot"><button class="btn btn-danger btn-block" data-act="void" data-id="${e.entry_id}">إلغاء هذه العملية</button></div>`:''}`);
+}
+function openVoid(id){
+  const e = findEntry(id);
+  openSheet(`${sheetHead('إلغاء العملية')}<div class="sheet-body">
+    <p class="lead">سيُضاف قيد عكسي بمبلغ ${money(e.amount,e.currency)} ويبقى الأصل ظاهراً في السجل كملغى.</p>
+    <div class="field"><label for="vr">سبب الإلغاء</label><textarea class="input" id="vr" placeholder="مثال: سجلت المبلغ مرتين"></textarea></div></div>
+    <div class="sheet-foot"><button class="btn btn-danger btn-block" data-act="void-go" data-id="${id}">تأكيد الإلغاء</button></div>`);
+}
+async function doVoid(id, btn){
+  const reason = $('#vr').value.trim(); if (!reason) return toast('اكتب سبب الإلغاء', true);
+  setBtnBusy(btn, true);
+  try { await api('voidEntry', { entry_id:id, reason }); closeSheet(); toast('أُلغيت العملية'); await refresh(true); if (S.view==='history') loadHistory(); }
+  catch(x){ setBtnBusy(btn,false); toast(x.message, true); }
+}
+
+/* ---------------- Transfer responses ---------------- */
+function findTransfer(id){ return S.trf.items.find(t=>t.transfer_id===id) || S.ov.my_incoming_transfers.find(t=>t.transfer_id===id) || S.ov.pending_transfers.find(t=>t.transfer_id===id); }
+function openConfirm(id){
+  const t = findTransfer(id);
+  openSheet(`${sheetHead('تأكيد الاستلام')}<div class="sheet-body" style="text-align:center">
+    <p class="lead" style="margin-bottom:4px">هل استلمت هذا المبلغ كاملاً من ${esc(t.from_box_name)}؟</p>
+    <div class="t-amt" style="font-size:30px">${money(t.amount,t.currency)}</div>
+    <p class="hint">سيُضاف إلى ${esc(t.to_box_name)} فوراً.</p></div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="t-confirm-go" data-id="${id}">نعم، استلمته كاملاً</button>
+    <button class="btn btn-text btn-block" data-act="t-diff" data-id="${id}">وصلني مبلغ مختلف</button></div>`);
+}
+function openTransferMore(id){
+  openSheet(`${sheetHead('مشكلة في التحويل')}<div class="sheet-body">
+    <button class="opt" data-act="t-diff" data-id="${id}"><span class="row-ic tr">${ic('del')}</span><span><b>وصلني مبلغ ناقص</b><small>سجّل المبلغ الذي استلمته فعلاً</small></span></button>
+    <button class="opt" data-act="t-reject" data-id="${id}"><span class="row-ic out">${ic('x')}</span><span><b>لم يصلني شيء</b><small>يرجع المبلغ لصندوق المرسل</small></span></button>
+  </div>`);
+}
+function openDiff(id){
+  const t = findTransfer(id);
+  const kp = { value:'', currency:t.currency };
+  openSheet(`${sheetHead('المبلغ المستلم فعلاً')}<div class="sheet-body">
+    <p class="lead">المرسَل ${money(t.amount,t.currency)} من ${esc(t.from_box_name)}.</p>
+    ${amountBlock()}
+    <div class="field" style="margin-top:16px"><label for="dn">ماذا حدث؟</label><textarea class="input" id="dn" placeholder="مثال: المبلغ كان ناقصاً عند العد"></textarea></div>
+    <div class="hint warn" id="dshort"></div></div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="t-diff-go" data-id="${id}" disabled>تأكيد المبلغ المستلم</button></div>`,
+    { full:true, onMount: sh => bindKeypad(sh, kp, () => {
+        const v = Number(kp.value)||0; const btn = $('[data-act="t-diff-go"]', sh);
+        btn.disabled = !(v > 0 && v <= t.amount);
+        $('#dshort').textContent = v > t.amount ? 'المبلغ أكبر من المرسَل' : v > 0 && v < t.amount ? `النقص ${fmt(t.amount - v)} ${CUR[t.currency]} سيُسجَّل للمراجعة` : '';
+        btn.dataset.v = v;
+      }) });
+}
+function openReject(id){
+  openSheet(`${sheetHead('لم يصلني شيء')}<div class="sheet-body">
+    <p class="lead">سيرجع المبلغ كاملاً إلى صندوق المرسل ويُبلَّغ بالرفض.</p>
+    <div class="field"><label for="rn">السبب</label><textarea class="input" id="rn" placeholder="مثال: الوسيط لم يسلّمني أي مبلغ"></textarea></div></div>
+    <div class="sheet-foot"><button class="btn btn-danger btn-block" data-act="t-reject-go" data-id="${id}">رفض التحويل</button></div>`);
+}
+function openCancel(id){
+  const t = findTransfer(id);
+  openSheet(`${sheetHead('إلغاء التحويل')}<div class="sheet-body">
+    <p class="lead">سيرجع ${money(t.amount,t.currency)} إلى ${esc(t.from_box_name)}، ولن يستطيع ${esc(t.to_box_name)} تأكيده.</p>
+    <div class="field"><label for="cn">ملاحظة <small>(اختياري)</small></label><input class="input" id="cn"></div></div>
+    <div class="sheet-foot"><button class="btn btn-danger btn-block" data-act="t-cancel-go" data-id="${id}">إلغاء التحويل</button></div>`);
+}
+async function transferAction(action, payload, btn, okMsg){
+  setBtnBusy(btn, true);
+  try { await api(action, payload); closeSheet(); toast(okMsg); await refresh(true); }
+  catch(x){ setBtnBusy(btn,false); toast(x.message, true); }
+}
+
+/* ---------------- Keypad ---------------- */
+function amountBlock(){
+  return `<div class="amount-box active"><div class="amount-top">
+      <span class="cur-pill" data-kp-cur>دج</span>
+      <div class="amount-val" data-kp-val><span class="ph">0</span></div></div>
+    <div class="amount-hint" data-kp-hint></div>
+    <div class="keypad">${['1','2','3','4','5','6','7','8','9','000','0','del'].map(k=>
+      `<button type="button" class="key ${k==='del'||k==='000'?'fn':''}" data-kp="${k}" aria-label="${k==='del'?'حذف':k}">${k==='del'?ic('del'):k}</button>`).join('')}</div></div>`;
+}
+function bindKeypad(root, kp, onChange){
+  const valEl = $('[data-kp-val]', root), hint = $('[data-kp-hint]', root), curEl = $('[data-kp-cur]', root);
+  const paint = () => {
+    const decKey = $('[data-kp="000"]', root);
+    decKey.textContent = kp.currency === 'DZD' ? '000' : '.';
+    curEl.textContent = CUR[kp.currency] || kp.currency;
+    valEl.innerHTML = kp.value ? `<span class="num">${formatTyping(kp.value)}</span>` : `<span class="ph">0</span>`;
+    hint.textContent = kp.currency === 'DZD' ? millions(kp.value) : '';
+    onChange && onChange();
+  };
+  root.addEventListener('click', e => {
+    const k = e.target.closest('[data-kp]'); if (!k) return;
+    let v = kp.value; const key = k.dataset.kp;
+    if (key === 'del') v = v.slice(0,-1);
+    else if (key === '000') { if (kp.currency === 'DZD') { if (v) v += '000'; } else if (!v.includes('.')) v = (v||'0') + '.'; }
+    else { if (v === '0') v = ''; if (v.includes('.') && v.split('.')[1].length >= 2) return; v += key; }
+    if (v.replace('.','').length > 11) return;
+    kp.value = v; paint(); if (navigator.vibrate) navigator.vibrate(8);
+  });
+  kp.paint = paint; paint();
+}
+function formatTyping(v){ const [a,b] = v.split('.'); return nf.format(Number(a||0)) + (b!==undefined ? '.'+b : ''); }
+
+/* ---------------- New operation ---------------- */
+function openChooser(){
+  openSheet(`${sheetHead('عملية جديدة')}<div class="sheet-body">
+    <button class="opt" data-act="op" data-type="income"><span class="row-ic in">${ic('in')}</span><span><b>استلام مبلغ</b><small>دخل إلى صندوقك من أي جهة</small></span></button>
+    <button class="opt" data-act="op" data-type="expense"><span class="row-ic out">${ic('out')}</span><span><b>مصروف</b><small>نقل، أكل، فليكسي، شهريات…</small></span></button>
+    <button class="opt" data-act="op" data-type="transfer"><span class="row-ic tr">${ic('swap')}</span><span><b>تحويل لصندوق آخر</b><small>يصل بعد تأكيد المستلم</small></span></button>
+    <div class="opt soon" aria-disabled="true"><span class="row-ic tr">${ic('car')}</span><span><b>دفعة زبون على سيارة</b><small>قريباً في المرحلة الثانية</small></span></div>
+  </div>`);
+}
+
+const OP_TITLE = { income:'استلام مبلغ', expense:'مصروف جديد', transfer:'تحويل لصندوق آخر' };
+async function openOp(type){
+  const box = currentBox();
+  if (!box) return toast('لا يوجد صندوق مرتبط بحسابك', true);
+  const op = { type, value:'', currency:'DZD', counterparty:'', category_id:'', to_box_id:'', via:'', description:'', unconfirmed:false, date:todayStr() };
+  const needCats = type === 'expense' && !S.cats, needTargets = type === 'transfer' && !S.targets;
+  openSheet(`${sheetHead(OP_TITLE[type])}<div class="sheet-body" id="opBody"><div class="sk" style="height:260px;border-radius:14px"></div></div>`, { full:true });
+  try {
+    if (needCats) S.cats = await api('listCategories');
+    if (needTargets) S.targets = await api('listTransferTargets');
+  } catch(x){ closeSheet(); return toast(x.message, true); }
+  if (!$('#opBody')) return;
+  renderOpForm(op, box);
+}
+
+function renderOpForm(op, box){
+  const sh = $('.sheet');
+  const recent = [...new Set(S.ov.recent_entries.filter(e=>e.entry_type==='INCOME'&&e.counterparty).map(e=>e.counterparty))].slice(0,4);
+  const step1 = op.type === 'income' ? `
+      <div class="field"><label class="field-l" for="cp">من سلّمك المبلغ؟</label>
+        <input class="input" id="cp" placeholder="اسم الشخص أو الجهة" autocomplete="off">
+        ${recent.length?`<div class="suggest">${recent.map(r=>`<button type="button" data-fill="${esc(r)}">${esc(r)}</button>`).join('')}</div>`:''}</div>`
+    : op.type === 'expense' ? `
+      <div class="field"><span class="field-l">التصنيف</span>
+        <div class="cat-grid">${S.cats.map(c=>`<button type="button" class="cat" data-cat="${c.category_id}" aria-pressed="false">${esc(c.name)}</button>`).join('')}</div></div>`
+    : `
+      <div class="field"><span class="field-l">إلى أي صندوق؟</span>
+        ${S.targets.filter(b=>b.box_id!==box.box_id).map(b=>`<button type="button" class="pick" data-to="${b.box_id}" aria-pressed="false"><span class="radio"></span><span class="row-main"><b>${esc(b.name)}</b><small>${esc(b.location||'')}</small></span></button>`).join('')}</div>`;
+
+  $('#opBody').innerHTML = `
+    <div class="hint" style="margin:0 0 14px;display:flex;align-items:center;gap:6px">${ic('box')}${op.type==='income'?'إلى':'من'} <b style="color:var(--ink);font-weight:500">${esc(box.name)}</b></div>
+    ${step1}
+    <div class="field hidden" id="stepAmount"><span class="field-l">المبلغ</span>${amountBlock()}
+      <div class="hint warn" id="balWarn"></div></div>
+    <div class="hidden" id="stepMore">
+      ${op.type==='transfer'?`<div class="field"><label class="field-l" for="via">عن طريق <small>(اختياري)</small></label><input class="input" id="via" placeholder="مثال: صديق نبيل، سائق الشاحنة"></div>`:''}
+      <div class="field"><label class="field-l" for="desc">${op.type==='expense'?'تفاصيل المصروف':'ملاحظة'} <small>(اختياري)</small></label>
+        <input class="input" id="desc" placeholder="${op.type==='income'?'مثال: تكملة كولوراي لاتوت':op.type==='expense'?'مثال: أجرة شاحنة من سكيكدة':'سبب التحويل'}"></div>
+      ${op.type==='income'?`<div class="field"><div class="switch-row"><span><b>المبلغ غير مؤكد بعد</b><small>يظهر للمحاسب ليثبّته لاحقاً</small></span>
+        <button type="button" class="switch" role="switch" aria-checked="false" id="unc" aria-label="المبلغ غير مؤكد"></button></div></div>`:''}
+      <div class="field"><div class="date-row"><span>تاريخ العملية</span><input type="date" id="dt" value="${op.date}" max="${op.date}"></div></div>
+    </div>`;
+  const foot = document.createElement('div'); foot.className = 'sheet-foot';
+  foot.innerHTML = `<button class="btn btn-primary btn-block" id="opSave" disabled>أكمل البيانات</button>`;
+  sh.appendChild(foot);
+
+  const body = $('#opBody');
+  const show = (el, on) => { if (on && el.classList.contains('hidden')) { el.classList.remove('hidden'); el.classList.add('reveal'); } else if (!on) el.classList.add('hidden'); };
+  const bal = (box.balances||{}).DZD || 0;
+
+  const update = () => {
+    const ready1 = op.type==='income' ? op.counterparty.trim().length >= 2 : op.type==='expense' ? !!op.category_id : !!op.to_box_id;
+    show($('#stepAmount'), ready1);
+    const v = Number(op.value) || 0;
+    show($('#stepMore'), ready1 && v > 0);
+    const w = $('#balWarn');
+    w.textContent = op.type !== 'income' && op.currency === 'DZD' && v > bal ? `المبلغ أكبر من رصيد الصندوق (${fmt(bal)} دج). سيصبح الرصيد بالسالب.` : '';
+    const btn = $('#opSave'); const ok = ready1 && v > 0;
+    btn.disabled = !ok;
+    const verb = op.type==='income'?'حفظ الاستلام':op.type==='expense'?'حفظ المصروف':'إرسال التحويل';
+    btn.textContent = ok ? `${verb} ${fmt(v)} ${CUR[op.currency]}` : 'أكمل البيانات';
+  };
+
+  body.addEventListener('input', e => {
+    if (e.target.id==='cp') op.counterparty = e.target.value;
+    if (e.target.id==='via') op.via = e.target.value;
+    if (e.target.id==='desc') op.description = e.target.value;
+    if (e.target.id==='dt') op.date = e.target.value;
+    update();
+  });
+  body.addEventListener('click', e => {
+    const f = e.target.closest('[data-fill]'); if (f){ $('#cp').value = op.counterparty = f.dataset.fill; update(); }
+    const c = e.target.closest('[data-cat]');
+    if (c){ op.category_id = c.dataset.cat; body.querySelectorAll('[data-cat]').forEach(x=>x.setAttribute('aria-pressed', x===c)); update(); }
+    const t = e.target.closest('[data-to]');
+    if (t){ op.to_box_id = t.dataset.to; body.querySelectorAll('[data-to]').forEach(x=>x.setAttribute('aria-pressed', x===t)); update(); }
+    const s = e.target.closest('#unc');
+    if (s){ op.unconfirmed = !op.unconfirmed; s.setAttribute('aria-checked', op.unconfirmed); }
+    const cur = e.target.closest('[data-kp-cur]');
+    if (cur){ const list = S.me.currencies || ['DZD']; op.currency = list[(list.indexOf(op.currency)+1)%list.length]; if (op.currency==='DZD') op.value = op.value.split('.')[0]; op.paint(); }
+  });
+  bindKeypad(body, op, update);
+  foot.querySelector('#opSave').addEventListener('click', () => submitOp(op, box));
+  update();
+}
+
+async function submitOp(op, box){
+  const btn = $('#opSave'); setBtnBusy(btn, true);
+  const amount = Number(op.value);
+  try {
+    let r, title, note, amber = false;
+    if (op.type === 'income'){
+      r = await api('recordIncome', { box_id:box.box_id, amount, currency:op.currency, counterparty:op.counterparty.trim(), description:op.description.trim(), unconfirmed:op.unconfirmed, entry_date:op.date });
+      title = 'تم حفظ الاستلام'; note = `من ${op.counterparty.trim()}`;
+    } else if (op.type === 'expense'){
+      r = await api('recordExpense', { box_id:box.box_id, amount, currency:op.currency, category_id:op.category_id, description:op.description.trim(), entry_date:op.date });
+      title = 'تم حفظ المصروف'; note = S.cats.find(c=>c.category_id===op.category_id).name;
+    } else {
+      r = await api('createTransfer', { from_box_id:box.box_id, to_box_id:op.to_box_id, amount, currency:op.currency, via:op.via.trim(), description:op.description.trim(), entry_date:op.date });
+      const to = S.targets.find(b=>b.box_id===op.to_box_id).name;
+      title = 'أُرسل التحويل'; note = `بانتظار تأكيد ${to}`; amber = true;
+    }
+    const newBal = r.balance ? r.balance[op.currency] : null;
+    const warn = (r.warnings||[])[0];
+    openSheet(`<div class="sheet-body"><div class="success">
+        <div class="check ${amber?'amber':''}">${amber?`<svg class="i" viewBox="0 0 24 24">${I.clock}</svg>`:`<svg class="i" viewBox="0 0 24 24">${I.check}</svg>`}</div>
+        <h3>${title}</h3><p>${esc(note)}</p>
+        <div class="big">${money(amount, op.currency)}</div>
+        ${newBal!=null&&!amber?`<span class="after">رصيد الصندوق الآن <b class="num">${newBal<0?'−':''}${fmt(newBal)}</b></span>`:''}
+        ${warn?`<p class="hint warn" style="margin-top:10px">${esc(warn)}</p>`:''}
+      </div></div>
+      <div class="sheet-foot" style="display:flex;gap:8px">
+        <button class="btn btn-ghost" style="flex:1" data-act="op" data-type="${op.type}">عملية أخرى</button>
+        <button class="btn btn-primary" style="flex:1" data-act="close-sheet">تم</button></div>`);
+    refresh(true);
+  } catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
+}
+
+function openPassword(){
+  openSheet(`${sheetHead('تغيير كلمة المرور')}<div class="sheet-body">
+    <div class="field"><label for="op1">كلمة المرور الحالية</label><input class="input" id="op1" type="password" dir="ltr" autocomplete="current-password"></div>
+    <div class="field"><label for="op2">كلمة المرور الجديدة</label><input class="input" id="op2" type="password" dir="ltr" autocomplete="new-password"><div class="hint">6 أحرف على الأقل</div></div></div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="password-go">حفظ كلمة المرور</button></div>`);
+}
+
+/* ---------------- Global events ---------------- */
+document.addEventListener('click', async e => {
+  const el = e.target.closest('[data-act]'); if (!el || el.disabled) return;
+  const a = el.dataset.act, id = el.dataset.id;
+  switch (a){
+    case 'tab': S.view = el.dataset.v; closeSheet(true); renderShell(false); window.scrollTo(0,0); break;
+    case 'refresh': refresh(); break;
+    case 'new-op': openChooser(); break;
+    case 'op': closeSheet(true); openOp(el.dataset.type); break;
+    case 'close-sheet': closeSheet(); break;
+    case 'switch-box': openBoxSwitch(); break;
+    case 'pick-box': pickBox(id); break;
+    case 'entry': openEntry(id); break;
+    case 'void': openVoid(id); break;
+    case 'void-go': doVoid(id, el); break;
+    case 'hfilter': S.hist.filter = el.dataset.f; rerender(); break;
+    case 'hmore': setBtnBusy(el, true); loadHistory(true); break;
+    case 'ttab': S.trf.tab = el.dataset.t; rerender(); break;
+    case 't-confirm': openConfirm(id); break;
+    case 't-more': openTransferMore(id); break;
+    case 't-diff': openDiff(id); break;
+    case 't-reject': openReject(id); break;
+    case 't-cancel': openCancel(id); break;
+    case 't-confirm-go': transferAction('confirmTransfer', { transfer_id:id }, el, 'تم تأكيد الاستلام'); break;
+    case 't-diff-go': { const note = $('#dn').value.trim(); const v = Number(el.dataset.v);
+      if (v < findTransfer(id).amount && !note) return toast('اكتب ماذا حدث للمبلغ الناقص', true);
+      transferAction('confirmTransfer', { transfer_id:id, received_amount:v, note }, el, 'تم تسجيل المبلغ المستلم'); break; }
+    case 't-reject-go': { const note = $('#rn').value.trim(); if (!note) return toast('اكتب سبب الرفض', true);
+      transferAction('rejectTransfer', { transfer_id:id, note }, el, 'رُفض التحويل ورجع المبلغ للمرسل'); break; }
+    case 't-cancel-go': transferAction('cancelTransfer', { transfer_id:id, note:$('#cn').value.trim() }, el, 'أُلغي التحويل'); break;
+    case 'account': break;
+    case 'password': openPassword(); break;
+    case 'password-go': { setBtnBusy(el, true);
+      try { await api('changePassword', { old_password:$('#op1').value, new_password:$('#op2').value }); closeSheet(); toast('تم تغيير كلمة المرور'); }
+      catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'logout': try { await api('logout'); } catch(_){} if (S.demo){ S.demo=false; localStorage.removeItem(LS.demo); } signOutLocal(); break;
+    case 'server': openServerSheet(); break;
+    case 'save-server': saveServer(el); break;
+    case 'demo': S.demo = true; localStorage.setItem(LS.demo,'1'); S.token = 'demo'; localStorage.setItem(LS.token,'demo'); loadApp(); break;
+    case 'pw-toggle': { const p = $('#p'); p.type = p.type==='password'?'text':'password'; break; }
+  }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+
+/* =========================================================
+   Mock: خادم وهمي لوضع التجربة. نفس شكل ردود الـAPI الحقيقي.
+   ========================================================= */
+const Mock = (() => {
+  const d = n => localDate(new Date(Date.now() - n*864e5));
+  const ts = (n, hm) => `${d(n)} ${hm}:00`;
+  const hoursAgo = h => { const t = new Date(Date.now()-h*36e5); return `${localDate(t)} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:00`; };
+  const me = { user_id:'U1', username:'demo', full_name:'لطفي القايد', role:'KEEPER' };
+  const users = { U1:'لطفي القايد', U2:'نبيل', U3:'أنور بابا طاهر', U4:'حشيفة إسماعيل' };
+  const boxes = [
+    { box_id:'B1', name:'صندوق القايد', type:'CASH', location:'العاصمة', k:['U1'] },
+    { box_id:'B6', name:'بريدي موب القايد', type:'POSTAL', location:'حساب بريدي', k:['U1'] },
+    { box_id:'B2', name:'منزل نبيل', type:'CASH', location:'قورصو', k:['U2'] },
+    { box_id:'B3', name:'مكتب ورقلة', type:'CASH', location:'ورقلة', k:['U3'] },
+    { box_id:'B4', name:'حشيفة إسماعيل', type:'CASH', location:'الوادي', k:['U4'] }
+  ];
+  const cats = ['نقل وتنقل','أكل وشرب','اندرايف وطاكسي','فليكسي وانترنت','تأمين سيارات','ماتريكيل','ديباناج وشاحنات نقل','شهريات','سلف','مصاريف المكتب','ضرائب ورسوم','أخرى'].map((n,i)=>({category_id:'C'+(i+1), name:n}));
+  const TL = { OPENING:'رصيد افتتاحي', INCOME:'دخل', EXPENSE:'مصروف', TRANSFER_OUT:'تحويل صادر', TRANSFER_IN:'تحويل وارد', TRANSFER_RETURN:'إرجاع تحويل', REVERSAL:'إلغاء قيد' };
+  let seq = 100;
+  const L = [];
+  const add = (o) => { const e = Object.assign({ entry_id:'ENT-'+String(++seq).padStart(6,'0'), currency:'DZD', category_id:'', counterparty:'', description:'', verified:true, status:'ACTIVE', created_by:'U1', transfer_id:'' }, o); L.push(e); return e; };
+  add({ box_id:'B1', entry_date:d(4), created_at:ts(4,'09:00'), direction:'IN', amount:4200000, entry_type:'OPENING', description:'رصيد افتتاحي منقول من ملف الإكسل', created_by:'U2' });
+  add({ box_id:'B1', entry_date:d(4), created_at:ts(4,'09:01'), direction:'IN', amount:1600, currency:'EUR', entry_type:'OPENING', created_by:'U2' });
+  add({ box_id:'B2', entry_date:d(4), created_at:ts(4,'09:02'), direction:'IN', amount:12270000, entry_type:'OPENING', created_by:'U2' });
+  add({ box_id:'B3', entry_date:d(4), created_at:ts(4,'09:03'), direction:'IN', amount:2100000, entry_type:'OPENING', created_by:'U2' });
+  add({ box_id:'B4', entry_date:d(4), created_at:ts(4,'09:04'), direction:'IN', amount:3000000, entry_type:'OPENING', created_by:'U2' });
+  add({ box_id:'B1', entry_date:d(2), created_at:ts(2,'11:20'), direction:'IN', amount:3400000, entry_type:'INCOME', counterparty:'زغوان الياس', description:'تكملة كولوراي لاتوت قري' });
+  add({ box_id:'B1', entry_date:d(2), created_at:ts(2,'16:05'), direction:'OUT', amount:85000, entry_type:'EXPENSE', category_id:'C7', description:'أجرة شاحنة من سكيكدة' });
+  const t0 = add({ box_id:'B1', entry_date:d(1), created_at:ts(1,'10:40'), direction:'OUT', amount:1500000, entry_type:'TRANSFER_OUT', counterparty:'منزل نبيل', transfer_id:'TRF-000001', description:'تحويل إلى منزل نبيل' });
+  add({ box_id:'B2', entry_date:d(1), created_at:ts(1,'13:10'), direction:'IN', amount:1500000, entry_type:'TRANSFER_IN', counterparty:'صندوق القايد', transfer_id:'TRF-000001', created_by:'U2' });
+  add({ box_id:'B1', entry_date:d(0), created_at:ts(0,'09:15'), direction:'IN', amount:1000000, entry_type:'INCOME', counterparty:'بن عومر محمد', description:'ديوانة MG5', verified:false });
+  add({ box_id:'B1', entry_date:d(0), created_at:ts(0,'10:02'), direction:'OUT', amount:2000, entry_type:'EXPENSE', category_id:'C4', description:'فليكسي' });
+  add({ box_id:'B3', entry_date:d(0), created_at:hoursAgo(3), direction:'OUT', amount:1200000, entry_type:'TRANSFER_OUT', counterparty:'صندوق القايد', transfer_id:'TRF-000002', created_by:'U3' });
+  add({ box_id:'B1', entry_date:d(0), created_at:hoursAgo(1.2), direction:'OUT', amount:300000, entry_type:'TRANSFER_OUT', counterparty:'حشيفة إسماعيل', transfer_id:'TRF-000003' });
+  const T = [
+    { transfer_id:'TRF-000001', from_box_id:'B1', to_box_id:'B2', amount:1500000, currency:'DZD', received_amount:1500000, status:'CONFIRMED', via:'صديق نبيل', description:'', created_by:'U1', created_at:ts(1,'10:40'), responded_by:'U2', responded_at:ts(1,'13:10'), response_note:'' },
+    { transfer_id:'TRF-000002', from_box_id:'B3', to_box_id:'B1', amount:1200000, currency:'DZD', received_amount:null, status:'PENDING', via:'أنور', description:'مبالغ زبائن ورقلة', created_by:'U3', created_at:hoursAgo(3), response_note:'' },
+    { transfer_id:'TRF-000003', from_box_id:'B1', to_box_id:'B4', amount:300000, currency:'DZD', received_amount:null, status:'PENDING', via:'صلاح', description:'', created_by:'U1', created_at:hoursAgo(1.2), response_note:'' }
+  ];
+  const now = () => { const t = new Date(); return `${localDate(t)} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`; };
+  const box = id => boxes.find(b=>b.box_id===id);
+  const mine = b => b.k.includes('U1');
+  const bal = id => { const r = {}; L.filter(e=>e.box_id===id).forEach(e=>{ r[e.currency]=(r[e.currency]||0)+(e.direction==='IN'?e.amount:-e.amount); }); return r; };
+  const pend = (id, dir) => { const r = {}; T.filter(t=>t.status==='PENDING'&&(dir==='in'?t.to_box_id:t.from_box_id)===id).forEach(t=>r[t.currency]=(r[t.currency]||0)+t.amount); return r; };
+  const hrs = s => Math.round((Date.now() - new Date(s.replace(' ','T')).getTime())/36e5);
+  const enrich = e => Object.assign({}, e, { box_name:box(e.box_id).name, entry_type_label:TL[e.entry_type]||e.entry_type, category_name:(cats.find(c=>c.category_id===e.category_id)||{}).name||'', created_by_name:users[e.created_by], can_void: e.status==='ACTIVE'&&e.created_by==='U1'&&e.created_at.slice(0,10)===localDate(new Date())&&!/^TRANSFER_|REVERSAL/.test(e.entry_type) });
+  const desc = t => { const f=box(t.from_box_id), to=box(t.to_box_id), p=t.status==='PENDING';
+    return Object.assign({}, t, { from_box_name:f.name, to_box_name:to.name, status_label:{PENDING:'معلّق',CONFIRMED:'مؤكَّد',REJECTED:'مرفوض',CANCELLED:'ملغى'}[t.status], created_by_name:users[t.created_by], age_hours:p?hrs(t.created_at):null, can_confirm:p&&mine(to), can_cancel:p&&mine(f) }); };
+  const err = (m) => { throw Object.assign(new Error(m), { code:'DEMO' }); };
+  const sorted = () => L.slice().sort((a,b)=> a.entry_date===b.entry_date ? (a.created_at<b.created_at?-1:1) : (a.entry_date<b.entry_date?-1:1));
+
+  const H = {
+    login: p => { if (p.username !== 'demo' || p.password !== 'demo') err('في وضع التجربة استعمل demo / demo'); return { token:'demo' }; },
+    logout: () => ({}),
+    getMe: () => ({ user:me, boxes:boxes.filter(mine).map(b=>({box_id:b.box_id,name:b.name,type:b.type,location:b.location})), default_box_id:'B1', pending_incoming_transfers:1, currencies:['DZD','EUR','USD','SAR','LYD'] }),
+    setDefaultBox: () => ({}),
+    getOverview: () => {
+      const vis = boxes.filter(mine);
+      const td = localDate(new Date()); const today = { in:{}, out:{}, count:0 };
+      L.filter(e=>vis.some(b=>b.box_id===e.box_id)&&e.entry_date===td&&!/^TRANSFER_/.test(e.entry_type)).forEach(e=>{ const k=e.direction==='IN'?'in':'out'; today[k][e.currency]=(today[k][e.currency]||0)+e.amount; today.count++; });
+      return {
+        boxes: vis.map(b=>({ box_id:b.box_id, name:b.name, type:b.type, location:b.location, balances:bal(b.box_id), pending_in:pend(b.box_id,'in'), pending_out:pend(b.box_id,'out') })),
+        my_incoming_transfers: T.filter(t=>t.status==='PENDING'&&mine(box(t.to_box_id))).map(desc),
+        pending_transfers: T.filter(t=>t.status==='PENDING').map(desc),
+        recent_entries: sorted().filter(e=>vis.some(b=>b.box_id===e.box_id)).reverse().slice(0,15).map(enrich),
+        today, alerts:[]
+      };
+    },
+    listEntries: p => {
+      let run = 0; const rows = sorted().filter(e=>e.box_id===p.box_id&&e.currency==='DZD'||e.box_id===p.box_id).map(e=>{ if(e.currency==='DZD'){ run += e.direction==='IN'?e.amount:-e.amount; } return Object.assign(enrich(e), { balance_after: e.currency==='DZD'?run:null }); }).reverse();
+      return { total: rows.length, items: rows.slice(p.offset||0, (p.offset||0)+(p.limit||50)) };
+    },
+    listCategories: () => cats,
+    listTransferTargets: () => boxes.map(b=>({box_id:b.box_id,name:b.name,location:b.location,type:b.type})),
+    listTransfers: () => ({ items: T.slice().sort((a,b)=>a.created_at<b.created_at?1:-1).map(desc) }),
+    recordIncome: p => { const e = add({ box_id:p.box_id, entry_date:p.entry_date, created_at:now(), direction:'IN', amount:p.amount, currency:p.currency, entry_type:'INCOME', counterparty:p.counterparty, description:p.description, verified:!p.unconfirmed }); return { entry:e, balance:bal(p.box_id), warnings:[] }; },
+    recordExpense: p => { add({ box_id:p.box_id, entry_date:p.entry_date, created_at:now(), direction:'OUT', amount:p.amount, currency:p.currency, entry_type:'EXPENSE', category_id:p.category_id, description:p.description }); const b=bal(p.box_id); return { balance:b, warnings: (b[p.currency]||0)<0?['تنبيه: رصيد الصندوق أصبح بالسالب']:[] }; },
+    createTransfer: p => { const id='TRF-'+String(T.length+1).padStart(6,'0'); const to=box(p.to_box_id);
+      add({ box_id:p.from_box_id, entry_date:p.entry_date, created_at:now(), direction:'OUT', amount:p.amount, currency:p.currency, entry_type:'TRANSFER_OUT', counterparty:to.name, transfer_id:id });
+      T.push({ transfer_id:id, from_box_id:p.from_box_id, to_box_id:p.to_box_id, amount:p.amount, currency:p.currency, received_amount:null, status:'PENDING', via:p.via, description:p.description, created_by:'U1', created_at:now(), response_note:'' });
+      return { transfer: desc(T[T.length-1]), balance: bal(p.from_box_id), warnings:[] }; },
+    confirmTransfer: p => { const t=T.find(x=>x.transfer_id===p.transfer_id); const rec = p.received_amount || t.amount;
+      add({ box_id:t.to_box_id, entry_date:localDate(new Date()), created_at:now(), direction:'IN', amount:rec, currency:t.currency, entry_type:'TRANSFER_IN', counterparty:box(t.from_box_id).name, transfer_id:t.transfer_id });
+      Object.assign(t, { status:'CONFIRMED', received_amount:rec, response_note:p.note||'', responded_at:now() }); return { transfer:desc(t) }; },
+    rejectTransfer: p => back(p, 'REJECTED'),
+    cancelTransfer: p => back(p, 'CANCELLED'),
+    voidEntry: p => { const e=L.find(x=>x.entry_id===p.entry_id); add({ box_id:e.box_id, entry_date:localDate(new Date()), created_at:now(), direction:e.direction==='IN'?'OUT':'IN', amount:e.amount, currency:e.currency, entry_type:'REVERSAL', counterparty:e.counterparty, description:'إلغاء: '+p.reason }); e.status='VOIDED'; return {}; },
+    changePassword: () => err('غير متاح في وضع التجربة'),
+    ping: () => ({ pong:true })
+  };
+  function back(p, st){ const t=T.find(x=>x.transfer_id===p.transfer_id);
+    add({ box_id:t.from_box_id, entry_date:localDate(new Date()), created_at:now(), direction:'IN', amount:t.amount, currency:t.currency, entry_type:'TRANSFER_RETURN', counterparty:box(t.to_box_id).name, transfer_id:t.transfer_id });
+    Object.assign(t, { status:st, response_note:p.note||'', responded_at:now() }); return { transfer:desc(t) }; }
+  return { handle: (action, p) => new Promise((res, rej) => setTimeout(() => { try { if (!H[action]) err('غير متاح في وضع التجربة'); res(H[action](p||{})); } catch(x){ rej(x); } }, 380)) };
+})();
+
+boot();
+</script>
+</body>
+</html>
