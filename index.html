@@ -302,7 +302,7 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 
 <script>
 /* =========================================================
-   مسار: تطبيق الصناديق للهاتف
+   سند كار: تطبيق الصناديق للهاتف
    ضع رابط Apps Script (ينتهي بـ /exec) هنا، أو أدخله من شاشة الدخول.
    ========================================================= */
 const CONFIG = { API_URL: '' };
@@ -410,7 +410,7 @@ function renderLogin(err=''){
         <path d="M40 400 C 70 300, 150 250, 130 130 S 170 0, 200 -40" fill="none" stroke="#243140" stroke-width="70"/>
         <path d="M40 400 C 70 300, 150 250, 130 130 S 170 0, 200 -40" fill="none" stroke="#E9A20C" stroke-width="3" stroke-dasharray="16 20" opacity=".7"/>
       </svg>
-      <div class="brand"><div class="brand-mark">${MARK}</div><div><h1>مسار</h1><p>صناديق وتحويلات استيراد السيارات</p></div></div>
+      <div class="brand"><div class="brand-mark">${MARK}</div><div><h1>سند كار</h1><p>صناديق وتحويلات استيراد السيارات</p></div></div>
     </div>
     <form class="login-card" id="loginForm" novalidate>
       <h2>تسجيل الدخول</h2><p>استعمل الحساب الذي أنشأه لك المدير.</p>
@@ -532,7 +532,7 @@ function animateOdo(){
 /* ---------------- Home ---------------- */
 function viewHome(){
   const box = currentBox();
-  if (!box) return `<div class="page-head"><h1>مسار</h1></div><div class="page"><div class="card empty">${ic('box')}<b>لا يوجد صندوق مرتبط بحسابك</b>اطلب من المدير إضافتك إلى صندوق، ثم حدّث الصفحة.</div></div>`;
+  if (!box) return `<div class="page-head"><h1>سند كار</h1></div><div class="page"><div class="card empty">${ic('box')}<b>لا يوجد صندوق مرتبط بحسابك</b>اطلب من المدير إضافتك إلى صندوق، ثم حدّث الصفحة.</div></div>`;
   const bal = box.balances || {}; const dzd = bal.DZD || 0;
   const fx = Object.keys(bal).filter(c => c !== 'DZD' && bal[c]);
   const pin = box.pending_in?.DZD || 0, pout = box.pending_out?.DZD || 0;
@@ -700,7 +700,7 @@ function viewAccount(){
     <div class="list menu" style="margin-top:14px">
       <button class="row" data-act="logout" style="color:var(--out)"><span class="row-ic" style="background:var(--out-tint);color:var(--out)">${ic('logout')}</span><span class="row-main"><span class="row-title">تسجيل الخروج</span></span></button>
     </div>
-    <p class="hint" style="text-align:center;margin-top:18px">مسار، الإصدار 1.0</p>
+    <p class="hint" style="text-align:center;margin-top:18px">سند كار، الإصدار 1.0</p>
   </div>`;
 }
 
