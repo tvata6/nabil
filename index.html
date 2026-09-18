@@ -1355,7 +1355,15 @@ async function saveUserForm(f, u){
 }
 
 function openCreds(r, kind){
-  const u = r.user;
+  // الرد قد يأتي بشكل { user, username, temp_password } أو بالحقول مباشرة (نسخة خادم أقدم)
+  r = r || {};
+  const u = Object.assign({ full_name: 'المستخدم', role: 'KEEPER', boxes: [], phone: '' }, r.user || r);
+  r = { username: r.username || u.username || '', temp_password: r.temp_password || r.password || '', user: u };
+  if (!r.temp_password){
+    closeSheet();
+    toast('أُنشئ الحساب لكن لم تصل كلمة المرور من الخادم. استعمل «إعادة تعيين كلمة المرور» للحصول عليها', true);
+    return;
+  }
   const url = /^https?:$/.test(location.protocol) ? location.origin + location.pathname : '';
   const msg = [
     `السلام عليكم ${u.full_name}`,
@@ -1367,7 +1375,7 @@ function openCreds(r, kind){
   ].filter(Boolean).join('\n');
   S._credMsg = msg;
   const sub = kind === 'new'
-    ? (u.boxes.length ? `${ROLE[u.role]}، يمسك ${u.boxes.map(b=>b.name).join('، ')}` : ROLE[u.role])
+    ? ((u.boxes || []).length ? `${ROLE[u.role] || ''}، يمسك ${u.boxes.map(b=>b.name).join('، ')}` : (ROLE[u.role] || ''))
     : `أُخرج ${u.full_name} من كل أجهزته`;
   openSheet(`<div class="sheet-body">
     <div class="success" style="padding-bottom:16px"><div class="check"><svg class="i" viewBox="0 0 24 24">${I.check}</svg></div>
