@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#19222D">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="سند كار">
-<title>سند كار</title>
+<meta name="apple-mobile-web-app-title" content="مسار">
+<title>مسار</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -290,6 +290,21 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 .avatar{width:52px;height:52px;border-radius:16px;background:var(--asphalt);color:#fff;display:grid;place-items:center;font-size:20px;font-weight:600}
 .profile b{display:block;font-size:17px;font-weight:600}
 .menu .row{min-height:56px}
+.avatar.sm{width:40px;height:40px;border-radius:12px;font-size:16px;flex:none}
+.avatar.off{background:var(--line);color:var(--muted)}
+.pick .radio.sq{border-radius:6px}
+.pick[aria-pressed="true"] .radio.sq::after{border-radius:2px}
+.pick[disabled]{opacity:.5;cursor:not-allowed}
+.nb{margin:4px 0 8px;padding:14px;border-radius:12px;background:var(--paper)}
+.nb .input{background:var(--surface)}
+.cred{border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden}
+.cred > div{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;column-gap:8px;padding:10px 8px 10px 14px;border-bottom:1px solid var(--line-2);align-items:center}
+.cred > div:last-child{border-bottom:0}
+.cred span{grid-column:1;color:var(--muted);font-size:12.5px}
+.cred b{grid-column:1;font-size:20px;font-weight:600;letter-spacing:.02em;text-align:start;unicode-bidi:plaintext}
+.cred .icon-btn{grid-column:2;grid-row:1 / span 2;color:var(--petrol);background:var(--petrol-tint)}
+a.btn{text-decoration:none}
+svg.i.sm{width:18px;height:18px}
 .menu .row-ic{background:var(--paper);color:var(--muted)}
 
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -302,7 +317,7 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 
 <script>
 /* =========================================================
-   سند كار: تطبيق الصناديق للهاتف
+   مسار: تطبيق الصناديق للهاتف
    ضع رابط Apps Script (ينتهي بـ /exec) هنا، أو أدخله من شاشة الدخول.
    ========================================================= */
 const CONFIG = { API_URL: '' };
@@ -315,7 +330,8 @@ const S = {
   me: null, ov: null, boxId: null, view: 'home', busy: false,
   hist: { filter: 'all', items: [], total: 0, loaded: false, boxId: null },
   trf: { tab: 'wait', items: [], loaded: false },
-  cats: null, targets: null, odo: {}
+  cats: null, targets: null, odo: {},
+  adm: { loaded:false, users:[], boxes:[] }, _pw: null, _credMsg: ''
 };
 
 /* ---------------- Icons ---------------- */
@@ -342,6 +358,9 @@ const I = {
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   del:'<path d="M20 7H9l-5 5 5 5h11a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1zM12 10l4 4M16 10l-4 4"/>',
   car:'<path d="M5 16h14M6.5 16v2M17.5 16v2M4 16v-3l2-5h12l2 5v3"/><path d="M7.5 13h.01M16.5 13h.01"/>',
+  copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/>',
+  chat:'<path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .6 3.2 2.5 3.8 5.5"/>',
   pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'
 };
 const ic = (n, cls='') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
@@ -410,7 +429,7 @@ function renderLogin(err=''){
         <path d="M40 400 C 70 300, 150 250, 130 130 S 170 0, 200 -40" fill="none" stroke="#243140" stroke-width="70"/>
         <path d="M40 400 C 70 300, 150 250, 130 130 S 170 0, 200 -40" fill="none" stroke="#E9A20C" stroke-width="3" stroke-dasharray="16 20" opacity=".7"/>
       </svg>
-      <div class="brand"><div class="brand-mark">${MARK}</div><div><h1>سند كار</h1><p>صناديق وتحويلات استيراد السيارات</p></div></div>
+      <div class="brand"><div class="brand-mark">${MARK}</div><div><h1>مسار</h1><p>صناديق وتحويلات استيراد السيارات</p></div></div>
     </div>
     <form class="login-card" id="loginForm" novalidate>
       <h2>تسجيل الدخول</h2><p>استعمل الحساب الذي أنشأه لك المدير.</p>
@@ -435,7 +454,7 @@ function renderLogin(err=''){
     setBtnBusy($('#loginBtn'), true);
     try {
       const r = await api('login', { username:u, password:p });
-      S.token = r.token; localStorage.setItem(LS.token, r.token);
+      S.token = r.token; localStorage.setItem(LS.token, r.token); S._pw = p;
       loadApp();
     } catch(x){ setBtnBusy($('#loginBtn'), false, 'دخول'); renderLoginErr(x.message); }
   });
@@ -449,6 +468,7 @@ function renderLoginErr(m){
 function signOutLocal(){
   S.token = null; S.me = null; S.ov = null; localStorage.removeItem(LS.token);
   S.hist = { filter:'all', items:[], total:0, loaded:false }; S.trf = { tab:'wait', items:[], loaded:false };
+  S.adm = { loaded:false, users:[], boxes:[] }; S._pw = null; S.view = 'home';
   renderLogin();
 }
 
@@ -456,10 +476,16 @@ async function loadApp(){
   renderShell(true);
   try {
     S.me = await api('getMe');
-    const ids = S.me.boxes.map(b => b.box_id);
-    S.boxId = ids.includes(S.me.default_box_id) ? S.me.default_box_id : (ids[0] || null);
-    await refresh(true);
+    if (S.me.must_change_password) return renderForcePassword();
+    await startApp();
   } catch(x){ if (S.token) { renderShell(false); toast(x.message, true); } }
+}
+async function startApp(){
+  S._pw = null;
+  renderShell(true);
+  const ids = S.me.boxes.map(b => b.box_id);
+  S.boxId = ids.includes(S.me.default_box_id) ? S.me.default_box_id : (ids[0] || null);
+  await refresh(true);
 }
 
 async function refresh(silent){
@@ -486,7 +512,7 @@ function renderShell(loading){
   <nav class="tabbar" aria-label="التنقل">
     ${tabs.map(t => t[0]==='plus'
       ? `<button class="tab-plus" data-act="new-op" aria-label="عملية جديدة">${ic('plus')}</button>`
-      : `<button class="tab" data-act="tab" data-v="${t[0]}" ${S.view===t[0]?'aria-current="page"':''}>${ic(t[1])}<span>${t[2]}</span>${t[0]==='transfers'&&n?`<span class="badge">${n}</span>`:''}</button>`).join('')}
+      : `<button class="tab" data-act="tab" data-v="${t[0]}" ${(S.view.startsWith('admin')?'account':S.view)===t[0]?'aria-current="page"':''}>${ic(t[1])}<span>${t[2]}</span>${t[0]==='transfers'&&n?`<span class="badge">${n}</span>`:''}</button>`).join('')}
   </nav>`;
   if (!loading) afterRender();
 }
@@ -495,6 +521,8 @@ function renderView(){
   if (S.view === 'history') return viewHistory();
   if (S.view === 'transfers') return viewTransfers();
   if (S.view === 'account') return viewAccount();
+  if (S.view === 'admin-users') return viewAdminUsers();
+  if (S.view === 'admin-boxes') return viewAdminBoxes();
   return viewHome();
 }
 function rerender(){ $('#view').innerHTML = renderView(); afterRender(); }
@@ -502,6 +530,7 @@ function afterRender(){
   animateOdo();
   if (S.view === 'history' && !S.hist.loaded) loadHistory();
   if (S.view === 'transfers' && !S.trf.loaded) loadTransfers();
+  if (S.view.startsWith('admin') && !S.adm.loaded) loadAdmin();
 }
 function skeleton(){
   return `<section class="hero"><div class="sk" style="width:150px;height:40px"></div>
@@ -532,7 +561,7 @@ function animateOdo(){
 /* ---------------- Home ---------------- */
 function viewHome(){
   const box = currentBox();
-  if (!box) return `<div class="page-head"><h1>سند كار</h1></div><div class="page"><div class="card empty">${ic('box')}<b>لا يوجد صندوق مرتبط بحسابك</b>اطلب من المدير إضافتك إلى صندوق، ثم حدّث الصفحة.</div></div>`;
+  if (!box) return `<div class="page-head"><h1>مسار</h1></div><div class="page"><div class="card empty">${ic('box')}<b>لا يوجد صندوق مرتبط بحسابك</b>اطلب من المدير إضافتك إلى صندوق، ثم حدّث الصفحة.</div></div>`;
   const bal = box.balances || {}; const dzd = bal.DZD || 0;
   const fx = Object.keys(bal).filter(c => c !== 'DZD' && bal[c]);
   const pin = box.pending_in?.DZD || 0, pout = box.pending_out?.DZD || 0;
@@ -697,17 +726,22 @@ function viewAccount(){
       <button class="row" data-act="password"><span class="row-ic">${ic('lock')}</span><span class="row-main"><span class="row-title">تغيير كلمة المرور</span></span>${ic('chev')}</button>
       <div class="row"><span class="row-ic">${ic('server')}</span><span class="row-main"><span class="row-title">الخادم</span><span class="row-sub">${S.demo?'وضع التجربة':'متصل'}</span></span></div>
     </div>
+    ${u.role === 'ADMIN' ? `<div class="sec-h" style="margin:22px 2px 10px"><h2>الإدارة</h2></div>
+    <div class="list menu">
+      <button class="row" data-act="adm-users"><span class="row-ic">${ic('users')}</span><span class="row-main"><span class="row-title">المستخدمون</span><span class="row-sub">إضافة الحسابات والصلاحيات</span></span>${ic('chev')}</button>
+      <button class="row" data-act="adm-boxes"><span class="row-ic">${ic('box')}</span><span class="row-main"><span class="row-title">الصناديق</span><span class="row-sub">أصحاب الصناديق والأرصدة الافتتاحية</span></span>${ic('chev')}</button>
+    </div>` : ''}
     <div class="list menu" style="margin-top:14px">
       <button class="row" data-act="logout" style="color:var(--out)"><span class="row-ic" style="background:var(--out-tint);color:var(--out)">${ic('logout')}</span><span class="row-main"><span class="row-title">تسجيل الخروج</span></span></button>
     </div>
-    <p class="hint" style="text-align:center;margin-top:18px">سند كار، الإصدار 1.0</p>
+    <p class="hint" style="text-align:center;margin-top:18px">مسار، الإصدار 1.0</p>
   </div>`;
 }
 
 /* ---------------- Sheets ---------------- */
-function openSheet(html, { full=false, onMount }={}){
+function openSheet(html, { full=false, onMount, sticky=false }={}){
   closeSheet(true);
-  $('#sheets').innerHTML = `<div class="scrim" data-act="close-sheet"></div>
+  $('#sheets').innerHTML = `<div class="scrim" ${sticky?'':'data-act="close-sheet"'}></div>
     <div class="sheet ${full?'full':''}" role="dialog" aria-modal="true">${full?'':'<div class="sheet-grip"></div>'}${html}</div>`;
   const sh = $('.sheet'), sc = $('.scrim');
   requestAnimationFrame(()=>{ sh.classList.add('show'); sc.classList.add('show'); });
@@ -1053,107 +1087,644 @@ document.addEventListener('click', async e => {
     case 'logout': try { await api('logout'); } catch(_){} if (S.demo){ S.demo=false; localStorage.removeItem(LS.demo); } signOutLocal(); break;
     case 'server': openServerSheet(); break;
     case 'save-server': saveServer(el); break;
-    case 'demo': S.demo = true; localStorage.setItem(LS.demo,'1'); S.token = 'demo'; localStorage.setItem(LS.token,'demo'); loadApp(); break;
+    case 'demo': openDemoChooser(); break;
     case 'pw-toggle': { const p = $('#p'); p.type = p.type==='password'?'text':'password'; break; }
   }
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('.scrim[data-act]')) closeSheet(); });
 
 /* =========================================================
-   Mock: خادم وهمي لوضع التجربة. نفس شكل ردود الـAPI الحقيقي.
+   الإدارة (للمدير): المستخدمون والصناديق + تغيير كلمة المرور الإجباري
    ========================================================= */
+const ROLE_INFO = {
+  KEEPER:     { t:'صاحب صندوق', d:'يسجّل ويرى صناديقه فقط' },
+  ACCOUNTANT: { t:'محاسب', d:'يرى كل الصناديق، يثبّت ويلغي القيود' },
+  ADMIN:      { t:'مدير', d:'كل شيء، بما فيه المستخدمون والصناديق' }
+};
+const BOX_TYPE = { CASH:'نقدي', POSTAL:'بريدي موب', BANK:'بنكي' };
+const initial = n => (String(n||'?').trim()[0] || '?');
+const admUser = id => S.adm.users.find(u => u.user_id === id);
+const admBox = id => S.adm.boxes.find(b => b.box_id === id);
+const lastLogin = u => u.last_login_at ? `${dayLabel(u.last_login_at.slice(0,10))} ${timeOf(u.last_login_at)}` : 'لم يدخل بعد';
+
+function showFormErr(form, m){
+  let box = $('.form-err', form);
+  if (!box){ box = document.createElement('div'); box.className = 'form-err'; form.insertBefore(box, $('.field', form)); }
+  box.textContent = m;
+}
+
+function copyText(v){
+  const done = () => toast('نُسخ');
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(v).then(done).catch(() => fallback());
+  fallback();
+  function fallback(){ const t = document.createElement('textarea'); t.value = v; t.style.position='fixed'; t.style.opacity='0'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch(_){ toast('تعذّر النسخ، انسخها يدوياً', true); } t.remove(); }
+}
+function waPhone(p){
+  const s = String(p||'').replace(/[^\d]/g,'');
+  if (!s) return '';
+  if (s.startsWith('213')) return s;
+  if (s.startsWith('0')) return '213' + s.slice(1);
+  return s;
+}
+const TRANSLIT = { 'ا':'a','أ':'a','إ':'i','آ':'a','ب':'b','ت':'t','ث':'t','ج':'dj','ح':'h','خ':'kh','د':'d','ذ':'d','ر':'r','ز':'z','س':'s','ش':'ch','ص':'s','ض':'d','ط':'t','ظ':'d','ع':'a','غ':'gh','ف':'f','ق':'k','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','ة':'a','و':'ou','ي':'i','ى':'a','ئ':'i','ؤ':'ou','ء':'' };
+function suggestUsername(name){
+  const words = String(name||'').trim().split(/\s+/).filter(Boolean).slice(0,2);
+  const t = words.map(w => [...w].map(c => TRANSLIT[c] ?? (/[a-z0-9]/i.test(c) ? c.toLowerCase() : '')).join('').replace(/(.)\1{2,}/g,'$1$1'));
+  return t.filter(Boolean).join('.').slice(0, 24);
+}
+
+/* ---------- تغيير كلمة المرور الإجباري ---------- */
+function renderForcePassword(){
+  closeSheet(true);
+  const needOld = !S._pw;
+  const first = String(S.me.user.full_name||'').trim().split(/\s+/)[0];
+  $('#root').innerHTML = `
+  <div class="login">
+    <div class="login-top"><div class="brand"><div class="brand-mark">${MARK}</div><div><h1>مرحباً ${esc(first)}</h1><p>خطوة أخيرة قبل البدء</p></div></div></div>
+    <form class="login-card" id="fpForm" novalidate>
+      <h2>اختر كلمة مرور خاصة بك</h2>
+      <p>كلمة المرور التي دخلت بها مؤقتة. اختر كلمة لا يعرفها غيرك.</p>
+      ${needOld ? `<div class="field"><label for="fp0">كلمة المرور المؤقتة</label><input class="input" id="fp0" type="password" dir="ltr" autocomplete="current-password"></div>` : ''}
+      <div class="field"><label for="fp1">كلمة المرور الجديدة</label><input class="input" id="fp1" type="password" dir="ltr" autocomplete="new-password"><div class="hint">6 أحرف على الأقل</div></div>
+      <div class="field"><label for="fp2">أعد كتابتها</label><input class="input" id="fp2" type="password" dir="ltr" autocomplete="new-password"></div>
+      <button class="btn btn-primary btn-block" id="fpBtn">حفظ والمتابعة</button>
+      <div class="login-links"><button type="button" class="btn-text" data-act="logout">تسجيل الخروج</button></div>
+    </form>
+  </div>`;
+  $('#fpForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = $('#fpForm');
+    const old = S._pw || ($('#fp0') ? $('#fp0').value : '');
+    const n1 = $('#fp1').value, n2 = $('#fp2').value;
+    if (needOld && !old) return showFormErr(form, 'أدخل كلمة المرور المؤقتة');
+    if (n1.length < 6) return showFormErr(form, 'كلمة المرور الجديدة 6 أحرف على الأقل');
+    if (n1 !== n2) return showFormErr(form, 'كلمتا المرور غير متطابقتين');
+    setBtnBusy($('#fpBtn'), true);
+    try {
+      await api('changePassword', { old_password: old, new_password: n1 });
+      S._pw = null; S.me.must_change_password = false;
+      toast('تم حفظ كلمة المرور');
+      startApp();
+    } catch(x){ setBtnBusy($('#fpBtn'), false, 'حفظ والمتابعة'); showFormErr(form, x.message); }
+  });
+}
+
+/* ---------- تحميل بيانات الإدارة ---------- */
+async function loadAdmin(){
+  try {
+    const r = await api('adminListUsers');
+    S.adm = { loaded:true, users:r.users, boxes:r.boxes };
+  } catch(x){ S.adm.loaded = true; toast(x.message, true); }
+  if (S.view.startsWith('admin')) rerender();
+}
+async function afterAdminChange(){
+  try {
+    const [adm, me, ov] = await Promise.all([api('adminListUsers'), api('getMe'), api('getOverview')]);
+    S.adm = { loaded:true, users:adm.users, boxes:adm.boxes };
+    S.me = Object.assign(me, { must_change_password:false }); S.ov = ov;
+    if (!S.me.boxes.some(b => b.box_id === S.boxId)) S.boxId = S.me.default_box_id || (S.me.boxes[0]||{}).box_id || null;
+    S.hist.loaded = false; S.trf.loaded = false;
+  } catch(x){ toast(x.message, true); }
+  renderShell(false);
+}
+
+function adminHead(title, addAct, addLabel){
+  return `<div class="page-head">
+    <div style="display:flex;align-items:center;gap:2px;margin-inline-start:-10px"><button class="icon-btn" data-act="tab" data-v="account" aria-label="رجوع إلى حسابي">${ic('back')}</button><h1>${title}</h1></div>
+    ${addAct ? `<button class="btn btn-primary btn-sm" data-act="${addAct}">${ic('plus','sm')}${addLabel}</button>` : ''}
+  </div>`;
+}
+
+/* ---------- شاشة المستخدمين ---------- */
+function viewAdminUsers(){
+  const head = adminHead('المستخدمون', 'adm-user-new', 'مستخدم جديد');
+  if (!S.adm.loaded) return head + `<div class="page" style="padding-top:8px"><div class="sk" style="height:280px;border-radius:14px"></div></div>`;
+  const order = { ADMIN:0, ACCOUNTANT:1, KEEPER:2 };
+  const users = S.adm.users.slice().sort((a,b) =>
+    (a.status === b.status ? 0 : a.status === 'ACTIVE' ? -1 : 1) || order[a.role] - order[b.role] || a.full_name.localeCompare(b.full_name, 'ar'));
+  const active = users.filter(u => u.status === 'ACTIVE').length;
+  return head + `<div class="page" style="padding-top:8px">
+    <div class="list">${users.map(userRow).join('')}</div>
+    <p class="hint" style="margin:12px 4px 0">${active} نشط${users.length > active ? `، ${users.length - active} موقوف` : ''}</p>
+  </div>`;
+}
+function userRow(u){
+  const self = u.user_id === S.me.user.user_id, off = u.status !== 'ACTIVE';
+  const noBox = u.role === 'KEEPER' && !u.boxes.length;
+  const tag = off ? '<span class="tag grey">موقوف</span>' : self ? '<span class="tag green">أنت</span>'
+    : noBox ? '<span class="tag amber">بلا صندوق</span>' : u.must_change_password ? '<span class="tag amber">لم يفعّل حسابه</span>' : '';
+  return `<button class="row" data-act="adm-user" data-id="${u.user_id}">
+    <span class="avatar sm ${off?'off':''}">${esc(initial(u.full_name))}</span>
+    <span class="row-main"><span class="row-title">${esc(u.full_name)}</span>
+      <span class="row-sub"><span>${ROLE[u.role]}</span>${u.boxes.length ? `<span>${esc(u.boxes.map(b=>b.name).join('، '))}</span>` : ''}</span></span>
+    <span class="row-end">${tag}</span>
+  </button>`;
+}
+
+function openUserDetail(id){
+  const u = admUser(id); if (!u) return;
+  const self = u.user_id === S.me.user.user_id, off = u.status !== 'ACTIVE';
+  openSheet(`${sheetHead('المستخدم')}<div class="sheet-body">
+    <div class="profile" style="padding:2px 0 16px"><div class="avatar ${off?'off':''}">${esc(initial(u.full_name))}</div>
+      <div><b>${esc(u.full_name)}</b><span class="hint num" style="margin:0;display:block;text-align:start">${esc(u.username)}</span></div></div>
+    <dl class="dl">
+      <div><dt>الدور</dt><dd>${ROLE[u.role]}</dd></div>
+      <div><dt>الصناديق</dt><dd>${u.boxes.length ? esc(u.boxes.map(b=>b.name).join('، ')) : 'لا يوجد'}</dd></div>
+      ${u.phone ? `<div><dt>الهاتف</dt><dd class="num">${esc(u.phone)}</dd></div>` : ''}
+      <div><dt>آخر دخول</dt><dd>${lastLogin(u)}</dd></div>
+      <div><dt>الحالة</dt><dd>${off ? '<span class="tag grey">موقوف</span>' : u.must_change_password ? '<span class="tag amber">لم يغيّر كلمة المرور المؤقتة</span>' : '<span class="tag green">نشط</span>'}</dd></div>
+    </dl>
+    <div class="list menu" style="margin-top:14px">
+      <button class="row" data-act="adm-user-edit" data-id="${id}"><span class="row-ic">${ic('user')}</span><span class="row-main"><span class="row-title">تعديل البيانات والصناديق</span><span class="row-sub">الاسم، الهاتف، الدور، الصناديق</span></span>${ic('chev')}</button>
+      ${self ? '' : `<button class="row" data-act="adm-reset" data-id="${id}"><span class="row-ic">${ic('lock')}</span><span class="row-main"><span class="row-title">إعادة تعيين كلمة المرور</span><span class="row-sub">عند نسيانها أو فقدان الهاتف</span></span>${ic('chev')}</button>`}
+    </div>
+  </div>
+  ${self ? '' : `<div class="sheet-foot"><button class="btn ${off?'btn-soft':'btn-danger'} btn-block" data-act="${off?'adm-user-enable':'adm-user-disable'}" data-id="${id}">${off?'تفعيل الحساب':'إيقاف الحساب'}</button></div>`}`);
+}
+
+function keepersNames(b, excludeId){
+  const names = b.keeper_user_ids.filter(k => k !== excludeId).map(k => (admUser(k)||{}).full_name).filter(Boolean);
+  return names.length ? 'يمسكه: ' + names.join('، ') : 'بدون صاحب';
+}
+
+function openUserForm(id){
+  const u = id ? admUser(id) : null, edit = !!u;
+  const self = edit && u.user_id === S.me.user.user_id;
+  const f = { full_name:u?u.full_name:'', phone:u?u.phone:'', role:u?u.role:'', box_ids:new Set(u?u.boxes.map(b=>b.box_id):[]),
+    new_box:false, nb_name:'', nb_location:'', nb_type:'CASH', username:'', touched:false, nbTouched:false };
+  const boxes = S.adm.boxes.filter(b => b.status === 'ACTIVE' || f.box_ids.has(b.box_id));
+  openSheet(`${sheetHead(edit ? 'تعديل المستخدم' : 'مستخدم جديد')}
+  <div class="sheet-body">
+    <div class="field"><label class="field-l" for="uf-name">الاسم الكامل</label>
+      <input class="input" id="uf-name" value="${esc(f.full_name)}" placeholder="مثال: حشيفة إسماعيل" autocomplete="off"></div>
+    <div class="field"><label class="field-l" for="uf-phone">رقم الهاتف <small>(اختياري، لإرسال بيانات الدخول عبر واتساب)</small></label>
+      <input class="input" id="uf-phone" dir="ltr" inputmode="tel" value="${esc(f.phone)}" placeholder="0661234567" autocomplete="off"></div>
+
+    <div class="field ${edit?'':'hidden'}" id="uf-s-role"><span class="field-l">الدور</span>
+      ${['KEEPER','ACCOUNTANT','ADMIN'].map(r => `<button type="button" class="pick" data-role="${r}" aria-pressed="${f.role===r}" ${self && r!=='ADMIN'?'disabled':''}>
+        <span class="radio"></span><span class="row-main"><b>${ROLE_INFO[r].t}</b><small>${ROLE_INFO[r].d}</small></span></button>`).join('')}
+      ${self ? '<div class="hint">لا يمكنك تغيير دورك بنفسك.</div>' : ''}
+    </div>
+
+    <div class="field ${edit?'':'hidden'}" id="uf-s-boxes"><span class="field-l" id="uf-boxes-l"></span>
+      ${boxes.map(b => `<button type="button" class="pick" data-box="${b.box_id}" aria-pressed="${f.box_ids.has(b.box_id)}">
+        <span class="radio sq"></span><span class="row-main"><b>${esc(b.name)}</b><small>${esc(keepersNames(b, u && u.user_id))}</small></span></button>`).join('')}
+      ${edit ? '' : `<button type="button" class="pick" data-newbox aria-pressed="false">
+        <span class="radio sq"></span><span class="row-main"><b>صندوق جديد باسمه</b><small>يُنشأ الصندوق ويُربط به مباشرة</small></span></button>
+      <div class="nb hidden" id="uf-nb">
+        <div class="field"><label class="field-l" for="uf-nbname">اسم الصندوق</label><input class="input" id="uf-nbname" autocomplete="off"></div>
+        <div class="field"><span class="field-l">النوع</span><div class="seg">${Object.keys(BOX_TYPE).map(t => `<button type="button" data-nbtype="${t}" aria-pressed="${t==='CASH'}">${BOX_TYPE[t]}</button>`).join('')}</div></div>
+        <div class="field" style="margin-bottom:0"><label class="field-l" for="uf-nbloc">المكان <small>(اختياري)</small></label><input class="input" id="uf-nbloc" placeholder="مثال: الوادي" autocomplete="off"></div>
+      </div>`}
+    </div>
+
+    ${edit ? '' : `<div class="field hidden" id="uf-s-login"><label class="field-l" for="uf-user">اسم المستخدم</label>
+      <input class="input" id="uf-user" dir="ltr" autocapitalize="none" spellcheck="false" autocomplete="off">
+      <div class="hint">حروف لاتينية صغيرة وأرقام. كلمة المرور تُولَّد تلقائياً، ويُطلب منه تغييرها عند أول دخول.</div></div>`}
+  </div>
+  <div class="sheet-foot"><button class="btn btn-primary btn-block" id="uf-save" disabled>أكمل البيانات</button></div>`,
+  { full:true, onMount: sh => bindUserForm(sh, f, u) });
+}
+
+function bindUserForm(sh, f, u){
+  const edit = !!u, q = s => sh.querySelector(s);
+  const show = (el, on) => { if (!el) return; if (on && el.classList.contains('hidden')) { el.classList.remove('hidden'); el.classList.add('reveal'); } else if (!on) el.classList.add('hidden'); };
+  const update = () => {
+    const nameOk = f.full_name.trim().length >= 2;
+    const roleOk = !!f.role;
+    if (!edit) { show(q('#uf-s-role'), nameOk); show(q('#uf-s-boxes'), nameOk && roleOk); }
+    const keeper = f.role === 'KEEPER';
+    q('#uf-boxes-l').innerHTML = keeper ? 'الصناديق التي يمسكها' : 'صناديق يمسكها بنفسه <small>(اختياري)</small>';
+    const nbOk = !f.new_box || f.nb_name.trim().length >= 2;
+    const boxesOk = (!keeper || f.box_ids.size > 0 || f.new_box) && nbOk;
+    if (!edit) show(q('#uf-s-login'), nameOk && roleOk && boxesOk);
+    const userOk = edit || /^[a-z0-9_.]{3,30}$/.test(f.username);
+    const ok = nameOk && roleOk && boxesOk && userOk;
+    const btn = q('#uf-save');
+    btn.disabled = !ok;
+    btn.textContent = ok ? (edit ? 'حفظ التغييرات' : `إضافة ${f.full_name.trim()}`)
+      : keeper && nameOk && !boxesOk ? 'اختر صندوقاً واحداً على الأقل' : 'أكمل البيانات';
+  };
+  sh.addEventListener('input', e => {
+    const id = e.target.id;
+    if (id === 'uf-name') {
+      f.full_name = e.target.value;
+      if (!edit && !f.touched) { f.username = suggestUsername(f.full_name); q('#uf-user').value = f.username; }
+      if (!edit && f.new_box && !f.nbTouched) { f.nb_name = f.full_name; q('#uf-nbname').value = f.nb_name; }
+    }
+    if (id === 'uf-phone') f.phone = e.target.value;
+    if (id === 'uf-user') { f.touched = true; e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g,''); f.username = e.target.value; }
+    if (id === 'uf-nbname') { f.nbTouched = true; f.nb_name = e.target.value; }
+    if (id === 'uf-nbloc') f.nb_location = e.target.value;
+    update();
+  });
+  sh.addEventListener('click', e => {
+    const r = e.target.closest('[data-role]');
+    if (r && !r.disabled) { f.role = r.dataset.role; sh.querySelectorAll('[data-role]').forEach(x => x.setAttribute('aria-pressed', x === r)); update(); }
+    const b = e.target.closest('[data-box]');
+    if (b) { const id = b.dataset.box; f.box_ids.has(id) ? f.box_ids.delete(id) : f.box_ids.add(id); b.setAttribute('aria-pressed', f.box_ids.has(id)); update(); }
+    const nb = e.target.closest('[data-newbox]');
+    if (nb) {
+      f.new_box = !f.new_box; nb.setAttribute('aria-pressed', f.new_box); show(q('#uf-nb'), f.new_box);
+      if (f.new_box && !f.nb_name) { f.nb_name = f.full_name.trim(); q('#uf-nbname').value = f.nb_name; }
+      update();
+    }
+    const t = e.target.closest('[data-nbtype]');
+    if (t) { f.nb_type = t.dataset.nbtype; sh.querySelectorAll('[data-nbtype]').forEach(x => x.setAttribute('aria-pressed', x === t)); }
+    if (e.target.closest('#uf-save')) saveUserForm(f, u);
+  });
+  update();
+}
+
+async function saveUserForm(f, u){
+  const btn = $('#uf-save'); if (btn.disabled) return; setBtnBusy(btn, true);
+  try {
+    if (u) {
+      const payload = { user_id:u.user_id, full_name:f.full_name.trim(), phone:f.phone.trim(), box_ids:[...f.box_ids] };
+      if (f.role !== u.role) payload.role = f.role;
+      await api('adminUpdateUser', payload);
+      closeSheet(); toast('تم حفظ التغييرات'); afterAdminChange();
+    } else {
+      const r = await api('adminCreateUser', {
+        full_name:f.full_name.trim(), phone:f.phone.trim(), role:f.role, username:f.username, box_ids:[...f.box_ids],
+        new_box: f.new_box ? { name:f.nb_name.trim(), type:f.nb_type, location:f.nb_location.trim() } : null
+      });
+      openCreds(r, 'new'); afterAdminChange();
+    }
+  } catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
+}
+
+function openCreds(r, kind){
+  const u = r.user;
+  const url = /^https?:$/.test(location.protocol) ? location.origin + location.pathname : '';
+  const msg = [
+    `السلام عليكم ${u.full_name}`,
+    kind === 'new' ? 'تم إنشاء حسابك في تطبيق مسار.' : 'تمت إعادة تعيين كلمة مرورك في تطبيق مسار.',
+    url ? `الرابط: ${url}` : '',
+    `اسم المستخدم: ${r.username}`,
+    `كلمة المرور المؤقتة: ${r.temp_password}`,
+    'سيُطلب منك اختيار كلمة مرور جديدة عند الدخول.'
+  ].filter(Boolean).join('\n');
+  S._credMsg = msg;
+  const sub = kind === 'new'
+    ? (u.boxes.length ? `${ROLE[u.role]}، يمسك ${u.boxes.map(b=>b.name).join('، ')}` : ROLE[u.role])
+    : `أُخرج ${u.full_name} من كل أجهزته`;
+  openSheet(`<div class="sheet-body">
+    <div class="success" style="padding-bottom:16px"><div class="check"><svg class="i" viewBox="0 0 24 24">${I.check}</svg></div>
+      <h3>${kind === 'new' ? `تمت إضافة ${esc(u.full_name)}` : 'كلمة مرور مؤقتة جديدة'}</h3><p>${esc(sub)}</p></div>
+    <div class="cred">
+      <div><span>اسم المستخدم</span><b class="num">${esc(r.username)}</b><button class="icon-btn" data-copy="${esc(r.username)}" aria-label="نسخ اسم المستخدم">${ic('copy')}</button></div>
+      <div><span>كلمة المرور المؤقتة</span><b class="num">${esc(r.temp_password)}</b><button class="icon-btn" data-copy="${esc(r.temp_password)}" aria-label="نسخ كلمة المرور">${ic('copy')}</button></div>
+    </div>
+    <p class="hint warn" style="text-align:center;margin-top:12px">أرسلها الآن. لن تظهر كلمة المرور مرة أخرى.</p>
+  </div>
+  <div class="sheet-foot">
+    <a class="btn btn-primary btn-block" href="https://wa.me/${waPhone(u.phone)}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">${ic('chat')}إرسال عبر واتساب${u.phone ? '' : ' (اختر جهة الاتصال)'}</a>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-ghost" style="flex:1" data-act="adm-copy-msg">نسخ الرسالة</button>
+      <button class="btn btn-ghost" style="flex:1" data-act="close-sheet">تم</button></div>
+  </div>`, { sticky:true });
+}
+
+function openReset(id){
+  const u = admUser(id);
+  openSheet(`${sheetHead('إعادة تعيين كلمة المرور')}<div class="sheet-body">
+    <p class="lead">ستُولَّد كلمة مرور مؤقتة جديدة لـ ${esc(u.full_name)}، ويُخرج من كل أجهزته فوراً حتى يدخل بها ويختار كلمة جديدة.</p></div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="adm-reset-go" data-id="${id}">إعادة التعيين</button></div>`);
+}
+async function doReset(id, btn){
+  setBtnBusy(btn, true);
+  try { const r = await api('adminResetPassword', { user_id:id }); openCreds(r, 'reset'); afterAdminChange(); }
+  catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
+}
+function openDisable(id){
+  const u = admUser(id);
+  const orphan = u.boxes.filter(b => { const bx = admBox(b.box_id); return bx && bx.keeper_user_ids.filter(k => k !== id).length === 0; });
+  openSheet(`${sheetHead('إيقاف الحساب')}<div class="sheet-body">
+    <p class="lead">لن يستطيع ${esc(u.full_name)} الدخول بعد الآن، ويُخرج من كل أجهزته فوراً. عملياته السابقة تبقى في السجل كما هي، ويمكنك تفعيل الحساب لاحقاً.</p>
+    ${orphan.length ? `<div class="t-note" style="margin:0">${esc(orphan.map(b=>b.name).join('، '))} سيبقى بدون صاحب نشط. عيّن له صاحباً آخر من شاشة الصناديق.</div>` : ''}</div>
+    <div class="sheet-foot"><button class="btn btn-danger btn-block" data-act="adm-disable-go" data-id="${id}">إيقاف الحساب</button></div>`);
+}
+async function setUserStatus(id, status, btn){
+  setBtnBusy(btn, true);
+  try { await api('adminUpdateUser', { user_id:id, status }); closeSheet(); toast(status === 'DISABLED' ? 'أُوقف الحساب' : 'فُعّل الحساب'); afterAdminChange(); }
+  catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
+}
+
+/* ---------- شاشة الصناديق ---------- */
+function viewAdminBoxes(){
+  const head = adminHead('الصناديق', 'adm-box-new', 'صندوق جديد');
+  if (!S.adm.loaded) return head + `<div class="page" style="padding-top:8px"><div class="sk" style="height:280px;border-radius:14px"></div></div>`;
+  const boxes = S.adm.boxes.slice().sort((a,b) => (a.status === b.status ? 0 : a.status === 'ACTIVE' ? -1 : 1) || a.name.localeCompare(b.name, 'ar'));
+  const total = boxes.filter(b => b.status === 'ACTIVE').reduce((s,b) => s + (b.balances.DZD || 0), 0);
+  const noOpening = boxes.filter(b => b.status === 'ACTIVE' && !b.has_opening_dzd).length;
+  return head + `<div class="page" style="padding-top:8px">
+    <div class="card" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span class="hint" style="margin:0">مجموع الصناديق النشطة</span><span class="amt" style="font-size:17px">${total<0?'−':''}${fmt(total)} دج</span></div>
+    ${noOpening ? `<div class="t-note" style="margin:0 0 12px">${noOpening} صندوق بدون رصيد افتتاحي. أدخله من تفاصيل الصندوق عند نقل الأرصدة من الإكسل.</div>` : ''}
+    <div class="list">${boxes.map(boxRow).join('')}</div>
+  </div>`;
+}
+function boxRow(b){
+  const off = b.status !== 'ACTIVE', dzd = b.balances.DZD || 0;
+  const keepers = b.keeper_user_ids.map(k => (admUser(k)||{}).full_name).filter(Boolean);
+  return `<button class="row" data-act="adm-box" data-id="${b.box_id}">
+    <span class="row-ic ${off?'void':'tr'}">${ic('box')}</span>
+    <span class="row-main"><span class="row-title">${esc(b.name)}</span>
+      <span class="row-sub"><span>${keepers.length ? esc(keepers.join('، ')) : 'بدون صاحب'}</span>${b.location ? `<span>${esc(b.location)}</span>` : ''}</span></span>
+    <span class="row-end"><span class="amt" style="${dzd<0?'color:var(--out)':''}">${dzd<0?'−':''}${fmt(dzd)}</span>
+      ${off ? '<span class="tag grey">موقوف</span>' : !b.has_opening_dzd ? '<span class="row-bal">بلا رصيد افتتاحي</span>' : ''}</span>
+  </button>`;
+}
+
+function openBoxDetail(id){
+  const b = admBox(id); if (!b) return;
+  const off = b.status !== 'ACTIVE';
+  const curs = Object.keys(b.balances).filter(c => b.balances[c]);
+  const zero = curs.length === 0;
+  const keepers = b.keeper_user_ids.map(k => (admUser(k)||{}).full_name).filter(Boolean);
+  openSheet(`${sheetHead(esc(b.name))}<div class="sheet-body">
+    <dl class="dl">
+      <div><dt>الرصيد</dt><dd>${curs.length ? curs.map(c => `<div style="display:block;padding:0;border:0">${b.balances[c]<0?'−':''}${money(b.balances[c], c)}</div>`).join('') : money(0)}</dd></div>
+      <div><dt>النوع</dt><dd>${BOX_TYPE[b.type] || b.type}</dd></div>
+      ${b.location ? `<div><dt>المكان</dt><dd>${esc(b.location)}</dd></div>` : ''}
+      <div><dt>أصحابه</dt><dd>${keepers.length ? esc(keepers.join('، ')) : 'بدون صاحب'}</dd></div>
+      <div><dt>الرصيد الافتتاحي</dt><dd>${b.has_opening_dzd ? '<span class="tag green">مُدخل</span>' : '<span class="tag amber">غير مُدخل</span>'}</dd></div>
+    </dl>
+    <div class="list menu" style="margin-top:14px">
+      <button class="row" data-act="adm-box-edit" data-id="${id}"><span class="row-ic">${ic('box')}</span><span class="row-main"><span class="row-title">تعديل الصندوق</span><span class="row-sub">الاسم، المكان، أصحابه</span></span>${ic('chev')}</button>
+      ${!b.has_opening_dzd && !off ? `<button class="row" data-act="adm-opening" data-id="${id}"><span class="row-ic">${ic('in')}</span><span class="row-main"><span class="row-title">إدخال الرصيد الافتتاحي</span><span class="row-sub">الرصيد المنقول من ملف الإكسل</span></span>${ic('chev')}</button>` : ''}
+    </div>
+  </div>
+  <div class="sheet-foot">${off
+    ? `<button class="btn btn-soft btn-block" data-act="adm-box-enable" data-id="${id}">تفعيل الصندوق</button>`
+    : zero ? `<button class="btn btn-danger btn-block" data-act="adm-box-disable" data-id="${id}">إيقاف الصندوق</button>`
+    : `<p class="hint" style="text-align:center;margin:0">لإيقاف الصندوق يجب أن يكون رصيده صفراً. حوّل رصيده لصندوق آخر أولاً.</p>`}</div>`);
+}
+
+function openBoxForm(id){
+  const b = id ? admBox(id) : null, edit = !!b;
+  const f = { name:b?b.name:'', location:b?b.location:'', type:b?b.type:'CASH', keepers:new Set(b?b.keeper_user_ids:[]) };
+  const users = S.adm.users.filter(u => u.status === 'ACTIVE' || f.keepers.has(u.user_id));
+  openSheet(`${sheetHead(edit ? 'تعديل الصندوق' : 'صندوق جديد')}<div class="sheet-body">
+    <div class="field"><label class="field-l" for="bf-name">اسم الصندوق</label><input class="input" id="bf-name" value="${esc(f.name)}" placeholder="مثال: مكتب باتنة" autocomplete="off"></div>
+    ${edit ? '' : `<div class="field"><span class="field-l">النوع</span><div class="seg">${Object.keys(BOX_TYPE).map(t => `<button type="button" data-bftype="${t}" aria-pressed="${t===f.type}">${BOX_TYPE[t]}</button>`).join('')}</div></div>`}
+    <div class="field"><label class="field-l" for="bf-loc">المكان <small>(اختياري)</small></label><input class="input" id="bf-loc" value="${esc(f.location)}" placeholder="مثال: باتنة" autocomplete="off"></div>
+    <div class="field"><span class="field-l">من يمسكه؟ <small>(يمكن اختيار أكثر من شخص)</small></span>
+      ${users.map(u => `<button type="button" class="pick" data-keeper="${u.user_id}" aria-pressed="${f.keepers.has(u.user_id)}">
+        <span class="radio sq"></span><span class="row-main"><b>${esc(u.full_name)}</b><small>${ROLE[u.role]}${u.status!=='ACTIVE'?'، موقوف':''}</small></span></button>`).join('')}
+    </div>
+  </div>
+  <div class="sheet-foot"><button class="btn btn-primary btn-block" id="bf-save">${edit ? 'حفظ التغييرات' : 'إضافة الصندوق'}</button></div>`,
+  { full:true, onMount: sh => {
+    const btn = sh.querySelector('#bf-save');
+    const upd = () => { btn.disabled = f.name.trim().length < 2; };
+    sh.addEventListener('input', e => { if (e.target.id === 'bf-name') f.name = e.target.value; if (e.target.id === 'bf-loc') f.location = e.target.value; upd(); });
+    sh.addEventListener('click', async e => {
+      const t = e.target.closest('[data-bftype]');
+      if (t) { f.type = t.dataset.bftype; sh.querySelectorAll('[data-bftype]').forEach(x => x.setAttribute('aria-pressed', x === t)); }
+      const k = e.target.closest('[data-keeper]');
+      if (k) { const id = k.dataset.keeper; f.keepers.has(id) ? f.keepers.delete(id) : f.keepers.add(id); k.setAttribute('aria-pressed', f.keepers.has(id)); }
+      if (e.target.closest('#bf-save') && !btn.disabled) {
+        setBtnBusy(btn, true);
+        try {
+          if (edit) await api('updateBox', { box_id:b.box_id, name:f.name.trim(), location:f.location.trim(), keeper_user_ids:[...f.keepers] });
+          else await api('createBox', { name:f.name.trim(), type:f.type, location:f.location.trim(), keeper_user_ids:[...f.keepers] });
+          closeSheet(); toast(edit ? 'تم حفظ التغييرات' : 'أُضيف الصندوق'); afterAdminChange();
+        } catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
+      }
+    });
+    upd();
+  }});
+}
+
+function openOpening(id){
+  const b = admBox(id);
+  const kp = { value:'', currency:'DZD' }; let neg = false;
+  openSheet(`${sheetHead('الرصيد الافتتاحي')}<div class="sheet-body">
+    <p class="lead">رصيد ${esc(b.name)} يوم بدء استعمال النظام، كما هو في ملف الإكسل. يُسجَّل مرة واحدة فقط.</p>
+    <div class="field"><div class="seg"><button type="button" data-sign="pos" aria-pressed="true">فيه رصيد</button><button type="button" data-sign="neg" aria-pressed="false">عليه عجز (بالسالب)</button></div></div>
+    ${amountBlock()}
+    <div class="field" style="margin-top:16px"><div class="date-row"><span>بتاريخ</span><input type="date" id="ob-dt" value="${todayStr()}" max="${todayStr()}"></div></div>
+  </div>
+  <div class="sheet-foot"><button class="btn btn-primary btn-block" id="ob-save" disabled>أدخل المبلغ</button></div>`,
+  { full:true, onMount: sh => {
+    const btn = sh.querySelector('#ob-save');
+    const upd = () => { const v = Number(kp.value) || 0; btn.disabled = !v; btn.textContent = v ? `حفظ الرصيد ${neg?'−':''}${fmt(v)} دج` : 'أدخل المبلغ'; };
+    bindKeypad(sh, kp, upd);
+    sh.addEventListener('click', async e => {
+      const s = e.target.closest('[data-sign]');
+      if (s) { neg = s.dataset.sign === 'neg'; sh.querySelectorAll('[data-sign]').forEach(x => x.setAttribute('aria-pressed', x === s)); upd(); }
+      if (e.target.closest('#ob-save') && !btn.disabled) {
+        setBtnBusy(btn, true);
+        try {
+          await api('recordOpening', { box_id:id, amount:(neg?-1:1) * Number(kp.value), currency:'DZD', entry_date: sh.querySelector('#ob-dt').value });
+          closeSheet(); toast('تم حفظ الرصيد الافتتاحي'); afterAdminChange();
+        } catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
+      }
+    });
+  }});
+}
+async function setBoxStatus(id, status, btn){
+  setBtnBusy(btn, true);
+  try { await api('updateBox', { box_id:id, status }); closeSheet(); toast(status === 'DISABLED' ? 'أُوقف الصندوق' : 'فُعّل الصندوق'); afterAdminChange(); }
+  catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
+}
+
+function openDemoChooser(){
+  openSheet(`${sheetHead('تجربة بدون خادم')}<div class="sheet-body">
+    <p class="lead">بيانات وهمية لا تُحفظ. اختر من تريد أن تجرّب التطبيق بصفته.</p>
+    <button class="opt" data-act="demo-go" data-id="keeper"><span class="avatar sm">ل</span><span><b>لطفي القايد</b><small>صاحب صندوق: يسجّل ويؤكد التحويلات</small></span></button>
+    <button class="opt" data-act="demo-go" data-id="admin"><span class="avatar sm">ن</span><span><b>نبيل</b><small>مدير: يرى كل الصناديق ويدير المستخدمين</small></span></button>
+  </div>`);
+}
+
+document.addEventListener('click', e => {
+  const c = e.target.closest('[data-copy]'); if (c) { copyText(c.dataset.copy); return; }
+  const el = e.target.closest('[data-act]'); if (!el || el.disabled) return;
+  const a = el.dataset.act, id = el.dataset.id;
+  switch (a){
+    case 'adm-users': S.view = 'admin-users'; renderShell(false); window.scrollTo(0,0); break;
+    case 'adm-boxes': S.view = 'admin-boxes'; renderShell(false); window.scrollTo(0,0); break;
+    case 'adm-user': openUserDetail(id); break;
+    case 'adm-user-new': openUserForm(); break;
+    case 'adm-user-edit': openUserForm(id); break;
+    case 'adm-reset': openReset(id); break;
+    case 'adm-reset-go': doReset(id, el); break;
+    case 'adm-user-disable': openDisable(id); break;
+    case 'adm-disable-go': setUserStatus(id, 'DISABLED', el); break;
+    case 'adm-user-enable': setUserStatus(id, 'ACTIVE', el); break;
+    case 'adm-box': openBoxDetail(id); break;
+    case 'adm-box-new': openBoxForm(); break;
+    case 'adm-box-edit': openBoxForm(id); break;
+    case 'adm-opening': openOpening(id); break;
+    case 'adm-box-disable': setBoxStatus(id, 'DISABLED', el); break;
+    case 'adm-box-enable': setBoxStatus(id, 'ACTIVE', el); break;
+    case 'adm-copy-msg': copyText(S._credMsg); break;
+    case 'demo-go': {
+      S.demo = true; localStorage.setItem(LS.demo, '1');
+      S.token = id === 'admin' ? 'demo-admin' : 'demo'; localStorage.setItem(LS.token, S.token);
+      closeSheet(true); loadApp(); break;
+    }
+  }
+});
+
 const Mock = (() => {
   const d = n => localDate(new Date(Date.now() - n*864e5));
   const ts = (n, hm) => `${d(n)} ${hm}:00`;
-  const hoursAgo = h => { const t = new Date(Date.now()-h*36e5); return `${localDate(t)} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:00`; };
-  const me = { user_id:'U1', username:'demo', full_name:'لطفي القايد', role:'KEEPER' };
-  const users = { U1:'لطفي القايد', U2:'نبيل', U3:'أنور بابا طاهر', U4:'حشيفة إسماعيل' };
+  const stamp = t => `${localDate(t)} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`;
+  const hoursAgo = h => stamp(new Date(Date.now()-h*36e5));
+  const now = () => stamp(new Date());
+  let cur = 'U1';
+  const users = [
+    { user_id:'U1', username:'lotfi.kaid', full_name:'لطفي القايد', phone:'0661234567', role:'KEEPER', status:'ACTIVE', must_change_password:false, last_login_at:hoursAgo(0.4), created_at:ts(30,'10:00') },
+    { user_id:'U2', username:'nabil', full_name:'نبيل', phone:'0770112233', role:'ADMIN', status:'ACTIVE', must_change_password:false, last_login_at:hoursAgo(5), created_at:ts(40,'09:00') },
+    { user_id:'U3', username:'anouar', full_name:'أنور بابا طاهر', phone:'', role:'KEEPER', status:'ACTIVE', must_change_password:false, last_login_at:ts(1,'18:22'), created_at:ts(30,'10:10') },
+    { user_id:'U4', username:'hchifa', full_name:'حشيفة إسماعيل', phone:'0555443322', role:'KEEPER', status:'ACTIVE', must_change_password:true, last_login_at:'', created_at:ts(2,'12:00') },
+    { user_id:'U5', username:'mounaim', full_name:'منعم', phone:'', role:'ACCOUNTANT', status:'DISABLED', must_change_password:false, last_login_at:ts(12,'09:40'), created_at:ts(35,'09:00') }
+  ];
+  const uname = id => (users.find(u => u.user_id === id) || {}).full_name || id;
+  const me = () => users.find(u => u.user_id === cur);
+  const staff = () => ['ADMIN','ACCOUNTANT'].includes(me().role);
   const boxes = [
-    { box_id:'B1', name:'صندوق القايد', type:'CASH', location:'العاصمة', k:['U1'] },
-    { box_id:'B6', name:'بريدي موب القايد', type:'POSTAL', location:'حساب بريدي', k:['U1'] },
-    { box_id:'B2', name:'منزل نبيل', type:'CASH', location:'قورصو', k:['U2'] },
-    { box_id:'B3', name:'مكتب ورقلة', type:'CASH', location:'ورقلة', k:['U3'] },
-    { box_id:'B4', name:'حشيفة إسماعيل', type:'CASH', location:'الوادي', k:['U4'] }
+    { box_id:'B1', name:'صندوق القايد', type:'CASH', location:'العاصمة', k:['U1'], status:'ACTIVE' },
+    { box_id:'B6', name:'بريدي موب القايد', type:'POSTAL', location:'حساب بريدي', k:['U1'], status:'ACTIVE' },
+    { box_id:'B2', name:'منزل نبيل', type:'CASH', location:'قورصو', k:['U2'], status:'ACTIVE' },
+    { box_id:'B3', name:'مكتب ورقلة', type:'CASH', location:'ورقلة', k:['U3'], status:'ACTIVE' },
+    { box_id:'B4', name:'حشيفة إسماعيل', type:'CASH', location:'الوادي', k:['U4'], status:'ACTIVE' },
+    { box_id:'B5', name:'تحويلات الواد', type:'CASH', location:'الوادي', k:[], status:'ACTIVE' }
   ];
   const cats = ['نقل وتنقل','أكل وشرب','اندرايف وطاكسي','فليكسي وانترنت','تأمين سيارات','ماتريكيل','ديباناج وشاحنات نقل','شهريات','سلف','مصاريف المكتب','ضرائب ورسوم','أخرى'].map((n,i)=>({category_id:'C'+(i+1), name:n}));
   const TL = { OPENING:'رصيد افتتاحي', INCOME:'دخل', EXPENSE:'مصروف', TRANSFER_OUT:'تحويل صادر', TRANSFER_IN:'تحويل وارد', TRANSFER_RETURN:'إرجاع تحويل', REVERSAL:'إلغاء قيد' };
   let seq = 100;
   const L = [];
-  const add = (o) => { const e = Object.assign({ entry_id:'ENT-'+String(++seq).padStart(6,'0'), currency:'DZD', category_id:'', counterparty:'', description:'', verified:true, status:'ACTIVE', created_by:'U1', transfer_id:'' }, o); L.push(e); return e; };
+  const add = o => { const e = Object.assign({ entry_id:'ENT-'+String(++seq).padStart(6,'0'), currency:'DZD', category_id:'', counterparty:'', description:'', verified:true, status:'ACTIVE', created_by:cur, transfer_id:'' }, o); L.push(e); return e; };
   add({ box_id:'B1', entry_date:d(4), created_at:ts(4,'09:00'), direction:'IN', amount:4200000, entry_type:'OPENING', description:'رصيد افتتاحي منقول من ملف الإكسل', created_by:'U2' });
   add({ box_id:'B1', entry_date:d(4), created_at:ts(4,'09:01'), direction:'IN', amount:1600, currency:'EUR', entry_type:'OPENING', created_by:'U2' });
   add({ box_id:'B2', entry_date:d(4), created_at:ts(4,'09:02'), direction:'IN', amount:12270000, entry_type:'OPENING', created_by:'U2' });
   add({ box_id:'B3', entry_date:d(4), created_at:ts(4,'09:03'), direction:'IN', amount:2100000, entry_type:'OPENING', created_by:'U2' });
-  add({ box_id:'B4', entry_date:d(4), created_at:ts(4,'09:04'), direction:'IN', amount:3000000, entry_type:'OPENING', created_by:'U2' });
   add({ box_id:'B1', entry_date:d(2), created_at:ts(2,'11:20'), direction:'IN', amount:3400000, entry_type:'INCOME', counterparty:'زغوان الياس', description:'تكملة كولوراي لاتوت قري' });
   add({ box_id:'B1', entry_date:d(2), created_at:ts(2,'16:05'), direction:'OUT', amount:85000, entry_type:'EXPENSE', category_id:'C7', description:'أجرة شاحنة من سكيكدة' });
-  const t0 = add({ box_id:'B1', entry_date:d(1), created_at:ts(1,'10:40'), direction:'OUT', amount:1500000, entry_type:'TRANSFER_OUT', counterparty:'منزل نبيل', transfer_id:'TRF-000001', description:'تحويل إلى منزل نبيل' });
+  add({ box_id:'B1', entry_date:d(1), created_at:ts(1,'10:40'), direction:'OUT', amount:1500000, entry_type:'TRANSFER_OUT', counterparty:'منزل نبيل', transfer_id:'TRF-000001' });
   add({ box_id:'B2', entry_date:d(1), created_at:ts(1,'13:10'), direction:'IN', amount:1500000, entry_type:'TRANSFER_IN', counterparty:'صندوق القايد', transfer_id:'TRF-000001', created_by:'U2' });
   add({ box_id:'B1', entry_date:d(0), created_at:ts(0,'09:15'), direction:'IN', amount:1000000, entry_type:'INCOME', counterparty:'بن عومر محمد', description:'ديوانة MG5', verified:false });
   add({ box_id:'B1', entry_date:d(0), created_at:ts(0,'10:02'), direction:'OUT', amount:2000, entry_type:'EXPENSE', category_id:'C4', description:'فليكسي' });
   add({ box_id:'B3', entry_date:d(0), created_at:hoursAgo(3), direction:'OUT', amount:1200000, entry_type:'TRANSFER_OUT', counterparty:'صندوق القايد', transfer_id:'TRF-000002', created_by:'U3' });
   add({ box_id:'B1', entry_date:d(0), created_at:hoursAgo(1.2), direction:'OUT', amount:300000, entry_type:'TRANSFER_OUT', counterparty:'حشيفة إسماعيل', transfer_id:'TRF-000003' });
+  add({ box_id:'B3', entry_date:d(0), created_at:hoursAgo(2), direction:'OUT', amount:800000, entry_type:'TRANSFER_OUT', counterparty:'منزل نبيل', transfer_id:'TRF-000004', created_by:'U3' });
   const T = [
-    { transfer_id:'TRF-000001', from_box_id:'B1', to_box_id:'B2', amount:1500000, currency:'DZD', received_amount:1500000, status:'CONFIRMED', via:'صديق نبيل', description:'', created_by:'U1', created_at:ts(1,'10:40'), responded_by:'U2', responded_at:ts(1,'13:10'), response_note:'' },
+    { transfer_id:'TRF-000001', from_box_id:'B1', to_box_id:'B2', amount:1500000, currency:'DZD', received_amount:1500000, status:'CONFIRMED', via:'صديق نبيل', description:'', created_by:'U1', created_at:ts(1,'10:40'), response_note:'' },
     { transfer_id:'TRF-000002', from_box_id:'B3', to_box_id:'B1', amount:1200000, currency:'DZD', received_amount:null, status:'PENDING', via:'أنور', description:'مبالغ زبائن ورقلة', created_by:'U3', created_at:hoursAgo(3), response_note:'' },
-    { transfer_id:'TRF-000003', from_box_id:'B1', to_box_id:'B4', amount:300000, currency:'DZD', received_amount:null, status:'PENDING', via:'صلاح', description:'', created_by:'U1', created_at:hoursAgo(1.2), response_note:'' }
+    { transfer_id:'TRF-000003', from_box_id:'B1', to_box_id:'B4', amount:300000, currency:'DZD', received_amount:null, status:'PENDING', via:'صلاح', description:'', created_by:'U1', created_at:hoursAgo(1.2), response_note:'' },
+    { transfer_id:'TRF-000004', from_box_id:'B3', to_box_id:'B2', amount:800000, currency:'DZD', received_amount:null, status:'PENDING', via:'', description:'', created_by:'U3', created_at:hoursAgo(2), response_note:'' }
   ];
-  const now = () => { const t = new Date(); return `${localDate(t)} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`; };
-  const box = id => boxes.find(b=>b.box_id===id);
-  const mine = b => b.k.includes('U1');
-  const bal = id => { const r = {}; L.filter(e=>e.box_id===id).forEach(e=>{ r[e.currency]=(r[e.currency]||0)+(e.direction==='IN'?e.amount:-e.amount); }); return r; };
+  const box = id => boxes.find(b => b.box_id === id);
+  const keeps = b => b.k.includes(cur);
+  const vis = b => b.status === 'ACTIVE' && (staff() || keeps(b));
+  const bal = id => { const r = {}; L.filter(e=>e.box_id===id).forEach(e=>{ r[e.currency]=(r[e.currency]||0)+(e.direction==='IN'?e.amount:-e.amount); }); Object.keys(r).forEach(c=>{ if(!r[c]) delete r[c]; }); return r; };
   const pend = (id, dir) => { const r = {}; T.filter(t=>t.status==='PENDING'&&(dir==='in'?t.to_box_id:t.from_box_id)===id).forEach(t=>r[t.currency]=(r[t.currency]||0)+t.amount); return r; };
   const hrs = s => Math.round((Date.now() - new Date(s.replace(' ','T')).getTime())/36e5);
-  const enrich = e => Object.assign({}, e, { box_name:box(e.box_id).name, entry_type_label:TL[e.entry_type]||e.entry_type, category_name:(cats.find(c=>c.category_id===e.category_id)||{}).name||'', created_by_name:users[e.created_by], can_void: e.status==='ACTIVE'&&e.created_by==='U1'&&e.created_at.slice(0,10)===localDate(new Date())&&!/^TRANSFER_|REVERSAL/.test(e.entry_type) });
+  const enrich = e => Object.assign({}, e, { box_name:box(e.box_id).name, entry_type_label:TL[e.entry_type]||e.entry_type, category_name:(cats.find(c=>c.category_id===e.category_id)||{}).name||'', created_by_name:uname(e.created_by),
+    can_void: e.status==='ACTIVE' && !/^TRANSFER_|REVERSAL/.test(e.entry_type) && (staff() || (e.created_by===cur && e.created_at.slice(0,10)===localDate(new Date()))) });
   const desc = t => { const f=box(t.from_box_id), to=box(t.to_box_id), p=t.status==='PENDING';
-    return Object.assign({}, t, { from_box_name:f.name, to_box_name:to.name, status_label:{PENDING:'معلّق',CONFIRMED:'مؤكَّد',REJECTED:'مرفوض',CANCELLED:'ملغى'}[t.status], created_by_name:users[t.created_by], age_hours:p?hrs(t.created_at):null, can_confirm:p&&mine(to), can_cancel:p&&mine(f) }); };
-  const err = (m) => { throw Object.assign(new Error(m), { code:'DEMO' }); };
+    return Object.assign({}, t, { from_box_name:f.name, to_box_name:to.name, status_label:{PENDING:'معلّق',CONFIRMED:'مؤكَّد',REJECTED:'مرفوض',CANCELLED:'ملغى'}[t.status], created_by_name:uname(t.created_by), age_hours:p?hrs(t.created_at):null, can_confirm:p&&(staff()||keeps(to)), can_cancel:p&&(staff()||keeps(f)) }); };
+  const err = (m, code='DEMO') => { throw Object.assign(new Error(m), { code }); };
   const sorted = () => L.slice().sort((a,b)=> a.entry_date===b.entry_date ? (a.created_at<b.created_at?-1:1) : (a.entry_date<b.entry_date?-1:1));
+  const userView = u => Object.assign({}, u, { boxes: boxes.filter(b => b.k.includes(u.user_id)).map(b => ({ box_id:b.box_id, name:b.name, status:b.status })) });
+  const hasOpening = id => L.some(e => e.box_id===id && e.entry_type==='OPENING' && e.currency==='DZD' && e.status==='ACTIVE');
+  const tempPw = () => Array.from({length:8}, (_,i) => 'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random()*31)]).join('').replace(/^(.{7})\D$/, '$17');
+  const requireAdmin = () => { if (me().role !== 'ADMIN') err('ليست لديك صلاحية لهذه العملية', 'FORBIDDEN'); };
 
   const H = {
-    login: p => { if (p.username !== 'demo' || p.password !== 'demo') err('في وضع التجربة استعمل demo / demo'); return { token:'demo' }; },
+    login: p => {
+      const u = p.username === 'admin' && p.password === 'admin' ? 'demo-admin' : p.username === 'demo' && p.password === 'demo' ? 'demo' : null;
+      if (!u) err('في وضع التجربة استعمل demo / demo أو admin / admin');
+      return { token:u };
+    },
     logout: () => ({}),
-    getMe: () => ({ user:me, boxes:boxes.filter(mine).map(b=>({box_id:b.box_id,name:b.name,type:b.type,location:b.location})), default_box_id:'B1', pending_incoming_transfers:1, currencies:['DZD','EUR','USD','SAR','LYD'] }),
+    getMe: () => ({ user:me(), must_change_password:false, boxes:boxes.filter(vis).map(b=>({box_id:b.box_id,name:b.name,type:b.type,location:b.location})), default_box_id: cur==='U2'?'B2':'B1', currencies:['DZD','EUR','USD','SAR','LYD'] }),
     setDefaultBox: () => ({}),
     getOverview: () => {
-      const vis = boxes.filter(mine);
+      const v = boxes.filter(vis);
       const td = localDate(new Date()); const today = { in:{}, out:{}, count:0 };
-      L.filter(e=>vis.some(b=>b.box_id===e.box_id)&&e.entry_date===td&&!/^TRANSFER_/.test(e.entry_type)).forEach(e=>{ const k=e.direction==='IN'?'in':'out'; today[k][e.currency]=(today[k][e.currency]||0)+e.amount; today.count++; });
+      L.filter(e=>v.some(b=>b.box_id===e.box_id)&&e.entry_date===td&&!/^TRANSFER_/.test(e.entry_type)).forEach(e=>{ const k=e.direction==='IN'?'in':'out'; today[k][e.currency]=(today[k][e.currency]||0)+e.amount; today.count++; });
       return {
-        boxes: vis.map(b=>({ box_id:b.box_id, name:b.name, type:b.type, location:b.location, balances:bal(b.box_id), pending_in:pend(b.box_id,'in'), pending_out:pend(b.box_id,'out') })),
-        my_incoming_transfers: T.filter(t=>t.status==='PENDING'&&mine(box(t.to_box_id))).map(desc),
-        pending_transfers: T.filter(t=>t.status==='PENDING').map(desc),
-        recent_entries: sorted().filter(e=>vis.some(b=>b.box_id===e.box_id)).reverse().slice(0,15).map(enrich),
+        boxes: v.map(b=>({ box_id:b.box_id, name:b.name, type:b.type, location:b.location, balances:bal(b.box_id), pending_in:pend(b.box_id,'in'), pending_out:pend(b.box_id,'out') })),
+        my_incoming_transfers: T.filter(t=>t.status==='PENDING'&&keeps(box(t.to_box_id))).map(desc),
+        pending_transfers: T.filter(t=>t.status==='PENDING'&&(staff()||keeps(box(t.to_box_id))||keeps(box(t.from_box_id)))).map(desc),
+        recent_entries: sorted().filter(e=>v.some(b=>b.box_id===e.box_id)).reverse().slice(0,15).map(enrich),
         today, alerts:[]
       };
     },
     listEntries: p => {
-      let run = 0; const rows = sorted().filter(e=>e.box_id===p.box_id&&e.currency==='DZD'||e.box_id===p.box_id).map(e=>{ if(e.currency==='DZD'){ run += e.direction==='IN'?e.amount:-e.amount; } return Object.assign(enrich(e), { balance_after: e.currency==='DZD'?run:null }); }).reverse();
+      let run = 0;
+      const rows = sorted().filter(e=>e.box_id===p.box_id).map(e=>{ if(e.currency==='DZD') run += e.direction==='IN'?e.amount:-e.amount; return Object.assign(enrich(e), { balance_after: e.currency==='DZD'?run:null }); }).reverse();
       return { total: rows.length, items: rows.slice(p.offset||0, (p.offset||0)+(p.limit||50)) };
     },
     listCategories: () => cats,
-    listTransferTargets: () => boxes.map(b=>({box_id:b.box_id,name:b.name,location:b.location,type:b.type})),
-    listTransfers: () => ({ items: T.slice().sort((a,b)=>a.created_at<b.created_at?1:-1).map(desc) }),
+    listTransferTargets: () => boxes.filter(b=>b.status==='ACTIVE').map(b=>({box_id:b.box_id,name:b.name,location:b.location,type:b.type})),
+    listTransfers: () => ({ items: T.filter(t=>staff()||keeps(box(t.to_box_id))||keeps(box(t.from_box_id))).sort((a,b)=>a.created_at<b.created_at?1:-1).map(desc) }),
     recordIncome: p => { const e = add({ box_id:p.box_id, entry_date:p.entry_date, created_at:now(), direction:'IN', amount:p.amount, currency:p.currency, entry_type:'INCOME', counterparty:p.counterparty, description:p.description, verified:!p.unconfirmed }); return { entry:e, balance:bal(p.box_id), warnings:[] }; },
-    recordExpense: p => { add({ box_id:p.box_id, entry_date:p.entry_date, created_at:now(), direction:'OUT', amount:p.amount, currency:p.currency, entry_type:'EXPENSE', category_id:p.category_id, description:p.description }); const b=bal(p.box_id); return { balance:b, warnings: (b[p.currency]||0)<0?['تنبيه: رصيد الصندوق أصبح بالسالب']:[] }; },
+    recordExpense: p => { add({ box_id:p.box_id, entry_date:p.entry_date, created_at:now(), direction:'OUT', amount:p.amount, currency:p.currency, entry_type:'EXPENSE', category_id:p.category_id, description:p.description }); const b=bal(p.box_id); return { balance:b, warnings:(b[p.currency]||0)<0?['تنبيه: رصيد الصندوق أصبح بالسالب']:[] }; },
     createTransfer: p => { const id='TRF-'+String(T.length+1).padStart(6,'0'); const to=box(p.to_box_id);
       add({ box_id:p.from_box_id, entry_date:p.entry_date, created_at:now(), direction:'OUT', amount:p.amount, currency:p.currency, entry_type:'TRANSFER_OUT', counterparty:to.name, transfer_id:id });
-      T.push({ transfer_id:id, from_box_id:p.from_box_id, to_box_id:p.to_box_id, amount:p.amount, currency:p.currency, received_amount:null, status:'PENDING', via:p.via, description:p.description, created_by:'U1', created_at:now(), response_note:'' });
-      return { transfer: desc(T[T.length-1]), balance: bal(p.from_box_id), warnings:[] }; },
+      T.push({ transfer_id:id, from_box_id:p.from_box_id, to_box_id:p.to_box_id, amount:p.amount, currency:p.currency, received_amount:null, status:'PENDING', via:p.via, description:p.description, created_by:cur, created_at:now(), response_note:'' });
+      return { transfer:desc(T[T.length-1]), balance:bal(p.from_box_id), warnings:[] }; },
     confirmTransfer: p => { const t=T.find(x=>x.transfer_id===p.transfer_id); const rec = p.received_amount || t.amount;
       add({ box_id:t.to_box_id, entry_date:localDate(new Date()), created_at:now(), direction:'IN', amount:rec, currency:t.currency, entry_type:'TRANSFER_IN', counterparty:box(t.from_box_id).name, transfer_id:t.transfer_id });
-      Object.assign(t, { status:'CONFIRMED', received_amount:rec, response_note:p.note||'', responded_at:now() }); return { transfer:desc(t) }; },
+      Object.assign(t, { status:'CONFIRMED', received_amount:rec, response_note:p.note||'' }); return { transfer:desc(t) }; },
     rejectTransfer: p => back(p, 'REJECTED'),
     cancelTransfer: p => back(p, 'CANCELLED'),
     voidEntry: p => { const e=L.find(x=>x.entry_id===p.entry_id); add({ box_id:e.box_id, entry_date:localDate(new Date()), created_at:now(), direction:e.direction==='IN'?'OUT':'IN', amount:e.amount, currency:e.currency, entry_type:'REVERSAL', counterparty:e.counterparty, description:'إلغاء: '+p.reason }); e.status='VOIDED'; return {}; },
-    changePassword: () => err('غير متاح في وضع التجربة'),
-    ping: () => ({ pong:true })
+    changePassword: () => { me().must_change_password = false; return {}; },
+    ping: () => ({ pong:true }),
+
+    adminListUsers: () => { requireAdmin(); return {
+      users: users.map(userView),
+      boxes: boxes.map(b => ({ box_id:b.box_id, name:b.name, type:b.type, location:b.location, status:b.status, keeper_user_ids:b.k.slice(), balances:bal(b.box_id), has_opening_dzd:hasOpening(b.box_id) }))
+    }; },
+    adminCreateUser: p => {
+      requireAdmin();
+      if (!/^[a-z0-9_.]{3,30}$/.test(p.username)) err('اسم المستخدم: حروف لاتينية صغيرة وأرقام ونقطة فقط');
+      if (users.some(u => u.username === p.username)) err(`اسم المستخدم "${p.username}" مستعمل، اختر اسماً آخر`);
+      if (p.role === 'KEEPER' && !p.box_ids.length && !p.new_box) err('صاحب الصندوق يحتاج صندوقاً واحداً على الأقل');
+      if (p.new_box && boxes.some(b => b.name === p.new_box.name)) err(`يوجد صندوق باسم "${p.new_box.name}"`);
+      const id = 'U' + (users.length + 1);
+      users.push({ user_id:id, username:p.username, full_name:p.full_name, phone:p.phone, role:p.role, status:'ACTIVE', must_change_password:true, last_login_at:'', created_at:now() });
+      p.box_ids.forEach(bid => box(bid).k.push(id));
+      if (p.new_box) boxes.push({ box_id:'B'+(boxes.length+10), name:p.new_box.name, type:p.new_box.type, location:p.new_box.location, k:[id], status:'ACTIVE' });
+      return { user:userView(users[users.length-1]), username:p.username, temp_password:tempPw() };
+    },
+    adminUpdateUser: p => {
+      requireAdmin();
+      const u = users.find(x => x.user_id === p.user_id);
+      const role = p.role || u.role, status = p.status || u.status;
+      if (u.user_id === cur && status !== 'ACTIVE') err('لا يمكنك إيقاف حسابك');
+      if (u.role === 'ADMIN' && (role !== 'ADMIN' || status !== 'ACTIVE') && users.filter(x=>x.role==='ADMIN'&&x.status==='ACTIVE').length <= 1) err('هذا آخر مدير في النظام. أضف مديراً آخر قبل تغييره');
+      const finalBoxes = p.box_ids || boxes.filter(b=>b.k.includes(u.user_id)).map(b=>b.box_id);
+      if (role === 'KEEPER' && status === 'ACTIVE' && !finalBoxes.length) err('صاحب الصندوق يحتاج صندوقاً واحداً على الأقل');
+      if (p.box_ids) boxes.forEach(b => { const has = b.k.includes(u.user_id), want = p.box_ids.includes(b.box_id); if (has && !want) b.k = b.k.filter(k=>k!==u.user_id); if (!has && want) b.k.push(u.user_id); });
+      Object.assign(u, { role, status }, p.full_name !== undefined ? { full_name:p.full_name } : {}, p.phone !== undefined ? { phone:p.phone } : {});
+      return { user:userView(u) };
+    },
+    adminResetPassword: p => { requireAdmin(); const u = users.find(x => x.user_id === p.user_id); u.must_change_password = true; return { user:userView(u), username:u.username, temp_password:tempPw() }; },
+    createBox: p => { requireAdmin(); if (boxes.some(b=>b.name===p.name)) err('يوجد صندوق بنفس الاسم'); const b = { box_id:'B'+(boxes.length+10), name:p.name, type:p.type, location:p.location, k:p.keeper_user_ids||[], status:'ACTIVE' }; boxes.push(b); return b; },
+    updateBox: p => { requireAdmin(); const b = box(p.box_id);
+      if (p.status === 'DISABLED' && Object.keys(bal(b.box_id)).length) err('لا يمكن إيقاف صندوق رصيده ليس صفراً');
+      if (p.name !== undefined) b.name = p.name; if (p.location !== undefined) b.location = p.location;
+      if (p.keeper_user_ids) b.k = p.keeper_user_ids.slice(); if (p.status) b.status = p.status; return b; },
+    recordOpening: p => { requireAdmin(); if (hasOpening(p.box_id)) err('يوجد رصيد افتتاحي لهذا الصندوق');
+      add({ box_id:p.box_id, entry_date:p.entry_date, created_at:now(), direction:p.amount>0?'IN':'OUT', amount:Math.abs(p.amount), currency:'DZD', entry_type:'OPENING' }); return { balance:bal(p.box_id) }; }
   };
   function back(p, st){ const t=T.find(x=>x.transfer_id===p.transfer_id);
     add({ box_id:t.from_box_id, entry_date:localDate(new Date()), created_at:now(), direction:'IN', amount:t.amount, currency:t.currency, entry_type:'TRANSFER_RETURN', counterparty:box(t.to_box_id).name, transfer_id:t.transfer_id });
-    Object.assign(t, { status:st, response_note:p.note||'', responded_at:now() }); return { transfer:desc(t) }; }
-  return { handle: (action, p) => new Promise((res, rej) => setTimeout(() => { try { if (!H[action]) err('غير متاح في وضع التجربة'); res(H[action](p||{})); } catch(x){ rej(x); } }, 380)) };
+    Object.assign(t, { status:st, response_note:p.note||'' }); return { transfer:desc(t) }; }
+  return { handle: (action, p, token) => new Promise((res, rej) => setTimeout(() => {
+    cur = token === 'demo-admin' ? 'U2' : 'U1';
+    try { if (!H[action]) err('غير متاح في وضع التجربة'); res(H[action](p||{})); } catch(x){ rej(x); }
+  }, 380)) };
 })();
+
 
 boot();
 </script>
