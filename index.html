@@ -486,7 +486,7 @@ const DICT = {
   'اختر رمزاً أصعب من هذا':'Choose a harder code','الرمزان غير متطابقان':'The codes do not match',
   'الرمزان غير متطابقين، ابدأ من جديد':'The codes do not match, start again','جارٍ التحقق…':'Checking…',
   'تم حفظ رمز الدخول':'Access code saved','تم تغيير رمز الدخول':'Access code changed',
-  'نسيت الرمز؟':'Forgot your code?','نسيت رمز الدخول':'Forgot access code','لاحقاً':'Later',
+  'نسيت الرمز؟':'Forgot your code?','قفل التطبيق الآن':'Lock the app now','يطلب الرمز فوراً':'Asks for the code immediately','نسيت رمز الدخول':'Forgot access code','لاحقاً':'Later',
   'لا مشكلة. سجّل الدخول باسم المستخدم وكلمة المرور، ثم اختر رمزاً جديداً.':'No problem. Sign in with your username and password, then choose a new code.',
   'وإذا نسيت كلمة المرور أيضاً، اطلب من المدير إعادة تعيينها لك من شاشة المستخدمين، فيصلك رمز مؤقت.':'If you forgot your password too, ask the manager to reset it from the Users screen and you will get a temporary one.',
   'الدخول بكلمة المرور':'Sign in with password',
@@ -639,6 +639,7 @@ const I = {
   users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .6 3.2 2.5 3.8 5.5"/>',
   pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
   shield:'<path d="M12 3l7 3v6c0 4.2-2.9 7.4-7 9-4.1-1.6-7-4.8-7-9V6z"/><path d="M9.2 12.2 11 14l4-4.2"/>',
+  lockClosed:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3M12 15v2"/>',
   globe:'<circle cx="12" cy="12" r="9"/><path d="M3.5 9h17M3.5 15h17M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>'
 };
 const ic = (n, cls='') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
@@ -723,7 +724,11 @@ function pwField(id, label, autocomplete, hint){
 
 /* ---------------- Boot & auth ---------------- */
 function boot(){
-  if (hasPin() && !S.token) return renderPinUnlock();
+  if (hasPin() && !S.token){
+    const t = sessRead_();
+    if (t){ S.token = t; sessTouch_(); return loadApp(); }
+    return renderPinUnlock();
+  }
   if (S.demo && !S.token) return openDemoChooser();
   if (S.token) loadApp(); else renderLogin();
 }
@@ -755,7 +760,7 @@ function renderLogin(err=''){
     try {
       const r = await api('login', { username:u, password:p });
       S.token = r.token; S._pw = p; S.locked = false;
-      localStorage.setItem(LS.token, r.token); // مؤقتاً حتى يُنشأ الرمز
+      if (hasPin()) sessSave_(r.token); else localStorage.setItem(LS.token, r.token);
       loadApp();
     } catch(x){ setBtnBusy($('#loginBtn'), false, 'دخول'); renderLoginErr(x.message); }
   });
@@ -768,7 +773,7 @@ function renderLoginErr(m){
 
 function signOutLocal(){
   S.token = null; S.me = null; S.ov = null; S.locked = false; S.pinAsked = null;
-  localStorage.removeItem(LS.token); localStorage.removeItem(PIN_KEY);
+  localStorage.removeItem(LS.token); localStorage.removeItem(PIN_KEY); sessClear_();
   S.hist = { filter:'all', items:[], total:0, loaded:false }; S.trf = { tab:'wait', items:[], loaded:false };
   S.adm = { loaded:false, users:[], boxes:[] }; S._pw = null; S.view = 'home';
   renderLogin();
@@ -1027,6 +1032,7 @@ function viewAccount(){
     <div class="list menu" style="margin-top:14px">
       <button class="row" data-act="switch-box"><span class="row-ic">${ic('box')}</span><span class="row-main"><span class="row-title">الصندوق الافتراضي</span><span class="row-sub">${box?esc(box.name):'غير محدد'}</span></span>${ic('chev')}</button>
       <button class="row" data-act="password"><span class="row-ic">${ic('lock')}</span><span class="row-main"><span class="row-title">تغيير كلمة المرور</span></span>${ic('chev')}</button>
+      ${!hasPin() ? '' : `<button class="row" data-act="pin-lock"><span class="row-ic">${ic('lockClosed')}</span><span class="row-main"><span class="row-title">قفل التطبيق الآن</span><span class="row-sub">يطلب الرمز فوراً</span></span>${ic('chev')}</button>`}
       ${!pinSupported() ? '' : hasPin() ? `<button class="row" data-act="pin-change"><span class="row-ic">${ic('shield')}</span><span class="row-main"><span class="row-title">رمز الدخول</span><span class="row-sub">تغيير الأرقام الأربعة</span></span>${ic('chev')}</button>`
       : `<button class="row" data-act="pin-new"><span class="row-ic">${ic('shield')}</span><span class="row-main"><span class="row-title">رمز الدخول</span><span class="row-sub">غير مفعّل، فعّله لحماية الجهاز</span></span>${ic('chev')}</button>`}
       <button class="row" data-act="lang"><span class="row-ic">${ic('globe')}</span><span class="row-main"><span class="row-title">اللغة</span><span class="row-sub" data-noi18n>${S.lang === 'en' ? 'English' : 'العربية'}</span></span>${ic('chev')}</button>
@@ -1051,7 +1057,25 @@ function viewAccount(){
 const PIN_KEY = 'sc.lock';
 const PIN_LEN = 4;
 const PIN_MAX_TRIES = 5;
-const AUTO_LOCK_MIN = 3;
+const AUTO_LOCK_MIN = 5;
+/* جلسة قصيرة داخل التبويب: تنجو من إعادة تحميل الصفحة عند التنقل بين التطبيقات،
+   وتنتهي بإغلاق التبويب أو بعد AUTO_LOCK_MIN دقائق من آخر استعمال. */
+const SESS = { tok: 'sc.sess', seen: 'sc.seen' };
+function sessSave_(token){
+  try { sessionStorage.setItem(SESS.tok, token); sessionStorage.setItem(SESS.seen, String(Date.now())); } catch(e){}
+}
+function sessTouch_(){
+  try { if (sessionStorage.getItem(SESS.tok)) sessionStorage.setItem(SESS.seen, String(Date.now())); } catch(e){}
+}
+function sessRead_(){
+  try {
+    const t = sessionStorage.getItem(SESS.tok), seen = Number(sessionStorage.getItem(SESS.seen) || 0);
+    if (!t) return null;
+    if (Date.now() - seen > AUTO_LOCK_MIN * 60000){ sessClear_(); return null; }
+    return t;
+  } catch(e){ return null; }
+}
+function sessClear_(){ try { sessionStorage.removeItem(SESS.tok); sessionStorage.removeItem(SESS.seen); } catch(e){} }
 
 const b64 = {
   enc: buf => btoa(String.fromCharCode(...new Uint8Array(buf))),
@@ -1148,6 +1172,7 @@ function renderPinSetup(){
     }
     if (val !== first4){ first4 = null; return s.shake('الرمزان غير متطابقين، ابدأ من جديد'); }
     await pinSave_(val, S.token, S.me.user);
+    sessSave_(S.token);
     toast('تم حفظ رمز الدخول');
     startApp();
   });
@@ -1173,7 +1198,7 @@ function renderPinUnlock(){
     s.say('جارٍ التحقق…');
     const r = await pinOpen_(val);
     if (typeof r === 'string'){
-      S.token = r; S.locked = false; loadApp(); return;
+      S.token = r; S.locked = false; sessSave_(r); loadApp(); return;
     }
     if (r && r.wiped){ toast('محاولات كثيرة خاطئة. سجّل الدخول بكلمة المرور', true); return signOutLocal(); }
     s.shake(`رمز خاطئ، بقيت لك ${r.left} محاولات`);
@@ -1214,14 +1239,16 @@ function openPinForgot(){
 }
 
 /* ---------- القفل التلقائي بعد الخروج من التطبيق ---------- */
-let _hiddenAt = 0;
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden){ _hiddenAt = Date.now(); return; }
+  // لا نحدّث وقت آخر استعمال عند الخروج، وإلا لن تبدأ المهلة أبداً
+  if (document.hidden) return;
   if (!hasPin() || !S.token || S.locked) return;
-  if (_hiddenAt && Date.now() - _hiddenAt > AUTO_LOCK_MIN * 60000){
-    S.locked = true; S.token = null; renderPinUnlock();
-  }
+  if (!sessRead_()) lockNow(); else sessTouch_();
 });
+['pointerdown','keydown'].forEach(ev => document.addEventListener(ev, sessTouch_, { passive: true }));
+function lockNow(){
+  S.locked = true; S.token = null; sessClear_(); closeSheet(true); renderPinUnlock();
+}
 
 /* ---------------- Sheets ---------------- */
 function openSheet(html, { full=false, onMount, sticky=false }={}){
@@ -1560,6 +1587,7 @@ document.addEventListener('click', async e => {
       transferAction('rejectTransfer', { transfer_id:id, note }, el, 'رُفض التحويل ورجع المبلغ للمرسل'); break; }
     case 't-cancel-go': transferAction('cancelTransfer', { transfer_id:id, note:$('#cn').value.trim() }, el, 'أُلغي التحويل'); break;
     case 'account': break;
+    case 'pin-lock': lockNow(); break;
     case 'pin-change': openPinChange(); break;
     case 'pin-new': renderPinSetup(); break;
     case 'pin-forgot': openPinForgot(); break;
