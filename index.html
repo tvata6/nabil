@@ -111,7 +111,8 @@ svg.i{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .row-sub{display:flex;gap:10px;color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden}
 .row-end{text-align:end;flex:none}
 .amt{font-weight:600;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate;white-space:nowrap}
-.amt.in{color:var(--in)}.amt.out{color:var(--ink)}.amt.voided{color:var(--faint);text-decoration:line-through}
+.amt.in{color:var(--in)}.amt.out{color:var(--out)}.amt.move{color:var(--ink)}.amt.muted{color:var(--faint)}
+.amt.voided{color:var(--faint);text-decoration:line-through}
 .row-bal{display:block;color:var(--faint);font-size:12px;font-variant-numeric:tabular-nums}
 .tag{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:500;padding:1px 8px;border-radius:999px;white-space:nowrap}
 .tag.amber{background:var(--amber-tint);color:var(--amber-ink)}.tag.green{background:var(--in-tint);color:var(--in)}
@@ -414,7 +415,9 @@ const DICT = {
   'دفعة زبون على سيارة':'Customer payment for a car','قريباً في المرحلة الثانية':'Coming in phase two',
   'من سلّمك المبلغ؟':'Who gave you the money?','اسم الشخص أو الجهة':'Person or company name',
   'التصنيف':'Category','المبلغ':'Amount','إلى أي صندوق؟':'To which box?','عن طريق':'Via','ملاحظة':'Note',
-  'تفاصيل المصروف':'Expense details','سبب التحويل':'Reason for the transfer','تاريخ العملية':'Operation date',
+  'تفاصيل المصروف':'Expense details','اكتب نوع المصروف':'What was this expense?',
+  'حتى يبقى المصروف مفهوماً عند مراجعة السجل لاحقاً.':'So the entry still makes sense when you review the history later.',
+  'مثال: إصلاح مكيّف المكتب':'e.g. fixing the office air conditioner','سبب التحويل':'Reason for the transfer','تاريخ العملية':'Operation date',
   'المبلغ غير مؤكد بعد':'Amount not confirmed yet','يظهر للمحاسب ليثبّته لاحقاً':'The accountant will confirm it later',
   'أكمل البيانات':'Complete the fields','تم حفظ الاستلام':'Income saved','تم حفظ المصروف':'Expense saved',
   'أُرسل التحويل':'Transfer sent','تم':'Done','(اختياري)':'(optional)',
@@ -929,6 +932,15 @@ function entryMeta(e){
   if (e.entry_type === 'OPENING') title = 'رصيد افتتاحي';
   return { cls, icon, title, voided };
 }
+/* الأحمر للمال الذي خرج فعلاً. التحويل بين صناديقكم ليس خسارة، فيبقى داكناً. */
+function amtClass(e){
+  if (e.status === 'VOIDED') return 'voided';
+  if (e.entry_type === 'REVERSAL') return 'muted';
+  if (e.direction === 'IN') return 'in';
+  if (/^TRANSFER_/.test(e.entry_type)) return 'move';
+  return 'out';
+}
+
 function entryRow(e){
   const m = entryMeta(e);
   const sign = e.direction === 'IN' ? '+' : '−';
@@ -937,7 +949,7 @@ function entryRow(e){
     <span class="row-main"><span class="row-title">${esc(m.title)}</span>
       <span class="row-sub"><span>${esc(e.entry_type==='EXPENSE'?e.category_name:typeLabel(e))}</span><span>${timeOf(e.created_at)}</span>
       ${!e.verified?'<span class="tag amber">غير مؤكد</span>':''}${e.status==='VOIDED'?'<span class="tag grey">ملغى</span>':''}</span></span>
-    <span class="row-end"><span class="amt ${e.status==='VOIDED'?'voided':e.direction==='IN'?'in':'out'}">${sign} ${fmt(e.amount)}${e.currency!=='DZD'?' '+(CUR[e.currency]||e.currency):''}</span>
+    <span class="row-end"><span class="amt ${amtClass(e)}">${sign} ${fmt(e.amount)}${e.currency!=='DZD'?' '+(CUR[e.currency]||e.currency):''}</span>
       ${e.balance_after!=null?`<span class="row-bal num">${fmt(e.balance_after)}</span>`:''}</span>
   </button>`;
 }
@@ -1283,7 +1295,7 @@ function openBoxSwitch(){
     <p class="lead">سيبقى محفوظاً على حسابك في المرة القادمة.</p>
     ${boxes.map(b=>`<button class="pick" data-act="pick-box" data-id="${b.box_id}" aria-pressed="${b.box_id===S.boxId}">
       <span class="radio"></span><span class="row-main"><b>${esc(b.name)}</b><small>${esc(b.location||'')}</small></span>
-      <span class="amt ${(b.balances.DZD||0)<0?'':'out'}" style="${(b.balances.DZD||0)<0?'color:var(--out)':''}">${(b.balances.DZD||0)<0?'−':''}${fmt(b.balances.DZD||0)}</span></button>`).join('')}
+      <span class="amt ${(b.balances.DZD||0)<0?'out':'move'}">${(b.balances.DZD||0)<0?'−':''}${fmt(b.balances.DZD||0)}</span></button>`).join('')}
   </div>`);
 }
 async function pickBox(id){
@@ -1307,7 +1319,7 @@ function openEntry(id){
   ].filter(Boolean);
   openSheet(`${sheetHead('تفاصيل العملية')}<div class="sheet-body">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><span class="row-ic ${m.cls}" style="width:46px;height:46px">${ic(m.icon)}</span>
-      <div><div class="amt ${e.direction==='IN'?'in':'out'}" style="font-size:24px">${e.direction==='IN'?'+':'−'} ${fmt(e.amount)} ${CUR[e.currency]||e.currency}</div><div class="hint" style="margin:0">${esc(m.title)}</div></div></div>
+      <div><div class="amt ${amtClass(e)}" style="font-size:24px">${e.direction==='IN'?'+':'−'} ${fmt(e.amount)} ${CUR[e.currency]||e.currency}</div><div class="hint" style="margin:0">${esc(m.title)}</div></div></div>
     ${e.description?`<div class="t-note" style="margin:0 0 14px">${esc(e.description)}</div>`:''}
     <dl class="dl">${rows.map(r=>`<div><dt>${r[0]}</dt><dd>${r[1].startsWith&&r[1].startsWith('<')?r[1]:esc(r[1])}</dd></div>`).join('')}</dl>
   </div>
@@ -1445,7 +1457,12 @@ function renderOpForm(op, box){
         ${recent.length?`<div class="suggest">${recent.map(r=>`<button type="button" data-fill="${esc(r)}">${esc(r)}</button>`).join('')}</div>`:''}</div>`
     : op.type === 'expense' ? `
       <div class="field"><span class="field-l">التصنيف</span>
-        <div class="cat-grid">${S.cats.map(c=>`<button type="button" class="cat" data-cat="${c.category_id}" aria-pressed="false">${esc(c.name)}</button>`).join('')}</div></div>`
+        <div class="cat-grid">${S.cats.map(c=>`<button type="button" class="cat" data-cat="${c.category_id}" data-name="${esc(c.name)}" aria-pressed="false">${esc(c.name)}</button>`).join('')}</div>
+        <div class="field hidden" id="otherWrap" style="margin:14px 0 0">
+          <label class="field-l" for="otherDesc">اكتب نوع المصروف</label>
+          <input class="input" id="otherDesc" placeholder="مثال: إصلاح مكيّف المكتب" autocomplete="off">
+          <div class="hint">حتى يبقى المصروف مفهوماً عند مراجعة السجل لاحقاً.</div>
+        </div></div>`
     : `
       <div class="field"><span class="field-l">إلى أي صندوق؟</span>
         ${S.targets.filter(b=>b.box_id!==box.box_id).map(b=>`<button type="button" class="pick" data-to="${b.box_id}" aria-pressed="false"><span class="radio"></span><span class="row-main"><b>${esc(b.name)}</b><small>${esc(b.location||'')}</small></span></button>`).join('')}</div>`;
@@ -1472,7 +1489,11 @@ function renderOpForm(op, box){
   const bal = (box.balances||{}).DZD || 0;
 
   const update = () => {
-    const ready1 = op.type==='income' ? op.counterparty.trim().length >= 2 : op.type==='expense' ? !!op.category_id : !!op.to_box_id;
+    const ready1 = op.type==='income' ? op.counterparty.trim().length >= 2
+      : op.type==='expense' ? (!!op.category_id && (!op.needsDesc || String(op.otherDesc||'').trim().length >= 3))
+      : !!op.to_box_id;
+    const descField = $('#desc') && $('#desc').closest('.field');
+    if (descField) descField.classList.toggle('hidden', !!op.needsDesc);
     show($('#stepAmount'), ready1);
     const v = Number(op.value) || 0;
     show($('#stepMore'), ready1 && v > 0);
@@ -1488,13 +1509,25 @@ function renderOpForm(op, box){
     if (e.target.id==='cp') op.counterparty = e.target.value;
     if (e.target.id==='via') op.via = e.target.value;
     if (e.target.id==='desc') op.description = e.target.value;
+    if (e.target.id==='otherDesc') op.otherDesc = e.target.value;
     if (e.target.id==='dt') op.date = e.target.value;
     update();
   });
   body.addEventListener('click', e => {
     const f = e.target.closest('[data-fill]'); if (f){ $('#cp').value = op.counterparty = f.dataset.fill; update(); }
     const c = e.target.closest('[data-cat]');
-    if (c){ op.category_id = c.dataset.cat; body.querySelectorAll('[data-cat]').forEach(x=>x.setAttribute('aria-pressed', x===c)); update(); }
+    if (c){
+      op.category_id = c.dataset.cat;
+      op.needsDesc = /^(أخرى|other)$/i.test(c.dataset.name || '');
+      body.querySelectorAll('[data-cat]').forEach(x=>x.setAttribute('aria-pressed', x===c));
+      const wrap = $('#otherWrap');
+      if (wrap){
+        show(wrap, op.needsDesc);
+        if (op.needsDesc) setTimeout(() => { $('#otherDesc').focus(); wrap.scrollIntoView({ behavior:'smooth', block:'center' }); }, 60);
+        else { $('#otherDesc').value = ''; op.otherDesc = ''; }
+      }
+      update();
+    }
     const t = e.target.closest('[data-to]');
     if (t){ op.to_box_id = t.dataset.to; body.querySelectorAll('[data-to]').forEach(x=>x.setAttribute('aria-pressed', x===t)); update(); }
     const s = e.target.closest('#unc');
@@ -1516,8 +1549,10 @@ async function submitOp(op, box){
       r = await api('recordIncome', { box_id:box.box_id, amount, currency:op.currency, counterparty:op.counterparty.trim(), description:op.description.trim(), unconfirmed:op.unconfirmed, entry_date:op.date });
       title = 'تم حفظ الاستلام'; note = `من ${op.counterparty.trim()}`;
     } else if (op.type === 'expense'){
-      r = await api('recordExpense', { box_id:box.box_id, amount, currency:op.currency, category_id:op.category_id, description:op.description.trim(), entry_date:op.date });
-      title = 'تم حفظ المصروف'; note = S.cats.find(c=>c.category_id===op.category_id).name;
+      const desc = (op.needsDesc ? String(op.otherDesc||'') : op.description).trim();
+      r = await api('recordExpense', { box_id:box.box_id, amount, currency:op.currency, category_id:op.category_id, description:desc, entry_date:op.date });
+      title = 'تم حفظ المصروف';
+      note = op.needsDesc ? desc : S.cats.find(c=>c.category_id===op.category_id).name;
     } else {
       r = await api('createTransfer', { from_box_id:box.box_id, to_box_id:op.to_box_id, amount, currency:op.currency, via:op.via.trim(), description:op.description.trim(), entry_date:op.date });
       const to = S.targets.find(b=>b.box_id===op.to_box_id).name;
