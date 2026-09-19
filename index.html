@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#19222D">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="مسار">
-<title>مسار</title>
+<meta name="apple-mobile-web-app-title" content="SANAD CARS">
+<title>SANAD CARS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -264,15 +264,26 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 .toast.err{background:#7A1A12}
 
 /* Login */
-.login{min-height:100dvh;display:flex;flex-direction:column;background:var(--asphalt);color:#fff}
+.login{min-height:100dvh;display:flex;flex-direction:column;color:#fff;position:relative;isolation:isolate;
+  background:radial-gradient(130% 70% at 50% 8%, #2B3A4A 0%, #1E2835 45%, #151D26 100%)}
+.login::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(38% 22% at 50% 15%, rgba(233,162,12,.20), transparent 70%)}
+.login::after{content:"";position:absolute;inset-inline:0;top:0;height:2px;z-index:-1;
+  background:linear-gradient(90deg,transparent,rgba(233,162,12,.85),transparent)}
 @media (min-width:600px){
   .login{align-items:center;justify-content:center;padding:32px}
   .login-top{flex:none;width:100%;max-width:440px;padding:0 4px 28px;min-height:220px}
   .login-card{width:100%;max-width:440px;border-radius:26px;padding:28px 26px}
 }
-.login-top{flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:40px 26px 28px;position:relative;overflow:hidden}
-.road{position:absolute;inset:0;opacity:.9;pointer-events:none}
-.brand{display:flex;align-items:center;gap:12px;position:relative}
+.login-top{flex:1;display:flex;flex-direction:column;justify-content:center;padding:44px 26px 34px;position:relative}
+.brand{position:relative;text-align:center}
+.brand-plate{width:146px;height:146px;border-radius:50%;background:#fff;display:grid;place-items:center;margin:0 auto 16px;
+  box-shadow:0 18px 40px rgba(0,0,0,.45), 0 0 0 1px rgba(233,162,12,.45), 0 0 0 9px rgba(255,255,255,.04)}
+.brand-plate img{width:128px;height:128px;display:block}
+.brand-plate.sm{width:104px;height:104px;margin-bottom:12px}
+.brand-plate.sm img{width:90px;height:90px}
+.brand-hi{margin:0;font-size:24px;font-weight:700}
+.brand-sub{margin:0;color:#9AA7B3;font-size:14px;letter-spacing:.2px}
 .brand-mark{width:52px;height:52px;border-radius:15px;background:#fff;display:grid;place-items:center}
 .brand h1{margin:0;font-size:30px;font-weight:700;line-height:1}
 .brand p{margin:4px 0 0;color:#9AA7B3;font-size:14px}
@@ -282,6 +293,8 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 .pw-wrap{position:relative}
 .pw-wrap .icon-btn{position:absolute;left:5px;top:5px;color:var(--faint)}
 .pw-wrap .input{padding-left:50px}
+[dir="ltr"] .pw-wrap .icon-btn{left:auto;right:5px}
+[dir="ltr"] .pw-wrap .input{padding-left:14px;padding-right:50px}
 .login-links{display:flex;justify-content:space-between;margin-top:14px}
 .form-err{background:var(--out-tint);color:var(--out);padding:10px 12px;border-radius:10px;font-size:13.5px;margin-bottom:14px}
 .demo-bar{background:var(--amber);color:var(--asphalt);font-size:12.5px;font-weight:500;text-align:center;padding:4px 10px}
@@ -317,14 +330,14 @@ svg.i.sm{width:18px;height:18px}
 
 <script>
 /* =========================================================
-   مسار: تطبيق الصناديق للهاتف
+   SANAD CARS: تطبيق الصناديق والتحويلات
    ضع رابط Apps Script (ينتهي بـ /exec) هنا، أو أدخله من شاشة الدخول.
    ========================================================= */
-const CONFIG = { API_URL: '' };
+const CONFIG = { API_URL: 'https://script.google.com/macros/s/AKfycbxQy5LIBsq0yQcFNvAW627oCbICV_MVjWZB6LgJO1aSa80pgUBlNvOvDTzSwnxJrWwtag/exec' };
 
 const LS = { token: 'masar.token', api: 'masar.api', demo: 'masar.demo' };
 const S = {
-  api: CONFIG.API_URL || localStorage.getItem(LS.api) || '',
+  api: CONFIG.API_URL,
   demo: localStorage.getItem(LS.demo) === '1',
   token: localStorage.getItem(LS.token),
   me: null, ov: null, boxId: null, view: 'home', busy: false,
@@ -333,6 +346,225 @@ const S = {
   cats: null, targets: null, odo: {},
   adm: { loaded:false, users:[], boxes:[] }, _pw: null, _credMsg: ''
 };
+
+/* ================= اللغة / Language ================= */
+const LANG_KEY = 'sc.lang';
+S.lang = localStorage.getItem(LANG_KEY) || 'ar';
+const isEN = () => S.lang === 'en';
+
+const DICT = {
+  // التنقل والشاشات
+  'الرئيسية':'Home','السجل':'History','التحويلات':'Transfers','حسابي':'Account','التنقل':'Navigation',
+  'تسجيل الدخول':'Sign in','تسجيل الخروج':'Sign out','دخول':'Sign in','خروج':'Sign out',
+  'اسم المستخدم':'Username','كلمة المرور':'Password','كلمة المرور الحالية':'Current password',
+  'كلمة المرور الجديدة':'New password','كلمة المرور المؤقتة':'Temporary password','أعد كتابتها':'Repeat it',
+  'إظهار كلمة المرور':'Show password','إخفاء كلمة المرور':'Hide password','6 أحرف على الأقل':'At least 6 characters',
+  'استعمل الحساب الذي أنشأه لك المدير.':'Use the account your manager created for you.',
+  'ضبط رابط الخادم':'Set server URL','تغيير رابط الخادم':'Change server URL','تجربة بدون خادم':'Try without a server',
+  'رابط الخادم':'Server URL','حفظ واختبار الاتصال':'Save and test connection','الخادم':'Server','متصل':'Connected',
+  'نظام الصناديق والتحويلات':'Cash boxes and transfers','خطوة أخيرة قبل البدء':'One last step before you start',
+  'اختر كلمة مرور خاصة بك':'Choose your own password',
+  'كلمة المرور التي دخلت بها مؤقتة. اختر كلمة لا يعرفها غيرك.':'The password you signed in with is temporary. Choose one only you know.',
+  'حفظ والمتابعة':'Save and continue','تم حفظ كلمة المرور':'Password saved','تغيير كلمة المرور':'Change password',
+  'حفظ كلمة المرور':'Save password','اللغة':'Language','العربية':'العربية','الإنجليزية':'English',
+  'بيانات وهمية لا تُحفظ. اختر من تريد أن تجرّب التطبيق بصفته.':'Demo data, nothing is saved. Choose who you want to try the app as.',
+  'وضع التجربة':'Demo mode','وضع التجربة: البيانات وهمية ولا تُحفظ':'Demo mode: data is fake and not saved',
+
+  // الرئيسية
+  'رصيد الصندوق':'Box balance','رصيد الصندوق الآن':'Box balance now','الرصيد':'Balance','الرصيد بعدها':'Balance after',
+  'في الطريق إليك':'On the way to you','أرسلت':'You sent','اليوم':'Today','أمس':'Yesterday',
+  'آخر العمليات':'Recent operations','السجل كاملاً':'Full history','تنتظر تأكيدك':'Waiting for your confirmation',
+  'استلام مبلغ':'Receive money','مصروف':'Expense','تحويل':'Transfer','تحديث':'Refresh',
+  'لا يوجد صندوق مرتبط بحسابك':'No box is linked to your account',
+  'اطلب من المدير إضافتك إلى صندوق، ثم حدّث الصفحة.':'Ask the manager to add you to a box, then refresh.',
+  'لا توجد عمليات بعد':'No operations yet',
+  'سجّل أول استلام أو مصروف من الأزرار في الأعلى.':'Record your first income or expense from the buttons above.',
+
+  // العمليات
+  'عملية جديدة':'New operation','عملية أخرى':'Another operation','مصروف جديد':'New expense',
+  'تحويل لصندوق آخر':'Transfer to another box','تحويل جديد':'New transfer',
+  'دخل إلى صندوقك من أي جهة':'Money coming into your box from anyone',
+  'نقل، أكل، فليكسي، شهريات…':'Transport, food, credit, salaries…',
+  'يصل بعد تأكيد المستلم':'Arrives after the receiver confirms',
+  'دفعة زبون على سيارة':'Customer payment for a car','قريباً في المرحلة الثانية':'Coming in phase two',
+  'من سلّمك المبلغ؟':'Who gave you the money?','اسم الشخص أو الجهة':'Person or company name',
+  'التصنيف':'Category','المبلغ':'Amount','إلى أي صندوق؟':'To which box?','عن طريق':'Via','ملاحظة':'Note',
+  'تفاصيل المصروف':'Expense details','سبب التحويل':'Reason for the transfer','تاريخ العملية':'Operation date',
+  'المبلغ غير مؤكد بعد':'Amount not confirmed yet','يظهر للمحاسب ليثبّته لاحقاً':'The accountant will confirm it later',
+  'أكمل البيانات':'Complete the fields','تم حفظ الاستلام':'Income saved','تم حفظ المصروف':'Expense saved',
+  'أُرسل التحويل':'Transfer sent','تم':'Done','(اختياري)':'(optional)',
+  'مثال: تكملة كولوراي لاتوت':'e.g. balance for Coolray Latoot','مثال: أجرة شاحنة من سكيكدة':'e.g. truck fare from Skikda',
+  'مثال: صديق نبيل، سائق الشاحنة':'e.g. Nabil\'s friend, the truck driver',
+
+  // السجل والتفاصيل
+  'الكل':'All','دخل':'Income','تحويلات':'Transfers','تصفية':'Filter','عرض عمليات أقدم':'Show older operations',
+  'لا توجد عمليات هنا':'No operations here','جرّب تصفية أخرى.':'Try another filter.',
+  'تفاصيل العملية':'Operation details','النوع':'Type','الصندوق':'Box','سجّلها':'Recorded by','وقت التسجيل':'Recorded at',
+  'رقم القيد':'Entry number','الحالة':'Status','من':'From','إلى':'To','مؤكد':'Confirmed','غير مؤكد':'Unconfirmed',
+  'ملغى':'Voided','إلغاء هذه العملية':'Void this operation','إلغاء العملية':'Void operation','سبب الإلغاء':'Reason for voiding',
+  'تأكيد الإلغاء':'Confirm voiding','مثال: سجلت المبلغ مرتين':'e.g. I recorded it twice','أُلغيت العملية':'Operation voided',
+
+  // التحويلات
+  'بانتظاري':'Waiting for me','أرسلتها':'Sent by me','استلمت':'Received','مشكلة؟':'Problem?',
+  'تأكيد الاستلام':'Confirm receipt','نعم، استلمته كاملاً':'Yes, I received it in full',
+  'وصلني مبلغ مختلف':'I received a different amount','مشكلة في التحويل':'Transfer problem',
+  'وصلني مبلغ ناقص':'I received less','سجّل المبلغ الذي استلمته فعلاً':'Record what you actually received',
+  'لم يصلني شيء':'I received nothing','يرجع المبلغ لصندوق المرسل':'The money goes back to the sender\'s box',
+  'المبلغ المستلم فعلاً':'Amount actually received','تأكيد المبلغ المستلم':'Confirm received amount',
+  'ماذا حدث؟':'What happened?','مثال: المبلغ كان ناقصاً عند العد':'e.g. it was short when counted',
+  'السبب':'Reason','رفض التحويل':'Reject transfer','إلغاء التحويل':'Cancel transfer','المرسَل':'Sent',
+  'تم تأكيد الاستلام':'Receipt confirmed','تم تسجيل المبلغ المستلم':'Received amount recorded',
+  'رُفض التحويل ورجع المبلغ للمرسل':'Transfer rejected, money returned to sender','أُلغي التحويل':'Transfer cancelled',
+  'لا شيء ينتظر تأكيدك':'Nothing waiting for your confirmation',
+  'عندما يرسل لك أحد مبلغاً سيظهر هنا.':'When someone sends you money it will appear here.',
+  'لا توجد تحويلات':'No transfers','معلّق':'Pending','مؤكَّد':'Confirmed','مرفوض':'Rejected','ملغى ':'Cancelled',
+
+  // الحساب والإدارة
+  'الصندوق الافتراضي':'Default box','غير محدد':'Not set','اختر الصندوق':'Choose box',
+  'سيبقى محفوظاً على حسابك في المرة القادمة.':'It stays saved on your account for next time.',
+  'الإدارة':'Administration','المستخدمون':'Users','الصناديق':'Boxes','المستخدم':'User',
+  'إضافة الحسابات والصلاحيات':'Accounts and permissions','أصحاب الصناديق والأرصدة الافتتاحية':'Box keepers and opening balances',
+  'مستخدم جديد':'New user','تعديل المستخدم':'Edit user','الاسم الكامل':'Full name','رقم الهاتف':'Phone number',
+  '(اختياري، لإرسال بيانات الدخول عبر واتساب)':'(optional, to send credentials on WhatsApp)',
+  'الدور':'Role','صاحب صندوق':'Box keeper','محاسب':'Accountant','مدير':'Manager',
+  'يسجّل ويرى صناديقه فقط':'Records and sees only their own boxes',
+  'يرى كل الصناديق، يثبّت ويلغي القيود':'Sees all boxes, confirms and voids entries',
+  'كل شيء، بما فيه المستخدمون والصناديق':'Everything, including users and boxes',
+  'صناديق يمسكها بنفسه':'Boxes they keep','صندوق جديد باسمه':'New box in their name',
+  'يُنشأ الصندوق ويُربط به مباشرة':'The box is created and linked to them',
+  'حروف لاتينية صغيرة وأرقام. كلمة المرور تُولَّد تلقائياً، ويُطلب منه تغييرها عند أول دخول.':'Lowercase letters and numbers. The password is generated automatically and must be changed at first sign-in.',
+  'الصناديق التي يمسكها':'Boxes they keep','(يمكن اختيار أكثر من شخص)':'(you can choose more than one)',
+  'اختر صندوقاً واحداً على الأقل':'Choose at least one box','أنت':'You','آخر دخول':'Last sign-in',
+  'لم يفعّل حسابه':'Has not activated the account','لم يغيّر كلمة المرور المؤقتة':'Has not changed the temporary password',
+  'نشط':'Active','موقوف':'Disabled','إيقاف الحساب':'Disable account','تفعيل الحساب':'Enable account',
+  'أُوقف الحساب':'Account disabled','فُعّل الحساب':'Account enabled','تم حفظ التغييرات':'Changes saved',
+  'إعادة تعيين كلمة المرور':'Reset password','إعادة التعيين':'Reset','كلمة مرور مؤقتة جديدة':'New temporary password',
+  'عند نسيانها أو فقدان الهاتف':'If forgotten or the phone is lost',
+  'تعديل البيانات والصناديق':'Edit details and boxes','الاسم، الهاتف، الدور، الصناديق':'Name, phone, role, boxes',
+  'لا يمكنك تغيير دورك بنفسك.':'You cannot change your own role.','رجوع إلى حسابي':'Back to account',
+  'اسم الصندوق':'Box name','المكان':'Location','من يمسكه؟':'Who keeps it?','أصحابه':'Keepers','صندوق جديد':'New box',
+  'إضافة الصندوق':'Add box','تعديل الصندوق':'Edit box','الاسم، المكان، أصحابه':'Name, location, keepers',
+  'إيقاف الصندوق':'Disable box','تفعيل الصندوق':'Enable box','بدون صاحب':'No keeper','بلا رصيد افتتاحي':'No opening balance',
+  'الرصيد الافتتاحي':'Opening balance','إدخال الرصيد الافتتاحي':'Enter opening balance',
+  'الرصيد المنقول من ملف الإكسل':'The balance carried over from Excel','غير مُدخل':'Not entered',
+  'مجموع الصناديق النشطة':'Total of active boxes','نقدي':'Cash','بريدي موب':'BaridiMob','بنكي':'Bank',
+  'اسم المستخدم والكلمة المؤقتة':'Username and temporary password','نسخ الرسالة':'Copy message',
+  'إرسال عبر واتساب':'Send on WhatsApp','أرسلها الآن. لن تظهر كلمة المرور مرة أخرى.':'Send it now. The password will not be shown again.',
+  'الهاتف':'Phone','إغلاق':'Close','حذف':'Delete','تم النسخ':'Copied',
+
+  // تصنيفات المصاريف الافتراضية
+  'نقل وتنقل':'Transport','أكل وشرب':'Food and drink','اندرايف وطاكسي':'Ride-hailing and taxi',
+  'فليكسي وانترنت':'Phone credit and internet','تأمين سيارات':'Car insurance','ماتريكيل':'Registration plates',
+  'ديباناج وشاحنات نقل':'Towing and car carriers','شهريات':'Monthly pay','سلف':'Advances',
+  'مصاريف المكتب':'Office expenses','ضرائب ورسوم':'Taxes and fees','تذاكر طيران':'Flight tickets',
+  'مصاريف شخصية':'Personal expenses','أخرى':'Other',
+
+  // رسائل الخادم الشائعة
+  'اسم المستخدم أو كلمة المرور غير صحيحة':'Wrong username or password',
+  'انتهت الجلسة، سجّل الدخول من جديد':'Session expired, please sign in again',
+  'هذا الحساب موقوف':'This account is disabled',
+  'كلمة المرور الحالية غير صحيحة':'The current password is wrong',
+  'كلمة المرور الجديدة 6 أحرف على الأقل':'The new password must be at least 6 characters',
+  'كلمتا المرور غير متطابقتين':'The passwords do not match',
+  'أدخل كلمة المرور المؤقتة':'Enter the temporary password',
+  'تعذّر الاتصال بالخادم. تحقق من الإنترنت وأعد المحاولة':'Could not reach the server. Check your connection and try again',
+  'رد غير مفهوم من الخادم. تحقق من رابط النشر':'Unreadable server response. Check the deployment URL',
+  'لم يُضبط رابط الخادم بعد':'The server URL is not set yet',
+  'النظام مشغول بعملية أخرى، أعد المحاولة بعد ثوانٍ':'The system is busy, try again in a few seconds',
+  'اكتب سبب الإلغاء':'Write the reason for voiding','اكتب سبب الرفض':'Write the reason for rejecting',
+  'اكتب ماذا حدث للمبلغ الناقص':'Write what happened to the missing amount',
+  'اختر تصنيف المصروف':'Choose an expense category',
+  'اكتب ممن استُلم المبلغ أو وصفاً للعملية':'Write who the money came from, or a description',
+  'المبلغ المستلم أكبر من المرسَل. سجّل الزيادة كعملية دخل منفصلة':'The received amount is more than what was sent. Record the extra as a separate income',
+  'المبلغ ناقص: اكتب ملاحظة توضح السبب':'The amount is short: add a note explaining why',
+  'لا تملك صلاحية على هذا الصندوق':'You do not have access to this box',
+  'ليست لديك صلاحية لهذه العملية':'You do not have permission for this action',
+  'تم التحديث':'Updated'
+};
+
+/* أنماط للنصوص المركّبة (فيها أرقام أو أسماء) */
+const RULES = [
+  [/^حفظ الاستلام (.+)$/, 'Save income $1'],
+  [/^حفظ المصروف (.+)$/, 'Save expense $1'],
+  [/^إرسال التحويل (.+)$/, 'Send transfer $1'],
+  [/^مرحباً (.+)$/, 'Welcome $1'],
+  [/^تمت إضافة (.+)$/, 'Added $1'],
+  [/^بانتظار تأكيد (.+)$/, 'Awaiting confirmation from $1'],
+  [/^سيُضاف إلى (.+) فوراً\.$/, 'It will be added to $1 immediately.'],
+  [/^هل استلمت هذا المبلغ كاملاً من (.+)؟$/, 'Did you receive this full amount from $1?'],
+  [/^يمسكه: (.+)$/, 'Keeper: $1'],
+  [/^يمسكها (.+)$/, 'keeps $1'],
+  [/^(?:دج|DA) من (.+)\.$/, 'DA from $1.'],
+  [/^(?:دج|DA) ولم يؤكَّد استلامها بعد$/, 'DA, not confirmed yet'],
+  [/^(?:دج|DA) من (.+)$/, 'DA from $1'],
+  [/^من (.+)$/, 'From $1'],
+  [/^إلى (.+)$/, 'To $1'],
+  [/^أرسله (.+)$/, 'Sent by $1'],
+  [/^استُلم (.+) فقط(.*)$/, 'Only $1 received$2'],
+  [/^(\d+) عملية$/, '$1 operations'],
+  [/^(\d+) نشط، (\d+) موقوف$/, '$1 active, $2 disabled'],
+  [/^(\d+) صندوق بدون رصيد افتتاحي\..*$/, '$1 box(es) without an opening balance. Enter it from the box details.'],
+  [/^(\d+) قيد بانتظار التثبيت$/, '$1 entries awaiting confirmation'],
+  [/^(\d+) تحويل ينتظر تأكيدك في صناديق أخرى$/, '$1 transfers awaiting your confirmation in other boxes'],
+  [/^مثال: (.+)$/, 'e.g. $1'],
+  [/^عن طريق (.+)$/, 'via $1'],
+  [/^يمسك (.+)$/, 'keeps $1'],
+  [/^المبلغ أكبر من رصيد الصندوق \((.+)\)\. سيصبح الرصيد بالسالب\.$/, 'More than the box balance ($1). The balance will go negative.'],
+  [/^تنبيه: رصيد الصندوق أصبح بالسالب \((.+)\)$/, 'Warning: the box balance is now negative ($1)'],
+  [/^النقص (.+) سيُسجَّل للمراجعة$/, 'The shortage of $1 will be recorded for review'],
+  [/^لن يستطيع (.+) الدخول بعد الآن.*$/, '$1 will no longer be able to sign in. Past operations stay in the history.'],
+  [/^ستُولَّد كلمة مرور مؤقتة جديدة لـ (.+?)، .*$/, 'A new temporary password will be generated for $1, and they will be signed out everywhere.'],
+  [/^سيرجع (.+) إلى (.+)، .*$/, '$1 will go back to $2, and the receiver can no longer confirm it.'],
+  [/^سيرجع المبلغ كاملاً.*$/, 'The full amount goes back to the sender and they are notified.'],
+  [/^سيُضاف قيد عكسي بمبلغ (.+?) ويبقى.*$/, 'A reversing entry of $1 will be added and the original stays in the history as voided.']
+];
+
+function tr(s){
+  if (!isEN() || !s) return s;
+  const k = String(s).trim();
+  if (!k || !/[\u0600-\u06FF]/.test(k)) return s;
+  if (DICT[k] != null) return String(s).replace(k, DICT[k]);
+  for (let i = 0; i < RULES.length; i++){
+    if (RULES[i][0].test(k)) return String(s).replace(k, k.replace(RULES[i][0], RULES[i][1]));
+  }
+  return s;
+}
+
+const SKIP_TAGS = { SCRIPT:1, STYLE:1, SVG:1, PATH:1 };
+function i18nNode(node){
+  if (!isEN() || !node) return;
+  if (node.nodeType === 3){ const t = tr(node.textContent); if (t !== node.textContent) node.textContent = t; return; }
+  if (node.nodeType !== 1 || SKIP_TAGS[node.tagName]) return;
+  if (node.hasAttribute && node.hasAttribute('data-noi18n')) return;
+  const w = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (SKIP_TAGS[n.parentNode && n.parentNode.tagName] || (n.parentNode && n.parentNode.closest && n.parentNode.closest('[data-noi18n]')))
+      ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+  });
+  const nodes = []; let n; while ((n = w.nextNode())) nodes.push(n);
+  nodes.forEach(x => { const t = tr(x.textContent); if (t !== x.textContent) x.textContent = t; });
+  const self = node.matches ? [node] : [];
+  self.concat([...node.querySelectorAll('[placeholder],[aria-label],[title]')]).forEach(el => {
+    ['placeholder','aria-label','title'].forEach(a => {
+      const v = el.getAttribute && el.getAttribute(a);
+      if (v){ const t = tr(v); if (t !== v) el.setAttribute(a, t); }
+    });
+  });
+}
+
+function setLang(lang){
+  localStorage.setItem(LANG_KEY, lang);
+  location.reload();
+}
+function initLang(){
+  document.documentElement.lang = S.lang;
+  document.documentElement.dir = isEN() ? 'ltr' : 'rtl';
+  if (isEN()) document.title = 'SANAD CARS';
+  new MutationObserver(ms => {
+    if (!isEN()) return;
+    ms.forEach(m => m.addedNodes.forEach(i18nNode));
+  }).observe(document.documentElement, { childList: true, subtree: true });
+}
+initLang();
 
 /* ---------------- Icons ---------------- */
 const I = {
@@ -352,6 +584,7 @@ const I = {
   box:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
   back:'<path d="m9 6 6 6-6 6"/>',
   eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  eyeOff:'<path d="M3 3l18 18M10.6 6.2A9.9 9.9 0 0 1 12 6c6.5 0 10 6 10 6a17 17 0 0 1-3.3 3.9M6.3 7.9C3.7 9.5 2 12 2 12s3.5 6 10 6c1.7 0 3.2-.4 4.5-1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
   lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   logout:'<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10"/>',
   server:'<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>',
@@ -361,39 +594,59 @@ const I = {
   copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/>',
   chat:'<path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"/>',
   users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .6 3.2 2.5 3.8 5.5"/>',
-  pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'
+  pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3.5 9h17M3.5 15h17M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>'
 };
 const ic = (n, cls='') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
-const MARK = `<svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="M9 29 14 3h4l5 26z" fill="#19222D"/><path d="M16 7v3.5M16 14v3.5M16 21v4" stroke="#E9A20C" stroke-width="2.2" stroke-linecap="round"/></svg>`;
+const LOGO = 'data:image/png;base64,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';
+const MARK = `<img src="${LOGO}" alt="SANAD CARS" width="36" height="36">`;
 
 /* ---------------- Helpers ---------------- */
 const $ = (s, r=document) => r.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nf = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
 const fmt = n => nf.format(Math.abs(Number(n) || 0));
-const CUR = { DZD:'دج', EUR:'€', USD:'$', SAR:'ريال', LYD:'دينار ليبي' };
+const CUR_AR = { DZD:'دج', EUR:'€', USD:'$', SAR:'ريال', LYD:'دينار ليبي' };
+const CUR_EN = { DZD:'DA', EUR:'€', USD:'$', SAR:'SAR', LYD:'LYD' };
+const CUR = new Proxy({}, { get: (_, k) => (isEN() ? CUR_EN : CUR_AR)[k] });
 const money = (n, c='DZD') => `<span class="num">${fmt(n)}</span> ${CUR[c]||c}`;
 const todayStr = () => localDate(new Date());
 function localDate(d){ const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
-const dateFmt = new Intl.DateTimeFormat('ar-DZ-u-nu-latn', { day:'numeric', month:'long' });
+const dateFmt = () => new Intl.DateTimeFormat(isEN() ? 'en-GB' : 'ar-DZ-u-nu-latn', { day:'numeric', month:'long' });
 function dayLabel(s){
   if (!s) return '';
   const t = todayStr(); const y = localDate(new Date(Date.now()-864e5));
-  if (s === t) return 'اليوم'; if (s === y) return 'أمس';
-  const [Y,M,D] = s.split('-').map(Number); return dateFmt.format(new Date(Y, M-1, D));
+  if (s === t) return isEN() ? 'Today' : 'اليوم';
+  if (s === y) return isEN() ? 'Yesterday' : 'أمس';
+  const [Y,M,D] = s.split('-').map(Number); return dateFmt().format(new Date(Y, M-1, D));
 }
 const timeOf = s => (s||'').slice(11,16);
 function ago(h){
   if (h == null) return '';
+  const d = Math.floor(h/24);
+  if (isEN()){
+    if (h < 1) return 'less than an hour ago';
+    if (h < 24) return h === 1 ? 'an hour ago' : `${h} hours ago`;
+    return d === 1 ? 'a day ago' : `${d} days ago`;
+  }
   if (h < 1) return 'منذ أقل من ساعة';
   if (h < 24) return h === 1 ? 'منذ ساعة' : h === 2 ? 'منذ ساعتين' : `منذ ${h} ساعات`;
-  const d = Math.floor(h/24); return d === 1 ? 'منذ يوم' : d === 2 ? 'منذ يومين' : `منذ ${d} أيام`;
+  return d === 1 ? 'منذ يوم' : d === 2 ? 'منذ يومين' : `منذ ${d} أيام`;
 }
 function millions(v){
   const n = Number(v); if (!n || n < 10000) return '';
-  const m = n / 10000; return `${nf.format(Math.round(m*100)/100)} مليون`;
+  const m = n / 10000; return `${nf.format(Math.round(m*100)/100)} ${isEN() ? 'malyoun' : 'مليون'}`;
 }
-const ROLE = { ADMIN:'مدير', ACCOUNTANT:'محاسب', KEEPER:'صاحب صندوق' };
+const ROLE_AR = { ADMIN:'مدير', ACCOUNTANT:'محاسب', KEEPER:'صاحب صندوق' };
+const ROLE_EN = { ADMIN:'Manager', ACCOUNTANT:'Accountant', KEEPER:'Box keeper' };
+const ROLE = new Proxy({}, { get: (_, k) => (isEN() ? ROLE_EN : ROLE_AR)[k] });
+// تسميات أنواع القيود وحالات التحويل تُترجَم من الرمز لا من نص الخادم
+const TYPE_EN = { OPENING:'Opening balance', INCOME:'Income', EXPENSE:'Expense', TRANSFER_OUT:'Transfer out',
+  TRANSFER_IN:'Transfer in', TRANSFER_RETURN:'Transfer returned', TRANSFER_DIFF:'Transfer shortage',
+  CUSTOMER_PAYMENT:'Customer payment', CUSTOMER_REFUND:'Customer refund', ADJUSTMENT:'Adjustment', REVERSAL:'Voided entry' };
+const STATUS_EN = { PENDING:'Pending', CONFIRMED:'Confirmed', REJECTED:'Rejected', CANCELLED:'Cancelled' };
+const typeLabel = e => (isEN() && TYPE_EN[e.entry_type]) || e.entry_type_label || e.entry_type;
+const statusLabel = t => (isEN() && STATUS_EN[t.status]) || t.status_label || t.status;
 
 function toast(msg, err=false){
   const t = $('#toast'); t.innerHTML = `<div class="toast ${err?'err':''}">${esc(msg)}</div>`;
@@ -417,19 +670,24 @@ async function api(action, payload={}){
   return j.data;
 }
 
+function pwField(id, label, autocomplete, hint){
+  return `<div class="field"><label for="${id}">${label}</label>
+    <div class="pw-wrap"><input class="input" id="${id}" type="password" dir="ltr" autocomplete="${autocomplete}">
+      <button type="button" class="icon-btn" data-act="pw-toggle" aria-label="إظهار كلمة المرور">${ic('eye')}</button></div>
+    ${hint ? `<div class="hint">${hint}</div>` : ''}</div>`;
+}
+
 /* ---------------- Boot & auth ---------------- */
-function boot(){ if (S.token) loadApp(); else renderLogin(); }
+function boot(){
+  if (S.demo && !S.token) return openDemoChooser(); if (S.token) loadApp(); else renderLogin(); }
 
 function renderLogin(err=''){
   closeSheet(true);
   $('#root').innerHTML = `
   <div class="login">
     <div class="login-top">
-      <svg class="road" viewBox="0 0 400 400" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-        <path d="M40 400 C 70 300, 150 250, 130 130 S 170 0, 200 -40" fill="none" stroke="#243140" stroke-width="70"/>
-        <path d="M40 400 C 70 300, 150 250, 130 130 S 170 0, 200 -40" fill="none" stroke="#E9A20C" stroke-width="3" stroke-dasharray="16 20" opacity=".7"/>
-      </svg>
-      <div class="brand"><div class="brand-mark">${MARK}</div><div><h1>مسار</h1><p>صناديق وتحويلات استيراد السيارات</p></div></div>
+      <div class="brand"><span class="brand-plate"><img src="${LOGO}" alt="SANAD CARS"></span>
+        <p class="brand-sub">نظام الصناديق والتحويلات</p></div>
     </div>
     <form class="login-card" id="loginForm" novalidate>
       <h2>تسجيل الدخول</h2><p>استعمل الحساب الذي أنشأه لك المدير.</p>
@@ -440,17 +698,12 @@ function renderLogin(err=''){
         <div class="pw-wrap"><input class="input" id="p" type="password" autocomplete="current-password" dir="ltr" required>
         <button type="button" class="icon-btn" data-act="pw-toggle" aria-label="إظهار كلمة المرور">${ic('eye')}</button></div></div>
       <button class="btn btn-primary btn-block" id="loginBtn">دخول</button>
-      <div class="login-links">
-        <button type="button" class="btn-text" data-act="server">${S.api ? 'تغيير رابط الخادم' : 'ضبط رابط الخادم'}</button>
-        <button type="button" class="btn-text" data-act="demo">تجربة بدون خادم</button>
-      </div>
     </form>
   </div>`;
   $('#loginForm').addEventListener('submit', async e => {
     e.preventDefault();
     const u = $('#u').value.trim(), p = $('#p').value;
     if (!u || !p) return renderLoginErr('أدخل اسم المستخدم وكلمة المرور');
-    if (!S.api && !S.demo) return openServerSheet();
     setBtnBusy($('#loginBtn'), true);
     try {
       const r = await api('login', { username:u, password:p });
@@ -561,7 +814,7 @@ function animateOdo(){
 /* ---------------- Home ---------------- */
 function viewHome(){
   const box = currentBox();
-  if (!box) return `<div class="page-head"><h1>مسار</h1></div><div class="page"><div class="card empty">${ic('box')}<b>لا يوجد صندوق مرتبط بحسابك</b>اطلب من المدير إضافتك إلى صندوق، ثم حدّث الصفحة.</div></div>`;
+  if (!box) return `<div class="page-head"><h1>SANAD CARS</h1></div><div class="page"><div class="card empty">${ic('box')}<b>لا يوجد صندوق مرتبط بحسابك</b>اطلب من المدير إضافتك إلى صندوق، ثم حدّث الصفحة.</div></div>`;
   const bal = box.balances || {}; const dzd = bal.DZD || 0;
   const fx = Object.keys(bal).filter(c => c !== 'DZD' && bal[c]);
   const pin = box.pending_in?.DZD || 0, pout = box.pending_out?.DZD || 0;
@@ -581,7 +834,7 @@ function viewHome(){
       <button class="icon-btn" data-act="refresh" aria-label="تحديث">${ic('refresh')}</button>
     </div>
     <div class="bal-label">رصيد الصندوق</div>
-    <div class="odo-wrap">${odometer(dzd, box.box_id)}<span class="odo-cur">دج</span></div>
+    <div class="odo-wrap">${odometer(dzd, box.box_id)}<span class="odo-cur">${CUR.DZD}</span></div>
     ${fx.length ? `<div class="fx-row">${fx.map(c=>`<span class="fx">${money(bal[c], c)}</span>`).join('')}</div>` : ''}
     ${pin ? `<div class="transit"><span class="dot"></span>في الطريق إليك ${money(pin)}</div>` : ''}
     ${pout ? `<div class="transit out"><span class="dot"></span>أرسلت ${money(pout)} ولم يؤكَّد استلامها بعد</div>` : ''}
@@ -614,7 +867,7 @@ function entryMeta(e){
   const voided = e.status === 'VOIDED' || e.entry_type === 'REVERSAL';
   const cls = voided ? 'void' : tr ? 'tr' : e.direction === 'IN' ? 'in' : 'out';
   const icon = tr ? 'swap' : e.direction === 'IN' ? 'in' : 'out';
-  let title = e.counterparty || e.category_name || e.entry_type_label;
+  let title = e.counterparty || e.category_name || typeLabel(e);
   if (e.entry_type === 'EXPENSE') title = e.description || e.category_name;
   if (e.entry_type === 'TRANSFER_OUT') title = 'إلى ' + e.counterparty;
   if (e.entry_type === 'TRANSFER_IN') title = 'من ' + e.counterparty;
@@ -627,7 +880,7 @@ function entryRow(e){
   return `<button class="row" data-act="entry" data-id="${e.entry_id}">
     <span class="row-ic ${m.cls}">${ic(m.icon)}</span>
     <span class="row-main"><span class="row-title">${esc(m.title)}</span>
-      <span class="row-sub"><span>${esc(e.entry_type==='EXPENSE'?e.category_name:e.entry_type_label)}</span><span>${timeOf(e.created_at)}</span>
+      <span class="row-sub"><span>${esc(e.entry_type==='EXPENSE'?e.category_name:typeLabel(e))}</span><span>${timeOf(e.created_at)}</span>
       ${!e.verified?'<span class="tag amber">غير مؤكد</span>':''}${e.status==='VOIDED'?'<span class="tag grey">ملغى</span>':''}</span></span>
     <span class="row-end"><span class="amt ${e.status==='VOIDED'?'voided':e.direction==='IN'?'in':'out'}">${sign} ${fmt(e.amount)}${e.currency!=='DZD'?' '+(CUR[e.currency]||e.currency):''}</span>
       ${e.balance_after!=null?`<span class="row-bal num">${fmt(e.balance_after)}</span>`:''}</span>
@@ -640,7 +893,7 @@ function transferCard(t){
   const diff = t.received_amount != null && t.received_amount !== t.amount;
   return `<article class="tcard ${pending?'':'done'}">
     <div class="t-route"><b>${esc(t.from_box_name)}</b>${ic('chev')}<b>${esc(t.to_box_name)}</b>
-      <span style="margin-inline-start:auto" class="tag ${statusTag}">${t.status_label}</span></div>
+      <span style="margin-inline-start:auto" class="tag ${statusTag}">${statusLabel(t)}</span></div>
     <div class="t-amt">${money(t.amount, t.currency)}</div>
     <div class="t-meta">${t.via?`<span>عن طريق ${esc(t.via)}</span>`:''}<span>أرسله ${esc(t.created_by_name)}</span><span>${pending?ago(t.age_hours):dayLabel(t.created_at.slice(0,10))}</span></div>
     ${diff?`<div class="t-note">استُلم ${money(t.received_amount, t.currency)} فقط${t.response_note?': '+esc(t.response_note):''}</div>`:''}
@@ -724,7 +977,8 @@ function viewAccount(){
     <div class="list menu" style="margin-top:14px">
       <button class="row" data-act="switch-box"><span class="row-ic">${ic('box')}</span><span class="row-main"><span class="row-title">الصندوق الافتراضي</span><span class="row-sub">${box?esc(box.name):'غير محدد'}</span></span>${ic('chev')}</button>
       <button class="row" data-act="password"><span class="row-ic">${ic('lock')}</span><span class="row-main"><span class="row-title">تغيير كلمة المرور</span></span>${ic('chev')}</button>
-      <div class="row"><span class="row-ic">${ic('server')}</span><span class="row-main"><span class="row-title">الخادم</span><span class="row-sub">${S.demo?'وضع التجربة':'متصل'}</span></span></div>
+      <button class="row" data-act="lang"><span class="row-ic">${ic('globe')}</span><span class="row-main"><span class="row-title">اللغة</span><span class="row-sub" data-noi18n>${S.lang === 'en' ? 'English' : 'العربية'}</span></span>${ic('chev')}</button>
+      ${S.demo ? `<div class="row"><span class="row-ic">${ic('server')}</span><span class="row-main"><span class="row-title">الخادم</span><span class="row-sub">وضع التجربة</span></span></div>` : ''}
     </div>
     ${u.role === 'ADMIN' ? `<div class="sec-h" style="margin:22px 2px 10px"><h2>الإدارة</h2></div>
     <div class="list menu">
@@ -734,7 +988,7 @@ function viewAccount(){
     <div class="list menu" style="margin-top:14px">
       <button class="row" data-act="logout" style="color:var(--out)"><span class="row-ic" style="background:var(--out-tint);color:var(--out)">${ic('logout')}</span><span class="row-main"><span class="row-title">تسجيل الخروج</span></span></button>
     </div>
-    <p class="hint" style="text-align:center;margin-top:18px">مسار، الإصدار 1.0</p>
+    <p class="hint" style="text-align:center;margin-top:18px">SANAD CARS 1.0</p>
   </div>`;
 }
 
@@ -764,21 +1018,6 @@ function setBtnBusy(btn, busy, label){
   else { btn.disabled = false; btn.innerHTML = label || btn.dataset.label; }
 }
 
-function openServerSheet(){
-  openSheet(`${sheetHead('رابط الخادم')}
-    <div class="sheet-body"><p class="lead">الصق رابط تطبيق الويب من Apps Script. ينتهي بـ <span class="num">/exec</span></p>
-    <div class="field"><input class="input" id="apiUrl" dir="ltr" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(S.api)}"></div>
-    <div class="hint err hidden" id="apiErr"></div></div>
-    <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="save-server">حفظ واختبار الاتصال</button></div>`);
-}
-async function saveServer(btn){
-  const url = $('#apiUrl').value.trim(); const err = $('#apiErr');
-  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)){ err.textContent='الرابط يجب أن يبدأ بـ https://script.google.com وينتهي بـ /exec'; err.classList.remove('hidden'); return; }
-  setBtnBusy(btn, true);
-  const old = S.api, oldDemo = S.demo; S.api = url; S.demo = false;
-  try { await api('ping'); localStorage.setItem(LS.api, url); localStorage.removeItem(LS.demo); closeSheet(); toast('تم الاتصال بالخادم'); renderLogin(); }
-  catch(x){ S.api = old; S.demo = oldDemo; setBtnBusy(btn, false); err.textContent = x.message; err.classList.remove('hidden'); }
-}
 
 function openBoxSwitch(){
   const boxes = S.ov.boxes.filter(b => b.type !== 'SYSTEM');
@@ -800,7 +1039,7 @@ function openEntry(id){
   const e = findEntry(id); if (!e) return;
   const m = entryMeta(e);
   const rows = [
-    ['النوع', e.entry_type_label], e.category_name && ['التصنيف', e.category_name],
+    ['النوع', typeLabel(e)], e.category_name && ['التصنيف', e.category_name],
     e.counterparty && [e.direction==='IN'?'من':'إلى', e.counterparty],
     ['الصندوق', e.box_name], ['تاريخ العملية', dayLabel(e.entry_date)],
     ['سجّلها', e.created_by_name], ['وقت التسجيل', `<span class="num">${e.created_at}</span>`],
@@ -1042,10 +1281,20 @@ async function submitOp(op, box){
   } catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
 }
 
+function openLang(){
+  const opt = (code, native, sub) => `<button class="pick" data-act="lang-set" data-l="${code}" aria-pressed="${S.lang===code}">
+    <span class="radio"></span><span class="row-main"><b data-noi18n>${native}</b><small data-noi18n>${sub}</small></span></button>`;
+  openSheet(`${sheetHead('اللغة')}<div class="sheet-body">
+    ${opt('ar','العربية','اللغة الافتراضية')}
+    ${opt('en','English','Left-to-right interface')}
+    <p class="hint">أسماء الصناديق والزبائن تبقى كما كُتبت.</p>
+  </div>`);
+}
+
 function openPassword(){
   openSheet(`${sheetHead('تغيير كلمة المرور')}<div class="sheet-body">
-    <div class="field"><label for="op1">كلمة المرور الحالية</label><input class="input" id="op1" type="password" dir="ltr" autocomplete="current-password"></div>
-    <div class="field"><label for="op2">كلمة المرور الجديدة</label><input class="input" id="op2" type="password" dir="ltr" autocomplete="new-password"><div class="hint">6 أحرف على الأقل</div></div></div>
+    ${pwField('op1', 'كلمة المرور الحالية', 'current-password')}
+    ${pwField('op2', 'كلمة المرور الجديدة', 'new-password', '6 أحرف على الأقل')}</div>
     <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="password-go">حفظ كلمة المرور</button></div>`);
 }
 
@@ -1080,15 +1329,18 @@ document.addEventListener('click', async e => {
       transferAction('rejectTransfer', { transfer_id:id, note }, el, 'رُفض التحويل ورجع المبلغ للمرسل'); break; }
     case 't-cancel-go': transferAction('cancelTransfer', { transfer_id:id, note:$('#cn').value.trim() }, el, 'أُلغي التحويل'); break;
     case 'account': break;
+    case 'lang': openLang(); break;
+    case 'lang-set': if (el.dataset.l !== S.lang) setLang(el.dataset.l); else closeSheet(); break;
     case 'password': openPassword(); break;
     case 'password-go': { setBtnBusy(el, true);
       try { await api('changePassword', { old_password:$('#op1').value, new_password:$('#op2').value }); closeSheet(); toast('تم تغيير كلمة المرور'); }
       catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
     case 'logout': try { await api('logout'); } catch(_){} if (S.demo){ S.demo=false; localStorage.removeItem(LS.demo); } signOutLocal(); break;
-    case 'server': openServerSheet(); break;
-    case 'save-server': saveServer(el); break;
-    case 'demo': openDemoChooser(); break;
-    case 'pw-toggle': { const p = $('#p'); p.type = p.type==='password'?'text':'password'; break; }
+    case 'pw-toggle': { const inp = el.closest('.pw-wrap').querySelector('input');
+      const show = inp.type === 'password'; inp.type = show ? 'text' : 'password';
+      el.innerHTML = show ? ic('eyeOff') : ic('eye');
+      el.setAttribute('aria-label', show ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
+      inp.focus(); break; }
   }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('.scrim[data-act]')) closeSheet(); });
@@ -1140,13 +1392,14 @@ function renderForcePassword(){
   const first = String(S.me.user.full_name||'').trim().split(/\s+/)[0];
   $('#root').innerHTML = `
   <div class="login">
-    <div class="login-top"><div class="brand"><div class="brand-mark">${MARK}</div><div><h1>مرحباً ${esc(first)}</h1><p>خطوة أخيرة قبل البدء</p></div></div></div>
+    <div class="login-top"><div class="brand"><span class="brand-plate sm"><img src="${LOGO}" alt="SANAD CARS"></span>
+      <h1 class="brand-hi">مرحباً ${esc(first)}</h1><p class="brand-sub">خطوة أخيرة قبل البدء</p></div></div>
     <form class="login-card" id="fpForm" novalidate>
       <h2>اختر كلمة مرور خاصة بك</h2>
       <p>كلمة المرور التي دخلت بها مؤقتة. اختر كلمة لا يعرفها غيرك.</p>
-      ${needOld ? `<div class="field"><label for="fp0">كلمة المرور المؤقتة</label><input class="input" id="fp0" type="password" dir="ltr" autocomplete="current-password"></div>` : ''}
-      <div class="field"><label for="fp1">كلمة المرور الجديدة</label><input class="input" id="fp1" type="password" dir="ltr" autocomplete="new-password"><div class="hint">6 أحرف على الأقل</div></div>
-      <div class="field"><label for="fp2">أعد كتابتها</label><input class="input" id="fp2" type="password" dir="ltr" autocomplete="new-password"></div>
+      ${needOld ? pwField('fp0', 'كلمة المرور المؤقتة', 'current-password') : ''}
+      ${pwField('fp1', 'كلمة المرور الجديدة', 'new-password', '6 أحرف على الأقل')}
+      ${pwField('fp2', 'أعد كتابتها', 'new-password')}
       <button class="btn btn-primary btn-block" id="fpBtn">حفظ والمتابعة</button>
       <div class="login-links"><button type="button" class="btn-text" data-act="logout">تسجيل الخروج</button></div>
     </form>
@@ -1367,7 +1620,7 @@ function openCreds(r, kind){
   const url = /^https?:$/.test(location.protocol) ? location.origin + location.pathname : '';
   const msg = [
     `السلام عليكم ${u.full_name}`,
-    kind === 'new' ? 'تم إنشاء حسابك في تطبيق مسار.' : 'تمت إعادة تعيين كلمة مرورك في تطبيق مسار.',
+    kind === 'new' ? 'تم إنشاء حسابك في تطبيق SANAD CARS.' : 'تمت إعادة تعيين كلمة مرورك في تطبيق SANAD CARS.',
     url ? `الرابط: ${url}` : '',
     `اسم المستخدم: ${r.username}`,
     `كلمة المرور المؤقتة: ${r.temp_password}`,
