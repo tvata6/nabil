@@ -258,6 +258,31 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 .success .big{font-size:30px;font-weight:600;margin:14px 0 4px}
 .success .after{display:inline-flex;gap:6px;padding:6px 12px;border-radius:999px;background:var(--paper);font-size:13.5px;color:var(--muted);margin-top:6px}
 
+.pin-screen{justify-content:center;align-items:center;padding:24px}
+.pin-wrap{width:100%;max-width:340px;text-align:center}
+.pin-title{margin:6px 0 4px;font-size:24px;font-weight:700}
+.pin-sub{margin:0;color:#9AA7B3;font-size:14px}
+.pin-dots{display:flex;justify-content:center;gap:16px;margin:26px 0 6px}
+.pin-dots span{width:14px;height:14px;border-radius:50%;background:transparent;box-shadow:inset 0 0 0 2px #46586B;transition:background .15s, transform .15s}
+.pin-dots span.on{background:var(--amber);box-shadow:inset 0 0 0 2px var(--amber);transform:scale(1.1)}
+.pin-dots.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
+.pin-msg{min-height:22px;font-size:13.5px;color:#9AA7B3;margin-bottom:10px}
+.pin-msg.err{color:#FF9C8F}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;direction:ltr;margin:4px auto 0;max-width:290px}
+.pin-key{height:66px;border-radius:50%;background:rgba(255,255,255,.07);color:#fff;font-size:24px;font-weight:500;font-variant-numeric:tabular-nums}
+.pin-key:active{background:rgba(255,255,255,.18)}
+.pin-key.fn{background:transparent;color:#9AA7B3}
+.pin-link{color:#9AA7B3;margin-top:18px}
+.pin-sheet .pin-dots span{box-shadow:inset 0 0 0 2px var(--line)}
+.pin-sheet .pin-dots span.on{background:var(--petrol);box-shadow:inset 0 0 0 2px var(--petrol)}
+.pin-sheet .pin-msg{color:var(--muted)}
+.pin-sheet .pin-msg.err{color:var(--out)}
+.pin-sheet .pin-key{background:var(--paper);color:var(--ink)}
+.pin-sheet .pin-key:active{background:var(--line)}
+.pin-sheet .pin-key.fn{color:var(--muted)}
+.pin-sheet{text-align:center}
+
 /* Toast */
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + var(--safe-b));z-index:60;display:flex;justify-content:center;pointer-events:none}
 .toast{max-width:480px;background:var(--asphalt);color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.2);display:flex;gap:10px;align-items:center;animation:reveal .2s}
@@ -452,6 +477,22 @@ const DICT = {
   'إرسال عبر واتساب':'Send on WhatsApp','أرسلها الآن. لن تظهر كلمة المرور مرة أخرى.':'Send it now. The password will not be shown again.',
   'الهاتف':'Phone','إغلاق':'Close','حذف':'Delete','تم النسخ':'Copied',
 
+  // رمز الدخول
+  'رمز الدخول':'Access code','اختر رمز الدخول':'Choose your access code','تغيير رمز الدخول':'Change access code',
+  'تغيير الأرقام الأربعة':'Change the four digits','غير مفعّل، فعّله لحماية الجهاز':'Off. Turn it on to protect this device',
+  'اكتب أربعة أرقام تتذكرها':'Enter four digits you will remember','اكتب رمز الدخول':'Enter your access code',
+  'أعد كتابة الرمز للتأكيد':'Repeat the code to confirm','أعد كتابة الرمز الجديد':'Repeat the new code',
+  'اكتب الرمز الجديد':'Enter the new code','الرمز الحالي':'Current code','اكتب رمزك الحالي أولاً.':'Enter your current code first.',
+  'اختر رمزاً أصعب من هذا':'Choose a harder code','الرمزان غير متطابقان':'The codes do not match',
+  'الرمزان غير متطابقين، ابدأ من جديد':'The codes do not match, start again','جارٍ التحقق…':'Checking…',
+  'تم حفظ رمز الدخول':'Access code saved','تم تغيير رمز الدخول':'Access code changed',
+  'نسيت الرمز؟':'Forgot your code?','نسيت رمز الدخول':'Forgot access code','لاحقاً':'Later',
+  'لا مشكلة. سجّل الدخول باسم المستخدم وكلمة المرور، ثم اختر رمزاً جديداً.':'No problem. Sign in with your username and password, then choose a new code.',
+  'وإذا نسيت كلمة المرور أيضاً، اطلب من المدير إعادة تعيينها لك من شاشة المستخدمين، فيصلك رمز مؤقت.':'If you forgot your password too, ask the manager to reset it from the Users screen and you will get a temporary one.',
+  'الدخول بكلمة المرور':'Sign in with password',
+  'محاولات كثيرة خاطئة. سجّل الدخول بكلمة المرور':'Too many wrong attempts. Sign in with your password',
+  'محاولات كثيرة خاطئة. سجّل الدخول من جديد':'Too many wrong attempts. Sign in again',
+
   // تصنيفات المصاريف الافتراضية
   'نقل وتنقل':'Transport','أكل وشرب':'Food and drink','اندرايف وطاكسي':'Ride-hailing and taxi',
   'فليكسي وانترنت':'Phone credit and internet','تأمين سيارات':'Car insurance','ماتريكيل':'Registration plates',
@@ -507,6 +548,8 @@ const RULES = [
   [/^(\d+) قيد بانتظار التثبيت$/, '$1 entries awaiting confirmation'],
   [/^(\d+) تحويل ينتظر تأكيدك في صناديق أخرى$/, '$1 transfers awaiting your confirmation in other boxes'],
   [/^مثال: (.+)$/, 'e.g. $1'],
+  [/^رمز خاطئ، بقيت لك (\d+) محاولات$/, 'Wrong code, $1 attempts left'],
+  [/^(.+)، بعد اليوم تفتح التطبيق بأربعة أرقام بدل كلمة المرور\.$/, '$1, from now on you open the app with four digits instead of your password.'],
   [/^عن طريق (.+)$/, 'via $1'],
   [/^يمسك (.+)$/, 'keeps $1'],
   [/^المبلغ أكبر من رصيد الصندوق \((.+)\)\. سيصبح الرصيد بالسالب\.$/, 'More than the box balance ($1). The balance will go negative.'],
@@ -595,6 +638,7 @@ const I = {
   chat:'<path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"/>',
   users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .6 3.2 2.5 3.8 5.5"/>',
   pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  shield:'<path d="M12 3l7 3v6c0 4.2-2.9 7.4-7 9-4.1-1.6-7-4.8-7-9V6z"/><path d="M9.2 12.2 11 14l4-4.2"/>',
   globe:'<circle cx="12" cy="12" r="9"/><path d="M3.5 9h17M3.5 15h17M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>'
 };
 const ic = (n, cls='') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
@@ -679,7 +723,10 @@ function pwField(id, label, autocomplete, hint){
 
 /* ---------------- Boot & auth ---------------- */
 function boot(){
-  if (S.demo && !S.token) return openDemoChooser(); if (S.token) loadApp(); else renderLogin(); }
+  if (hasPin() && !S.token) return renderPinUnlock();
+  if (S.demo && !S.token) return openDemoChooser();
+  if (S.token) loadApp(); else renderLogin();
+}
 
 function renderLogin(err=''){
   closeSheet(true);
@@ -707,7 +754,8 @@ function renderLogin(err=''){
     setBtnBusy($('#loginBtn'), true);
     try {
       const r = await api('login', { username:u, password:p });
-      S.token = r.token; localStorage.setItem(LS.token, r.token); S._pw = p;
+      S.token = r.token; S._pw = p; S.locked = false;
+      localStorage.setItem(LS.token, r.token); // مؤقتاً حتى يُنشأ الرمز
       loadApp();
     } catch(x){ setBtnBusy($('#loginBtn'), false, 'دخول'); renderLoginErr(x.message); }
   });
@@ -719,7 +767,8 @@ function renderLoginErr(m){
 }
 
 function signOutLocal(){
-  S.token = null; S.me = null; S.ov = null; localStorage.removeItem(LS.token);
+  S.token = null; S.me = null; S.ov = null; S.locked = false; S.pinAsked = null;
+  localStorage.removeItem(LS.token); localStorage.removeItem(PIN_KEY);
   S.hist = { filter:'all', items:[], total:0, loaded:false }; S.trf = { tab:'wait', items:[], loaded:false };
   S.adm = { loaded:false, users:[], boxes:[] }; S._pw = null; S.view = 'home';
   renderLogin();
@@ -730,6 +779,7 @@ async function loadApp(){
   try {
     S.me = await api('getMe');
     if (S.me.must_change_password) return renderForcePassword();
+    if (!hasPin() && !S.demo && pinSupported()) return renderPinSetup();
     await startApp();
   } catch(x){ if (S.token) { renderShell(false); toast(x.message, true); } }
 }
@@ -977,6 +1027,8 @@ function viewAccount(){
     <div class="list menu" style="margin-top:14px">
       <button class="row" data-act="switch-box"><span class="row-ic">${ic('box')}</span><span class="row-main"><span class="row-title">الصندوق الافتراضي</span><span class="row-sub">${box?esc(box.name):'غير محدد'}</span></span>${ic('chev')}</button>
       <button class="row" data-act="password"><span class="row-ic">${ic('lock')}</span><span class="row-main"><span class="row-title">تغيير كلمة المرور</span></span>${ic('chev')}</button>
+      ${!pinSupported() ? '' : hasPin() ? `<button class="row" data-act="pin-change"><span class="row-ic">${ic('shield')}</span><span class="row-main"><span class="row-title">رمز الدخول</span><span class="row-sub">تغيير الأرقام الأربعة</span></span>${ic('chev')}</button>`
+      : `<button class="row" data-act="pin-new"><span class="row-ic">${ic('shield')}</span><span class="row-main"><span class="row-title">رمز الدخول</span><span class="row-sub">غير مفعّل، فعّله لحماية الجهاز</span></span>${ic('chev')}</button>`}
       <button class="row" data-act="lang"><span class="row-ic">${ic('globe')}</span><span class="row-main"><span class="row-title">اللغة</span><span class="row-sub" data-noi18n>${S.lang === 'en' ? 'English' : 'العربية'}</span></span>${ic('chev')}</button>
       ${S.demo ? `<div class="row"><span class="row-ic">${ic('server')}</span><span class="row-main"><span class="row-title">الخادم</span><span class="row-sub">وضع التجربة</span></span></div>` : ''}
     </div>
@@ -991,6 +1043,185 @@ function viewAccount(){
     <p class="hint" style="text-align:center;margin-top:18px">SANAD CARS 1.0</p>
   </div>`;
 }
+
+/* ================= رمز الدخول (PIN) =================
+   الرمز لا يُرسل للخادم إطلاقاً. يُستعمل لتشفير جلسة الدخول المخزّنة على هذا الجهاز
+   (PBKDF2 ثم AES-GCM)، فمن يفتح ذاكرة المتصفح بدون الرمز لا يجد جلسة صالحة.
+   خمس محاولات خاطئة تمسح الجلسة من الجهاز ويعود الدخول بكلمة المرور. */
+const PIN_KEY = 'sc.lock';
+const PIN_LEN = 4;
+const PIN_MAX_TRIES = 5;
+const AUTO_LOCK_MIN = 3;
+
+const b64 = {
+  enc: buf => btoa(String.fromCharCode(...new Uint8Array(buf))),
+  dec: str => Uint8Array.from(atob(str), c => c.charCodeAt(0))
+};
+const pinSupported = () => !!(window.isSecureContext && window.crypto && crypto.subtle);
+const lockData = () => { try { return JSON.parse(localStorage.getItem(PIN_KEY) || 'null'); } catch(e){ return null; } };
+const hasPin = () => !!lockData();
+
+async function pinKey_(pin, salt){
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(String(pin)), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations:150000, hash:'SHA-256' },
+    base, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+}
+async function pinSave_(pin, token, profile){
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await pinKey_(pin, salt);
+  const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, new TextEncoder().encode(token));
+  localStorage.setItem(PIN_KEY, JSON.stringify({
+    v: 1, salt: b64.enc(salt), iv: b64.enc(iv), ct: b64.enc(ct), tries: 0,
+    name: profile.full_name || '', username: profile.username || '', lang: S.lang
+  }));
+  localStorage.removeItem(LS.token);
+}
+async function pinOpen_(pin){
+  const d = lockData(); if (!d) return null;
+  try {
+    const key = await pinKey_(pin, b64.dec(d.salt));
+    const buf = await crypto.subtle.decrypt({ name:'AES-GCM', iv: b64.dec(d.iv) }, key, b64.dec(d.ct));
+    d.tries = 0; localStorage.setItem(PIN_KEY, JSON.stringify(d));
+    return new TextDecoder().decode(buf);
+  } catch(e){
+    d.tries = (d.tries || 0) + 1;
+    if (d.tries >= PIN_MAX_TRIES){ pinForget_(); return { wiped: true }; }
+    localStorage.setItem(PIN_KEY, JSON.stringify(d));
+    return { left: PIN_MAX_TRIES - d.tries };
+  }
+}
+function pinForget_(){ localStorage.removeItem(PIN_KEY); localStorage.removeItem(LS.token); }
+
+/* ---------- لوحة الأرقام المشتركة ---------- */
+function pinPad(id){
+  return `<div class="pin-dots" id="${id}-dots">${'<span></span>'.repeat(PIN_LEN)}</div>
+    <div class="pin-msg" id="${id}-msg"></div>
+    <div class="pin-pad">${[1,2,3,4,5,6,7,8,9,'',0,'del'].map(k => k === ''
+      ? '<span></span>'
+      : `<button type="button" class="pin-key${k==='del'?' fn':''}" data-pin="${k}" aria-label="${k==='del'?'حذف':k}">${k==='del'?ic('del'):k}</button>`).join('')}</div>`;
+}
+function pinBind(root, id, onFull){
+  const st = { value: '' };
+  const dots = $(`#${id}-dots`, root), msg = $(`#${id}-msg`, root);
+  const paint = () => [...dots.children].forEach((d, i) => d.className = i < st.value.length ? 'on' : '');
+  root.addEventListener('click', e => {
+    const k = e.target.closest('[data-pin]'); if (!k) return;
+    const v = k.dataset.pin;
+    if (v === 'del') st.value = st.value.slice(0, -1);
+    else if (st.value.length < PIN_LEN) st.value += v;
+    paint();
+    if (navigator.vibrate) navigator.vibrate(8);
+    if (st.value.length === PIN_LEN) setTimeout(() => onFull(st.value, st, msg, dots), 120);
+  });
+  st.reset = () => { st.value = ''; paint(); };
+  st.shake = text => {
+    dots.classList.remove('shake'); void dots.offsetWidth; dots.classList.add('shake');
+    msg.textContent = text || ''; msg.className = 'pin-msg err';
+    if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+    st.reset();
+  };
+  st.say = text => { msg.textContent = text || ''; msg.className = 'pin-msg'; };
+  return st;
+}
+
+/* ---------- شاشة إنشاء الرمز ---------- */
+function renderPinSetup(){
+  closeSheet(true);
+  const first = String((S.me && S.me.user.full_name) || '').trim().split(/\s+/)[0];
+  $('#root').innerHTML = `
+  <div class="login pin-screen">
+    <div class="pin-wrap">
+      <span class="brand-plate sm"><img src="${LOGO}" alt="SANAD CARS"></span>
+      <h1 class="pin-title">اختر رمز الدخول</h1>
+      <p class="pin-sub">${esc(first)}، بعد اليوم تفتح التطبيق بأربعة أرقام بدل كلمة المرور.</p>
+      ${pinPad('ps')}
+    </div>
+  </div>`;
+  let first4 = null;
+  const st = pinBind($('.pin-screen'), 'ps', async (val, s) => {
+    if (!first4){
+      if (/^(\d)\1+$/.test(val) || '0123456789'.includes(val) || '9876543210'.includes(val)){
+        return s.shake('اختر رمزاً أصعب من هذا');
+      }
+      first4 = val; s.reset(); s.say('أعد كتابة الرمز للتأكيد'); return;
+    }
+    if (val !== first4){ first4 = null; return s.shake('الرمزان غير متطابقين، ابدأ من جديد'); }
+    await pinSave_(val, S.token, S.me.user);
+    toast('تم حفظ رمز الدخول');
+    startApp();
+  });
+  st.say('اكتب أربعة أرقام تتذكرها');
+}
+
+/* ---------- شاشة فتح القفل ---------- */
+function renderPinUnlock(){
+  closeSheet(true);
+  const d = lockData();
+  const first = String(d.name || '').trim().split(/\s+/)[0] || d.username;
+  $('#root').innerHTML = `
+  <div class="login pin-screen">
+    <div class="pin-wrap">
+      <span class="brand-plate sm"><img src="${LOGO}" alt="SANAD CARS"></span>
+      <h1 class="pin-title">مرحباً ${esc(first)}</h1>
+      <p class="pin-sub">اكتب رمز الدخول</p>
+      ${pinPad('pu')}
+      <button class="btn-text pin-link" data-act="pin-forgot">نسيت الرمز؟</button>
+    </div>
+  </div>`;
+  pinBind($('.pin-screen'), 'pu', async (val, s) => {
+    s.say('جارٍ التحقق…');
+    const r = await pinOpen_(val);
+    if (typeof r === 'string'){
+      S.token = r; S.locked = false; loadApp(); return;
+    }
+    if (r && r.wiped){ toast('محاولات كثيرة خاطئة. سجّل الدخول بكلمة المرور', true); return signOutLocal(); }
+    s.shake(`رمز خاطئ، بقيت لك ${r.left} محاولات`);
+  });
+}
+
+/* ---------- تغيير الرمز من الحساب ---------- */
+function openPinChange(){
+  openSheet(`${sheetHead('تغيير رمز الدخول')}<div class="sheet-body pin-sheet">
+    <p class="lead">اكتب رمزك الحالي أولاً.</p>${pinPad('pc')}</div>`, { onMount: sh => {
+    let stage = 'old', first4 = null;
+    const st = pinBind(sh, 'pc', async (val, s) => {
+      if (stage === 'old'){
+        const r = await pinOpen_(val);
+        if (typeof r !== 'string'){
+          if (r && r.wiped){ closeSheet(); toast('محاولات كثيرة خاطئة. سجّل الدخول من جديد', true); return signOutLocal(); }
+          return s.shake(`رمز خاطئ، بقيت لك ${r.left} محاولات`);
+        }
+        stage = 'new'; s.reset(); s.say('اكتب الرمز الجديد'); return;
+      }
+      if (stage === 'new'){
+        if (/^(\d)\1+$/.test(val)) return s.shake('اختر رمزاً أصعب من هذا');
+        first4 = val; stage = 'confirm'; s.reset(); s.say('أعد كتابة الرمز الجديد'); return;
+      }
+      if (val !== first4){ stage = 'new'; first4 = null; return s.shake('الرمزان غير متطابقين'); }
+      await pinSave_(val, S.token, S.me.user);
+      closeSheet(); toast('تم تغيير رمز الدخول');
+    });
+    st.say('الرمز الحالي');
+  } });
+}
+
+function openPinForgot(){
+  openSheet(`${sheetHead('نسيت رمز الدخول')}<div class="sheet-body">
+    <p class="lead">لا مشكلة. سجّل الدخول باسم المستخدم وكلمة المرور، ثم اختر رمزاً جديداً.</p>
+    <p class="hint">وإذا نسيت كلمة المرور أيضاً، اطلب من المدير إعادة تعيينها لك من شاشة المستخدمين، فيصلك رمز مؤقت.</p></div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="pin-forgot-go">الدخول بكلمة المرور</button></div>`);
+}
+
+/* ---------- القفل التلقائي بعد الخروج من التطبيق ---------- */
+let _hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden){ _hiddenAt = Date.now(); return; }
+  if (!hasPin() || !S.token || S.locked) return;
+  if (_hiddenAt && Date.now() - _hiddenAt > AUTO_LOCK_MIN * 60000){
+    S.locked = true; S.token = null; renderPinUnlock();
+  }
+});
 
 /* ---------------- Sheets ---------------- */
 function openSheet(html, { full=false, onMount, sticky=false }={}){
@@ -1329,6 +1560,10 @@ document.addEventListener('click', async e => {
       transferAction('rejectTransfer', { transfer_id:id, note }, el, 'رُفض التحويل ورجع المبلغ للمرسل'); break; }
     case 't-cancel-go': transferAction('cancelTransfer', { transfer_id:id, note:$('#cn').value.trim() }, el, 'أُلغي التحويل'); break;
     case 'account': break;
+    case 'pin-change': openPinChange(); break;
+    case 'pin-new': renderPinSetup(); break;
+    case 'pin-forgot': openPinForgot(); break;
+    case 'pin-forgot-go': pinForget_(); signOutLocal(); break;
     case 'lang': openLang(); break;
     case 'lang-set': if (el.dataset.l !== S.lang) setLang(el.dataset.l); else closeSheet(); break;
     case 'password': openPassword(); break;
