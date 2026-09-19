@@ -135,6 +135,10 @@ svg.i{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .t-amt small{font-size:14px;color:var(--muted);font-weight:400}
 .t-meta{display:flex;flex-wrap:wrap;gap:4px 12px;color:var(--muted);font-size:12.5px}
 .t-note{margin-top:8px;padding:8px 10px;border-radius:10px;background:var(--paper);font-size:13px;color:var(--muted)}
+.t-wait{display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 10px;border-radius:10px;background:var(--amber-tint);color:var(--amber-ink);font-size:13px}
+.t-wait svg.i{width:16px;height:16px}
+.transit.watch{background:rgba(255,255,255,.07);color:#C9D3DC}
+.transit.watch .dot{background:#C9D3DC;animation:none}
 .t-actions{display:flex;gap:8px;margin-top:12px}
 .t-actions .btn{flex:1}
 
@@ -557,6 +561,8 @@ const RULES = [
   [/^رمز خاطئ، بقيت لك (\d+) محاولات$/, 'Wrong code, $1 attempts left'],
   [/^(.+)، بعد اليوم تفتح التطبيق بأربعة أرقام بدل كلمة المرور\.$/, '$1, from now on you open the app with four digits instead of your password.'],
   [/^عن طريق (.+)$/, 'via $1'],
+  [/^بانتظار تأكيد (.+)$/, 'Awaiting confirmation by $1'],
+  [/^في الطريق إلى (.+?) (.+?)، بانتظار تأكيد (.+)$/, 'On the way to $1: $2, awaiting confirmation by $3'],
   [/^يمسك (.+)$/, 'keeps $1'],
   [/^المبلغ أكبر من رصيد الصندوق \((.+)\)\. سيصبح الرصيد بالسالب\.$/, 'More than the box balance ($1). The balance will go negative.'],
   [/^تنبيه: رصيد الصندوق أصبح بالسالب \((.+)\)$/, 'Warning: the box balance is now negative ($1)'],
@@ -703,6 +709,13 @@ function toast(msg, err=false){
   const t = $('#toast'); t.innerHTML = `<div class="toast ${err?'err':''}">${esc(msg)}</div>`;
   clearTimeout(toast._t); toast._t = setTimeout(()=> t.innerHTML='', err ? 4500 : 2600);
 }
+
+/* مرجع فريد لكل عملية كتابة. يبقى نفسه عند إعادة المحاولة بعد انقطاع الشبكة،
+   فيرفض الخادم تسجيلها مرة ثانية ويعيد نفس الرد الأول. */
+const REFS = {};
+const newRef = () => (crypto.randomUUID ? crypto.randomUUID() : 'r' + Date.now() + Math.random().toString(16).slice(2));
+function refFor(key){ return REFS[key] || (REFS[key] = newRef()); }
+function clearRef(key){ delete REFS[key]; }
 
 /* ---------------- API ---------------- */
 async function api(action, payload={}){
@@ -879,7 +892,11 @@ function viewHome(){
   const bal = box.balances || {}; const dzd = bal.DZD || 0;
   const fx = Object.keys(bal).filter(c => c !== 'DZD' && bal[c]);
   const pin = box.pending_in?.DZD || 0, pout = box.pending_out?.DZD || 0;
+  const myBox = (S.me.user.role === 'KEEPER') || (box.keepers || []).some(k => k === S.me.user.full_name)
+    || S.ov.my_incoming_transfers.some(t => t.to_box_id === box.box_id)
+    || (S.ov.watching_transfers || []).every(t => t.to_box_id !== box.box_id);
   const incoming = S.ov.my_incoming_transfers.filter(t => t.to_box_id === box.box_id);
+  const watching = (S.ov.watching_transfers || []).filter(t => t.to_box_id === box.box_id);
   const otherIncoming = S.ov.my_incoming_transfers.length - incoming.length;
   const entries = S.ov.recent_entries.filter(e => e.box_id === box.box_id).slice(0, 6);
   const multi = S.ov.boxes.filter(b => b.type !== 'SYSTEM').length > 1;
@@ -897,7 +914,9 @@ function viewHome(){
     <div class="bal-label">رصيد الصندوق</div>
     <div class="odo-wrap">${odometer(dzd, box.box_id)}<span class="odo-cur">${CUR.DZD}</span></div>
     ${fx.length ? `<div class="fx-row">${fx.map(c=>`<span class="fx">${money(bal[c], c)}</span>`).join('')}</div>` : ''}
-    ${pin ? `<div class="transit"><span class="dot"></span>في الطريق إليك ${money(pin)}</div>` : ''}
+    ${pin ? (myBox
+      ? `<div class="transit"><span class="dot"></span>في الطريق إليك ${money(pin)}</div>`
+      : `<div class="transit watch"><span class="dot"></span>في الطريق إلى ${esc(box.name)} ${money(pin)}، بانتظار تأكيد ${esc(waitingOn(box.box_id))}</div>`) : ''}
     ${pout ? `<div class="transit out"><span class="dot"></span>أرسلت ${money(pout)} ولم يؤكَّد استلامها بعد</div>` : ''}
     <div class="quick">
       <button data-act="op" data-type="income"><span class="qi in">${ic('in')}</span>استلام مبلغ</button>
@@ -907,6 +926,7 @@ function viewHome(){
   </section>
   <div class="page">
     ${incoming.length ? `<section class="sec"><div class="sec-h"><h2>تنتظر تأكيدك</h2></div>${incoming.map(transferCard).join('')}</section>` : ''}
+    ${watching.length ? `<section class="sec"><div class="sec-h"><h2>بانتظار تأكيد صاحب الصندوق</h2></div>${watching.map(transferCard).join('')}</section>` : ''}
     ${otherIncoming ? `<button class="card row" data-act="tab" data-v="transfers" style="margin-top:12px">${ic('clock')}<span class="row-main">${otherIncoming} تحويل ينتظر تأكيدك في صناديق أخرى</span>${ic('chev')}</button>` : ''}
     <section class="sec">
       <div class="sec-h"><h2>اليوم</h2><span class="hint" style="margin:0">${t.count} عملية</span></div>
@@ -921,6 +941,11 @@ function viewHome(){
         : `<div class="card empty">${ic('list')}<b>لا توجد عمليات بعد</b>سجّل أول استلام أو مصروف من الأزرار في الأعلى.</div>`}
     </section>
   </div>`;
+}
+
+function waitingOn(boxId){
+  const t = (S.ov.watching_transfers || []).find(x => x.to_box_id === boxId);
+  return (t && t.waiting_on) || 'صاحب الصندوق';
 }
 
 function entryMeta(e){
@@ -969,14 +994,19 @@ function transferCard(t){
     ${diff?`<div class="t-note">استُلم ${money(t.received_amount, t.currency)} فقط${t.response_note?': '+esc(t.response_note):''}</div>`:''}
     ${!diff && t.response_note && !pending?`<div class="t-note">${esc(t.response_note)}</div>`:''}
     ${t.description?`<div class="t-note">${esc(t.description)}</div>`:''}
+    ${pending && !t.can_confirm && t.keepers_to ? `<div class="t-wait">${ic('clock')}بانتظار تأكيد ${esc(t.keepers_to)}</div>` : ''}
     ${pending && t.can_confirm && !isMineSender(t) ? `<div class="t-actions">
       <button class="btn btn-primary" data-act="t-confirm" data-id="${t.transfer_id}">${ic('check')}استلمت</button>
       <button class="btn btn-ghost" data-act="t-more" data-id="${t.transfer_id}">مشكلة؟</button></div>` : ''}
-    ${pending && t.can_cancel && isMineSender(t) ? `<div class="t-actions"><button class="btn btn-ghost btn-sm" data-act="t-cancel" data-id="${t.transfer_id}">إلغاء التحويل</button></div>` : ''}
+    ${pending && t.can_cancel && !t.can_confirm ? `<div class="t-actions"><button class="btn btn-ghost btn-sm" data-act="t-cancel" data-id="${t.transfer_id}">إلغاء التحويل</button></div>` : ''}
   </article>`;
 }
+/* أنا المرسل إذا أنشأت التحويل بنفسي ولست صاحب صندوق الوصول. */
 function isMineSender(t){
-  if (S.me.user.role !== 'KEEPER') return !S.ov.my_incoming_transfers.some(x => x.transfer_id === t.transfer_id);
+  if (t.i_sent !== undefined){
+    const keepsTo = (S.me.boxes || []).some(b => b.box_id === t.to_box_id) && S.me.user.role === 'KEEPER';
+    return t.i_sent && !keepsTo;
+  }
   return S.me.boxes.some(b => b.box_id === t.from_box_id) && !S.me.boxes.some(b => b.box_id === t.to_box_id);
 }
 
@@ -1014,7 +1044,7 @@ async function loadHistory(more){
 /* ---------------- Transfers ---------------- */
 function viewTransfers(){
   const mine = new Set(S.me.boxes.map(b=>b.box_id));
-  const wait = S.trf.items.filter(t => t.status==='PENDING' && t.can_confirm && !isMineSender(t));
+  const wait = S.trf.items.filter(t => t.status==='PENDING' && t.can_confirm);
   const sent = S.trf.items.filter(t => mine.has(t.from_box_id) && (t.status==='PENDING' ? isMineSender(t) : true) && !(S.me.user.role!=='KEEPER' && !mine.has(t.from_box_id)));
   const list = S.trf.tab === 'wait' ? wait : S.trf.tab === 'sent' ? sent : S.trf.items;
   return `<div class="page-head"><h1>التحويلات</h1><button class="icon-btn" data-act="refresh" aria-label="تحديث">${ic('refresh')}</button></div>
@@ -1338,7 +1368,8 @@ function openVoid(id){
 async function doVoid(id, btn){
   const reason = $('#vr').value.trim(); if (!reason) return toast('اكتب سبب الإلغاء', true);
   setBtnBusy(btn, true);
-  try { await api('voidEntry', { entry_id:id, reason }); closeSheet(); toast('أُلغيت العملية'); await refresh(true); if (S.view==='history') loadHistory(); }
+  const vkey = 'void:' + id;
+  try { await api('voidEntry', { entry_id:id, reason, client_ref: refFor(vkey) }); clearRef(vkey); closeSheet(); toast('أُلغيت العملية'); await refresh(true); if (S.view==='history') loadHistory(); }
   catch(x){ setBtnBusy(btn,false); toast(x.message, true); }
 }
 
@@ -1390,7 +1421,9 @@ function openCancel(id){
 }
 async function transferAction(action, payload, btn, okMsg){
   setBtnBusy(btn, true);
-  try { await api(action, payload); closeSheet(); toast(okMsg); await refresh(true); }
+  const key = action + ':' + (payload.transfer_id || '');
+  payload.client_ref = refFor(key);
+  try { await api(action, payload); clearRef(key); closeSheet(); toast(okMsg); await refresh(true); }
   catch(x){ setBtnBusy(btn,false); toast(x.message, true); }
 }
 
@@ -1546,21 +1579,23 @@ function renderOpForm(op, box){
 async function submitOp(op, box){
   const btn = $('#opSave'); setBtnBusy(btn, true);
   const amount = Number(op.value);
+  op._ref = op._ref || newRef();
   try {
     let r, title, note, amber = false;
     if (op.type === 'income'){
-      r = await api('recordIncome', { box_id:box.box_id, amount, currency:op.currency, counterparty:op.counterparty.trim(), description:op.description.trim(), unconfirmed:op.unconfirmed, entry_date:op.date });
+      r = await api('recordIncome', { box_id:box.box_id, amount, currency:op.currency, counterparty:op.counterparty.trim(), description:op.description.trim(), unconfirmed:op.unconfirmed, entry_date:op.date , client_ref: op._ref });
       title = 'تم حفظ الاستلام'; note = `من ${op.counterparty.trim()}`;
     } else if (op.type === 'expense'){
       const desc = (op.needsDesc ? String(op.otherDesc||'') : op.description).trim();
-      r = await api('recordExpense', { box_id:box.box_id, amount, currency:op.currency, category_id:op.category_id, description:desc, entry_date:op.date });
+      r = await api('recordExpense', { box_id:box.box_id, amount, currency:op.currency, category_id:op.category_id, description:desc, entry_date:op.date , client_ref: op._ref });
       title = 'تم حفظ المصروف';
       note = op.needsDesc ? desc : S.cats.find(c=>c.category_id===op.category_id).name;
     } else {
-      r = await api('createTransfer', { from_box_id:box.box_id, to_box_id:op.to_box_id, amount, currency:op.currency, via:op.via.trim(), description:op.description.trim(), entry_date:op.date });
+      r = await api('createTransfer', { from_box_id:box.box_id, to_box_id:op.to_box_id, amount, currency:op.currency, via:op.via.trim(), description:op.description.trim(), entry_date:op.date , client_ref: op._ref });
       const to = S.targets.find(b=>b.box_id===op.to_box_id).name;
       title = 'أُرسل التحويل'; note = `بانتظار تأكيد ${to}`; amber = true;
     }
+    op._ref = null;
     const newBal = r.balance ? r.balance[op.currency] : null;
     const warn = (r.warnings||[])[0];
     openSheet(`<div class="sheet-body"><div class="success">
@@ -1899,11 +1934,12 @@ async function saveUserForm(f, u){
       await api('adminUpdateUser', payload);
       closeSheet(); toast('تم حفظ التغييرات'); afterAdminChange();
     } else {
-      const r = await api('adminCreateUser', {
+      const akey = 'adminCreateUser:' + (uf.username || '') ;
+      const r = await api('adminCreateUser', { client_ref: refFor(akey),
         full_name:f.full_name.trim(), phone:f.phone.trim(), role:f.role, username:f.username, box_ids:[...f.box_ids],
         new_box: f.new_box ? { name:f.nb_name.trim(), type:f.nb_type, location:f.nb_location.trim() } : null
       });
-      openCreds(r, 'new'); afterAdminChange();
+      clearRef(akey); openCreds(r, 'new'); afterAdminChange();
     }
   } catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
 }
@@ -2189,7 +2225,8 @@ const Mock = (() => {
   const enrich = e => Object.assign({}, e, { box_name:box(e.box_id).name, entry_type_label:TL[e.entry_type]||e.entry_type, category_name:(cats.find(c=>c.category_id===e.category_id)||{}).name||'', created_by_name:uname(e.created_by),
     can_void: e.status==='ACTIVE' && !/^TRANSFER_|REVERSAL/.test(e.entry_type) && (staff() || (e.created_by===cur && e.created_at.slice(0,10)===localDate(new Date()))) });
   const desc = t => { const f=box(t.from_box_id), to=box(t.to_box_id), p=t.status==='PENDING';
-    return Object.assign({}, t, { from_box_name:f.name, to_box_name:to.name, status_label:{PENDING:'معلّق',CONFIRMED:'مؤكَّد',REJECTED:'مرفوض',CANCELLED:'ملغى'}[t.status], created_by_name:uname(t.created_by), age_hours:p?hrs(t.created_at):null, can_confirm:p&&(staff()||keeps(to)), can_cancel:p&&(staff()||keeps(f)) }); };
+    return Object.assign({}, t, { from_box_name:f.name, to_box_name:to.name, status_label:{PENDING:'معلّق',CONFIRMED:'مؤكَّد',REJECTED:'مرفوض',CANCELLED:'ملغى'}[t.status], created_by_name:uname(t.created_by), age_hours:p?hrs(t.created_at):null, i_sent:t.created_by===cur, keepers_to:to.k.map(uname).join('، '),
+      can_confirm:p&&keeps(to), can_cancel:p&&(keeps(f)||me().role==='ADMIN') }); };
   const err = (m, code='DEMO') => { throw Object.assign(new Error(m), { code }); };
   const sorted = () => L.slice().sort((a,b)=> a.entry_date===b.entry_date ? (a.created_at<b.created_at?-1:1) : (a.entry_date<b.entry_date?-1:1));
   const userView = u => Object.assign({}, u, { boxes: boxes.filter(b => b.k.includes(u.user_id)).map(b => ({ box_id:b.box_id, name:b.name, status:b.status })) });
@@ -2213,6 +2250,8 @@ const Mock = (() => {
       return {
         boxes: v.map(b=>({ box_id:b.box_id, name:b.name, type:b.type, location:b.location, balances:bal(b.box_id), pending_in:pend(b.box_id,'in'), pending_out:pend(b.box_id,'out') })),
         my_incoming_transfers: T.filter(t=>t.status==='PENDING'&&keeps(box(t.to_box_id))).map(desc),
+        watching_transfers: T.filter(t=>t.status==='PENDING'&&!keeps(box(t.to_box_id))&&vis(box(t.to_box_id)))
+          .map(t=>Object.assign(desc(t), { waiting_on: box(t.to_box_id).k.map(uname).join('، ') })),
         pending_transfers: T.filter(t=>t.status==='PENDING'&&(staff()||keeps(box(t.to_box_id))||keeps(box(t.from_box_id)))).map(desc),
         recent_entries: sorted().filter(e=>v.some(b=>b.box_id===e.box_id)).reverse().slice(0,15).map(enrich),
         today, alerts:[]
