@@ -306,6 +306,8 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 .mc-foot b{color:var(--ink)}
 .mc-foot .due b{color:var(--out)}
 .mc-foot .ok{color:var(--in);font-weight:500}
+.dep-amount{font-weight:600;font-variant-numeric:tabular-nums}
+.ship-row{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);margin-bottom:12px}
 .prog{height:8px;border-radius:99px;background:var(--line-2);overflow:hidden;margin-top:10px}
 .prog span{display:block;height:100%;background:var(--in);border-radius:99px;transition:width .5s}
 .mc-result{margin-top:10px;padding:8px 10px;border-radius:10px;font-size:13.5px;text-align:center}
@@ -550,7 +552,13 @@ const DICT = {
   'تكلفة الديوانة':'Customs cost','التكلفة بالدينار':'Cost in dinars','حفظ التكلفة':'Save cost','تم حفظ التكلفة':'Cost saved',
   'إدخال تكلفة الديوانة من الفاتورة':'Enter the customs cost from the invoice','تعديل تكلفة الديوانة':'Edit the customs cost',
   'اكتب التكلفة الحقيقية من فاتورة الترانزيت لهذه السيارة وحدها.':'Enter the real cost from the transit invoice for this car only.',
-  'مرحلة السيارة':'Car stage','اختر السيارة':'Choose the car','دفعة زبون على سيارة':'Customer payment for a car',
+  'مرحلة السيارة':'Car stage','الدفعة الأولى':'First payment','عربون بنسبة':'Deposit of','المبلغ كامل':'Full amount',
+  'لاحقاً':'Later','تاريخ الشحن المتوقع':'Expected shipping date','تاريخ الشحن':'Shipping date','قبل الشحن':'Before shipping',
+  'يذكّرك النظام قبله بيومين: إن بقي مبلغ يطلب تحصيله، وإن كان خالصاً يذكّرك بإبلاغ الزبون.':'You get a reminder two days before: to collect the rest, or to tell the customer their car is shipping.',
+  'خالص الثمن، أبلغه بموعد الشحن':'Fully paid, tell them the shipping date','أبلغته':'I told them',
+  'تم، أُغلق التنبيه':'Done, reminder closed','تسجيل دفعة':'Record payment','اتصال':'Call','السيارة':'Car',
+  'يُشحن اليوم':'Ships today','مرّ موعد الشحن':'Shipping date passed','مرّ موعده':'date passed','تم حفظ التاريخ':'Date saved',
+  'إضافة السيارة':'Add car','لم يُحدَّد':'Not set','اختر السيارة':'Choose the car','دفعة زبون على سيارة':'Customer payment for a car',
   'ثمن السيارة أو الديوانة':'Car price or customs','تمت إضافة الزبون':'Customer added','تمت إضافة السيارة':'Car added',
   'تم حفظ الدفعة':'Payment saved','بطاقة السيارة':'Car card','سجل العمليات':'Operations history','كل حركات صندوقك':'Every movement in your box',
   'دفعة زبون':'Customer payment','إرجاع لزبون':'Customer refund','ملاحظة':'Note','اتصال':'Call',
@@ -623,6 +631,11 @@ const RULES = [
   [/^نقص يزيدنا إياه (.+)$/, 'Shortfall the customer owes: $1'],
   [/^إرجاع (.+)$/, 'Refund $1'],
   [/^فائض (.+)$/, 'Surplus $1'],
+  [/^بعد (\d+) يوم$/, (_, n) => 'in ' + n + (n === '1' ? ' day' : ' days')],
+  [/^باقٍ عليه (.+)$/, 'Still owes $1'],
+  [/^الشحن (.+)$/, 'Shipping $1'],
+  [/^إضافة السيارة وتسجيل (.+)$/, 'Add car and record $1'],
+  [/^تدخل (.+)$/, 'Goes into $1'],
   [/^نقص (.+)$/, 'Short $1'],
   [/^حفظ (.+) دج$/, 'Save $1 DA'],
   [/^المبلغ أكبر من الباقي على الزبون \((.+)\)$/, 'More than the customer still owes ($1)'],
@@ -1024,6 +1037,7 @@ function viewHome(){
   </section>
   <div class="page">
     ${incoming.length ? `<section class="sec"><div class="sec-h"><h2>تنتظر تأكيدك</h2></div>${incoming.map(transferCard).join('')}</section>` : ''}
+    ${shipAlertsHtml()}
     ${watching.length ? `<section class="sec"><div class="sec-h"><h2>بانتظار تأكيد صاحب الصندوق</h2></div>${watching.map(transferCard).join('')}</section>` : ''}
     ${otherIncoming ? `<button class="card row" data-act="tab" data-v="transfers" style="margin-top:12px">${ic('clock')}<span class="row-main">${otherIncoming} تحويل ينتظر تأكيدك في صناديق أخرى</span>${ic('chev')}</button>` : ''}
     <section class="sec">
@@ -1039,6 +1053,31 @@ function viewHome(){
         : `<div class="card empty">${ic('list')}<b>لا توجد عمليات بعد</b>سجّل أول استلام أو مصروف من الأزرار في الأعلى.</div>`}
     </section>
   </div>`;
+}
+
+function daysWord(n){
+  if (isEN()) return n === 0 ? 'Ships today' : n === 1 ? 'Tomorrow' : `in ${n} days`;
+  return n === 0 ? 'يُشحن اليوم' : n === 1 ? 'غداً' : n === 2 ? 'بعد يومين' : `بعد ${n} أيام`;
+}
+
+function shipAlertsHtml(){
+  const list = (S.ov.shipping_alerts || []);
+  if (!list.length) return '';
+  return `<section class="sec"><div class="sec-h"><h2>قبل الشحن</h2></div>
+    ${list.map(a => `<article class="tcard ${a.kind==='COLLECT'?'':'done'}" style="border-inline-start-color:${a.kind==='COLLECT'?'var(--out)':'var(--petrol)'}">
+      <div class="t-route"><b>${esc(a.customer_name)}</b><span>${esc(a.car_label)}</span>
+        <span style="margin-inline-start:auto" class="tag ${a.days_to_ship < 0 ? 'red' : 'amber'}">
+          ${a.days_to_ship < 0 ? 'مرّ موعد الشحن' : daysWord(a.days_to_ship)}</span></div>
+      <div class="t-amt" style="font-size:18px">${a.kind==='COLLECT'
+        ? `باقٍ عليه ${money(a.price_remaining)}` : 'خالص الثمن، أبلغه بموعد الشحن'}</div>
+      <div class="t-meta"><span>الشحن ${dayLabel(a.ship_date)}</span>${a.phone?`<span class="num">${esc(a.phone)}</span>`:''}</div>
+      <div class="t-actions">
+        ${a.kind==='COLLECT'
+          ? `<button class="btn btn-primary btn-sm" style="flex:1" data-act="pay" data-id="${a.order_id}" data-purpose="PRICE">تسجيل دفعة</button>`
+          : `<button class="btn btn-primary btn-sm" style="flex:1" data-act="notified" data-id="${a.order_id}">${ic('check')}أبلغته</button>`}
+        ${a.phone?`<a class="btn btn-ghost btn-sm" href="tel:${esc(a.phone)}">${ic('phone')}اتصال</a>`:''}
+        <button class="btn btn-ghost btn-sm" data-act="order" data-id="${a.order_id}">السيارة</button>
+      </div></article>`).join('')}</section>`;
 }
 
 function waitingOn(boxId){
@@ -1540,6 +1579,12 @@ function renderOrderSheet(o){
       ${staff ? `<button class="btn-text" style="width:100%;margin-top:6px" data-act="customs" data-id="${o.order_id}">${o.customs_known?'تعديل تكلفة الديوانة':'إدخال تكلفة الديوانة من الفاتورة'}</button>` : ''}
     </div>
 
+    <button class="row ship-row" data-act="ship-date" data-id="${o.order_id}">
+      <span class="row-ic ${o.ship_date && o.days_to_ship <= 2 ? 'out' : 'tr'}">${ic('clock')}</span>
+      <span class="row-main"><span class="row-title">تاريخ الشحن</span>
+        <span class="row-sub">${o.ship_date ? `<span>${dayLabel(o.ship_date)}</span>${o.days_to_ship >= 0 ? `<span>${daysWord(o.days_to_ship)}</span>` : '<span>مرّ موعده</span>'}` : '<span>لم يُحدَّد</span>'}</span></span>
+      ${ic('chev')}</button>
+
     <div class="sec">
       <div class="sec-h"><h2>دفعات هذه السيارة</h2></div>
       ${o.entries.length ? `<div class="list">${o.entries.map(orderEntryRow).join('')}</div>`
@@ -1679,6 +1724,15 @@ function openCustoms(orderId){
     <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="customs-go" data-id="${orderId}">حفظ التكلفة</button></div>`);
 }
 
+function openShipDate(orderId){
+  const o = S.order || {};
+  openSheet(`${sheetHead('تاريخ الشحن المتوقع')}<div class="sheet-body">
+    <p class="lead">يذكّرك النظام قبله بيومين: إن بقي مبلغ يطلب تحصيله، وإن كان خالصاً يذكّرك بإبلاغ الزبون.</p>
+    <div class="field"><div class="date-row"><span>تاريخ الشحن</span>
+      <input type="date" id="shipVal" value="${esc(o.ship_date || '')}"></div></div></div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="ship-save" data-id="${orderId}">حفظ</button></div>`);
+}
+
 function openStagePicker(orderId){
   const o = S.order;
   const stages = S.stages || { ORDERED:'طلبية', PAID_SUPPLIER:'مدفوعة للمورد', SHIPPED:'مشحونة',
@@ -1713,6 +1767,7 @@ function openNewCustomer(){
 
 function openNewOrder(customerId){
   const c = S.cust.items.find(x => x.customer_id === customerId) || {};
+  const st = { price:0, mode:'PERCENT', pct:30, box:S.boxId || ((S.me.boxes||[])[0]||{}).box_id || '' };
   openSheet(`${sheetHead('سيارة جديدة')}<div class="sheet-body">
     <div class="hint" style="margin:0 0 14px">${ic('user')} ${esc(c.full_name || '')}</div>
     <div class="field"><label class="field-l" for="odModel">الموديل</label>
@@ -1720,15 +1775,65 @@ function openNewOrder(customerId){
     <div class="field"><label class="field-l" for="odColor">اللون <small>(اختياري)</small></label>
       <input class="input" id="odColor" placeholder="قري"></div>
     <div class="field"><label class="field-l" for="odPrice">الثمن المتفق عليه</label>
-      <input class="input num" id="odPrice" inputmode="numeric" placeholder="3570000"><div class="hint" id="odPriceHint"></div></div>
+      <input class="input num" id="odPrice" inputmode="numeric" placeholder="3570000">
+      <div class="hint" id="odPriceHint"></div></div>
+
+    <div class="field hidden" id="odPayWrap">
+      <span class="field-l">الدفعة الأولى</span>
+      <div class="seg" id="odModes">
+        <button type="button" data-mode="PERCENT" aria-pressed="true">عربون بنسبة</button>
+        <button type="button" data-mode="FULL" aria-pressed="false">المبلغ كامل</button>
+        <button type="button" data-mode="NONE" aria-pressed="false">لاحقاً</button>
+      </div>
+      <div id="odPctRow" style="display:flex;align-items:center;gap:10px;margin-top:12px">
+        <input class="input num" id="odPct" inputmode="numeric" value="30" style="width:90px;text-align:center">
+        <span class="hint" style="margin:0">%</span>
+        <span class="dep-amount" id="odDep"></span>
+      </div>
+      <div id="odBoxWrap" style="margin-top:12px"></div>
+    </div>
+
+    <div class="field"><label class="field-l" for="odShip">تاريخ الشحن المتوقع <small>(اختياري)</small></label>
+      <div class="date-row"><span>${ic('clock')}</span><input type="date" id="odShip" style="flex:1"></div>
+      <div class="hint">يذكّرك النظام قبله بيومين: إن بقي مبلغ يطلب تحصيله، وإن كان خالصاً يذكّرك بإبلاغ الزبون.</div></div>
+
     <div class="field"><label class="field-l" for="odCustoms">الديوانة المتوقعة <small>(اختياري)</small></label>
       <input class="input num" id="odCustoms" inputmode="numeric" placeholder="1000000"></div>
   </div>
-  <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="order-save" data-id="${customerId}">إضافة السيارة</button></div>`,
+  <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="order-save" data-id="${customerId}" disabled>أكمل البيانات</button></div>`,
   { full:true, onMount: sh => {
-    $('#odPrice', sh).addEventListener('input', e => {
-      $('#odPriceHint').textContent = millions(e.target.value);
+    const boxes = S.me.boxes || [];
+    const paint = () => {
+      const price = Number($('#odPrice').value || 0);
+      st.price = price;
+      $('#odPriceHint').textContent = millions(price);
+      show2($('#odPayWrap'), price > 0);
+      $('#odPctRow').style.display = st.mode === 'PERCENT' ? 'flex' : 'none';
+      const dep = st.mode === 'FULL' ? price : st.mode === 'PERCENT' ? Math.round(price * st.pct / 100) : 0;
+      $('#odDep').textContent = dep ? fmt(dep) + ' دج' : '';
+      $('#odBoxWrap').innerHTML = (st.mode === 'NONE' || !dep) ? '' : (boxes.length <= 1
+        ? `<div class="hint" style="margin:0;display:flex;align-items:center;gap:6px">${ic('box')} تدخل ${esc((boxes[0]||{}).name || '')}</div>`
+        : `<span class="field-l">أي صندوق استلم المبلغ؟</span><div class="chips">${boxes.map(b =>
+            `<button type="button" class="chip" data-obox="${b.box_id}" aria-pressed="${b.box_id===st.box}">${esc(b.name)}</button>`).join('')}</div>`);
+      const btn = $('.sheet-foot .btn');
+      const ok = price > 0 && $('#odModel').value.trim().length >= 2;
+      btn.disabled = !ok;
+      btn.textContent = !ok ? 'أكمل البيانات'
+        : dep ? `إضافة السيارة وتسجيل ${fmt(dep)} دج` : 'إضافة السيارة';
+      sh.dataset.mode = st.mode; sh.dataset.pct = st.pct; sh.dataset.box = st.box;
+    };
+    const show2 = (el, on) => { if (on) el.classList.remove('hidden'); else el.classList.add('hidden'); };
+    sh.addEventListener('input', e => {
+      if (e.target.id === 'odPct'){ st.pct = Math.min(100, Math.max(1, Number(e.target.value || 0))); }
+      paint();
     });
+    sh.addEventListener('click', e => {
+      const m = e.target.closest('[data-mode]');
+      if (m){ st.mode = m.dataset.mode; sh.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', x===m)); paint(); }
+      const b = e.target.closest('[data-obox]');
+      if (b){ st.box = b.dataset.obox; paint(); }
+    });
+    paint();
   } });
 }
 
@@ -2175,9 +2280,14 @@ document.addEventListener('click', async e => {
     case 'order-new': openNewOrder(id); break;
     case 'order-edit': openEditOrder(id); break;
     case 'order-save': { setBtnBusy(el, true);
+      const sh = el.closest('.sheet');
+      const key = 'order:' + id + ':' + $('#odModel').value.trim() + ':' + $('#odPrice').value;
       try { const o = await api('createOrder', { customer_id:id, car_model:$('#odModel').value.trim(),
           color:$('#odColor').value.trim(), agreed_price:Number($('#odPrice').value || 0),
-          customs_expected: $('#odCustoms').value ? Number($('#odCustoms').value) : '' });
+          customs_expected: $('#odCustoms').value ? Number($('#odCustoms').value) : '',
+          ship_date: $('#odShip').value || '', deposit_mode: sh.dataset.mode || 'NONE',
+          deposit_percent: Number(sh.dataset.pct || 30), box_id: sh.dataset.box || '', client_ref: refFor(key) });
+        clearRef(key);
         closeSheet(); toast('تمت إضافة السيارة'); await loadCustomers(); openOrder(o.order_id);
       } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
     case 'order-update': { setBtnBusy(el, true);
@@ -2191,6 +2301,14 @@ document.addEventListener('click', async e => {
     case 'customs-go': { setBtnBusy(el, true);
       try { const r = await api('setCustomsActual', { order_id:id, customs_actual:Number($('#cuVal').value || 0) });
         S.order = r; closeSheet(); toast('تم حفظ التكلفة'); openOrder(id); loadCustomers();
+      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'ship-date': openShipDate(id); break;
+    case 'ship-save': { setBtnBusy(el, true);
+      try { await api('updateOrder', { order_id:id, ship_date: $('#shipVal').value || '' });
+        closeSheet(); toast('تم حفظ التاريخ'); openOrder(id); refresh(true);
+      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'notified': { setBtnBusy(el, true);
+      try { await api('markOrderNotified', { order_id:id }); toast('تم، أُغلق التنبيه'); await refresh(true);
       } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
     case 'stage': openStagePicker(id); break;
     case 'stage-set': { try { await api('setOrderStage', { order_id:id, stage:el.dataset.stage });
@@ -2758,9 +2876,11 @@ const Mock = (() => {
     { order_id:'ORD1', customer_id:'CUS1', car_model:'كولوراي لاتوت', color:'قري', trim:'', agreed_price:3570000,
       customs_expected:1000000, customs_actual:980000, stage:'CLEARED', status:'ACTIVE', sold_at:'', notes:'', created_at:'' },
     { order_id:'ORD2', customer_id:'CUS2', car_model:'MG5', color:'أبيض', trim:'', agreed_price:2900000,
-      customs_expected:900000, customs_actual:'', stage:'AT_PORT', status:'ACTIVE', sold_at:'', notes:'', created_at:'' },
+      customs_expected:900000, customs_actual:'', stage:'AT_PORT', status:'ACTIVE', sold_at:'', notes:'', created_at:'',
+      ship_date: localDate(new Date(Date.now() + 2*86400000)), notified_at:'' },
     { order_id:'ORD3', customer_id:'CUS3', car_model:'كولوراي باتل', color:'أسود', trim:'', agreed_price:3800000,
-      customs_expected:1000000, customs_actual:'', stage:'ORDERED', status:'ACTIVE', sold_at:'', notes:'', created_at:'' }
+      customs_expected:1000000, customs_actual:'', stage:'ORDERED', status:'ACTIVE', sold_at:'', notes:'', created_at:'',
+      ship_date: localDate(new Date(Date.now() + 86400000)), notified_at:'' }
   ];
   const STAGE_AR = { ORDERED:'طلبية', PAID_SUPPLIER:'مدفوعة للمورد', SHIPPED:'مشحونة', AT_PORT:'في الميناء', CLEARED:'مجمركة', DELIVERED:'مسلَّمة' };
   const ordTotals = o => {
@@ -2776,12 +2896,25 @@ const Mock = (() => {
       is_sold: remaining <= 0, customs_paid:customs, customs_actual:actual,
       customs_balance: actual === null ? 0 : customs - actual, customs_known: actual !== null };
   };
+  const dUntil = ds => { const t = localDate(new Date());
+    const a = Date.UTC(+t.slice(0,4), +t.slice(5,7)-1, +t.slice(8,10));
+    const b = Date.UTC(+ds.slice(0,4), +ds.slice(5,7)-1, +ds.slice(8,10));
+    return Math.round((b-a)/86400000); };
+  const shipAlerts = () => ORD.filter(o => o.ship_date && o.stage !== 'DELIVERED' && dUntil(o.ship_date) <= 2)
+    .map(o => { const t = ordTotals(o); const c = CUS.find(x => x.customer_id === o.customer_id) || {};
+      const kind = t.price_remaining > 0 ? 'COLLECT' : 'NOTIFY';
+      return { order_id:o.order_id, customer_id:o.customer_id, customer_name:c.full_name, phone:c.phone||'',
+        car_label:[o.car_model, o.color].filter(Boolean).join(' '), ship_date:o.ship_date, days_to_ship:dUntil(o.ship_date),
+        kind, price_remaining:t.price_remaining, agreed_price:t.agreed_price, done: kind==='NOTIFY' && !!o.notified_at }; })
+    .filter(a => !a.done).sort((a,b) => a.days_to_ship - b.days_to_ship);
+
   const ordView = o => Object.assign({
     order_id:o.order_id, customer_id:o.customer_id,
     customer_name:(CUS.find(c => c.customer_id === o.customer_id)||{}).full_name || '',
     car_model:o.car_model, color:o.color, car_label:[o.car_model, o.color].filter(Boolean).join(' '),
     customs_expected:o.customs_expected || null, stage:o.stage, stage_label:STAGE_AR[o.stage], sold_at:o.sold_at,
-    status:o.status, notes:o.notes
+    status:o.status, notes:o.notes, ship_date:o.ship_date || '', notified_at:o.notified_at || '',
+    days_to_ship: o.ship_date ? dUntil(o.ship_date) : null
   }, ordTotals(o));
 
   add({ box_id:'B1', entry_date:d(2), created_at:ts(2,'11:25'), direction:'IN', amount:170000, entry_type:'CUSTOMER_PAYMENT',
@@ -2831,6 +2964,7 @@ const Mock = (() => {
           .map(t=>Object.assign(desc(t), { waiting_on: box(t.to_box_id).k.map(uname).join('، ') })),
         pending_transfers: T.filter(t=>t.status==='PENDING'&&(staff()||keeps(box(t.to_box_id))||keeps(box(t.from_box_id)))).map(desc),
         pulse_sig: L.length + '|' + T.filter(t=>t.status==='PENDING').map(t=>t.transfer_id).sort().join(','),
+        shipping_alerts: shipAlerts(),
         recent_entries: sorted().filter(e=>v.some(b=>b.box_id===e.box_id)).reverse().slice(0,15).map(enrich),
         today, alerts:[]
       };
@@ -2874,8 +3008,21 @@ const Mock = (() => {
         .map(e => Object.assign(enrich(e), { purpose_label: e.purpose === 'PRICE' ? 'ثمن السيارة' : 'الديوانة' })) }); },
     createOrder: p => { const o = { order_id:'ORD'+(ORD.length+1), customer_id:p.customer_id, car_model:p.car_model,
         color:p.color||'', trim:'', agreed_price:Number(p.agreed_price), customs_expected:p.customs_expected||'',
-        customs_actual:'', stage:'ORDERED', status:'ACTIVE', sold_at:'', notes:'', created_at:now() };
-      ORD.push(o); return ordView(o); },
+        customs_actual:'', stage:'ORDERED', status:'ACTIVE', sold_at:'', notes:'', created_at:now(),
+        ship_date:p.ship_date||'', notified_at:'' };
+      ORD.push(o);
+      const mode = p.deposit_mode || 'NONE';
+      if (mode !== 'NONE'){
+        const amt = mode === 'FULL' ? o.agreed_price : Math.round(o.agreed_price * (Number(p.deposit_percent)||30) / 100);
+        add({ box_id:p.box_id, entry_date:localDate(new Date()), created_at:now(), direction:'IN', amount:amt,
+          entry_type:'CUSTOMER_PAYMENT', purpose:'PRICE', order_id:o.order_id,
+          counterparty:(CUS.find(c => c.customer_id === o.customer_id)||{}).full_name,
+          description: mode === 'FULL' ? 'دفع الثمن كاملاً عند الطلب' : 'عربون ' + (p.deposit_percent||30) + '%' });
+        if (ordTotals(o).is_sold) o.sold_at = now();
+      }
+      const v = ordView(o); v.just_sold = ordTotals(o).is_sold; return v; },
+    markOrderNotified: p => { const o = ORD.find(x => x.order_id === p.order_id); o.notified_at = now(); return ordView(o); },
+    getShippingAlerts: () => shipAlerts(),
     updateOrder: p => { const o = ORD.find(x => x.order_id === p.order_id); Object.assign(o, p); return ordView(o); },
     setOrderStage: p => { const o = ORD.find(x => x.order_id === p.order_id); o.stage = p.stage; return ordView(o); },
     setCustomsActual: p => { const o = ORD.find(x => x.order_id === p.order_id); o.customs_actual = Number(p.customs_actual); return ordView(o); },
