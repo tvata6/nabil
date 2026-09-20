@@ -291,6 +291,28 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 .pin-sheet .pin-key.fn{color:var(--muted)}
 .pin-sheet{text-align:center}
 
+.search{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0 12px}
+.search span{color:var(--faint);display:flex}
+.search .input{border:0;padding:0;height:46px;background:transparent}
+.search .input:focus{outline:none;box-shadow:none}
+.cust-head{display:flex;align-items:center;gap:12px}
+.cust-head b{display:block;font-size:18px;font-weight:600}
+.ord-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px}
+.ord-top b{font-size:17px;font-weight:600}
+.money-card{padding:14px;margin-bottom:12px}
+.mc-head{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--muted)}
+.mc-head b{font-size:18px;color:var(--ink)}
+.mc-foot{display:flex;justify-content:space-between;gap:10px;margin-top:8px;font-size:13px;color:var(--muted)}
+.mc-foot b{color:var(--ink)}
+.mc-foot .due b{color:var(--out)}
+.mc-foot .ok{color:var(--in);font-weight:500}
+.prog{height:8px;border-radius:99px;background:var(--line-2);overflow:hidden;margin-top:10px}
+.prog span{display:block;height:100%;background:var(--in);border-radius:99px;transition:width .5s}
+.mc-result{margin-top:10px;padding:8px 10px;border-radius:10px;font-size:13.5px;text-align:center}
+.mc-result.refund{background:var(--amber-tint);color:var(--amber-ink)}
+.mc-result.owe{background:var(--out-tint);color:var(--out)}
+.mc-result.done{background:var(--in-tint);color:var(--in)}
+
 /* Toast */
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + var(--safe-b));z-index:60;display:flex;justify-content:center;pointer-events:none}
 .toast{max-width:480px;background:var(--asphalt);color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.2);display:flex;gap:10px;align-items:center;animation:reveal .2s}
@@ -376,6 +398,8 @@ const S = {
   me: null, ov: null, boxId: null, view: 'home', busy: false,
   hist: { filter: 'all', items: [], total: 0, loaded: false, boxId: null },
   trf: { tab: 'wait', items: [], loaded: false },
+  cust: { items: [], loaded: false, q: '' },
+  order: null,
   cats: null, targets: null, odo: {},
   adm: { loaded:false, users:[], boxes:[] }, _pw: null, _credMsg: ''
 };
@@ -503,6 +527,37 @@ const DICT = {
   'محاولات كثيرة خاطئة. سجّل الدخول بكلمة المرور':'Too many wrong attempts. Sign in with your password',
   'محاولات كثيرة خاطئة. سجّل الدخول من جديد':'Too many wrong attempts. Sign in again',
 
+
+  // الزبائن والسيارات
+  'الزبائن':'Customers','زبون جديد':'New customer','+ زبون جديد':'+ New customer','الزبون':'Customer',
+  'ابحث باسم الزبون أو رقمه':'Search by name or phone','ابحث عن الزبون':'Search for the customer','لا نتيجة':'No results',
+  'الباقي على الزبائن':'Owed by customers','فوائض للإرجاع':'Refunds due','الباقي عليه':'Owed by them','باقٍ':'left',
+  'خالص':'Paid','تاجر':'Dealer','زبون':'Customer','تاجر يأخذ عدة سيارات':'Dealer buying several cars','النوع':'Type',
+  'لا يوجد زبون بهذا الاسم':'No customer with that name','جرّب اسماً آخر أو أضف زبوناً جديداً.':'Try another name or add a new customer.',
+  'سياراته':'Their cars','+ سيارة':'+ Car','سيارة جديدة':'New car','لا توجد سيارة بعد':'No car yet',
+  'أضف أول سيارة لهذا الزبون.':'Add the first car for this customer.','لا توجد سيارة لهذا الزبون':'This customer has no car',
+  'إضافة سيارة':'Add car','إضافة الزبون':'Add customer','إضافة السيارة':'Add car',
+  'تعديل بيانات الزبون':'Edit customer','تعديل بيانات السيارة':'Edit car','تعديل الزبون':'Edit customer','تعديل السيارة':'Edit car',
+  'الموديل':'Model','اللون':'Colour','الثمن المتفق عليه':'Agreed price','الديوانة المتوقعة':'Expected customs',
+  'الولاية':'Wilaya','فائض ديوانة له':'Customs refund due','نقص ديوانة عليه':'Customs shortfall',
+  'ثمن السيارة':'Car price','الديوانة':'Customs','مدفوع':'Paid','التكلفة':'Actual cost','دفع الزبون':'Customer paid',
+  'التكلفة غير معروفة بعد':'Actual cost not known yet','لم يُحدَّد':'Not set','الحساب مغلق':'Settled',
+  'مباعة':'Sold','اكتمل الثمن، السيارة مباعة':'Price complete, the car is sold','خالص الثمن':'Price fully paid',
+  'تسجيل دفعة على الثمن':'Record a payment','استلام ديوانة':'Receive customs','إرجاع الفائض':'Refund the surplus',
+  'دفعة على الثمن':'Payment on the price','استلام مبلغ ديوانة':'Receive a customs amount','دفعات هذه السيارة':'Payments for this car',
+  'لا توجد دفعات بعد':'No payments yet','أي صندوق استلم المبلغ؟':'Which box received the money?',
+  'إرجاع فائض الديوانة':'Refund customs surplus','المبلغ المُرجَع':'Amount refunded','تم إرجاع الفائض':'Surplus refunded',
+  'تكلفة الديوانة':'Customs cost','التكلفة بالدينار':'Cost in dinars','حفظ التكلفة':'Save cost','تم حفظ التكلفة':'Cost saved',
+  'إدخال تكلفة الديوانة من الفاتورة':'Enter the customs cost from the invoice','تعديل تكلفة الديوانة':'Edit the customs cost',
+  'اكتب التكلفة الحقيقية من فاتورة الترانزيت لهذه السيارة وحدها.':'Enter the real cost from the transit invoice for this car only.',
+  'مرحلة السيارة':'Car stage','اختر السيارة':'Choose the car','دفعة زبون على سيارة':'Customer payment for a car',
+  'ثمن السيارة أو الديوانة':'Car price or customs','تمت إضافة الزبون':'Customer added','تمت إضافة السيارة':'Car added',
+  'تم حفظ الدفعة':'Payment saved','بطاقة السيارة':'Car card','سجل العمليات':'Operations history','كل حركات صندوقك':'Every movement in your box',
+  'دفعة زبون':'Customer payment','إرجاع لزبون':'Customer refund','ملاحظة':'Note','اتصال':'Call',
+  'مثال: عربون، تكملة':'e.g. deposit, balance','مثال: مبلغ الجمركة':'e.g. customs amount','مثال: زغوان الياس':'e.g. Zeghouan Elias',
+  'مثال: كولوراي لاتوت':'e.g. Coolray Latoot','طلبية':'Ordered','مدفوعة للمورد':'Paid to supplier','مشحونة':'Shipped',
+  'في الميناء':'At port','مجمركة':'Cleared','مسلَّمة':'Delivered',
+
   // تصنيفات المصاريف الافتراضية
   'نقل وتنقل':'Transport','أكل وشرب':'Food and drink','اندرايف وطاكسي':'Ride-hailing and taxi',
   'فليكسي وانترنت':'Phone credit and internet','تأمين سيارات':'Car insurance','ماتريكيل':'Registration plates',
@@ -561,6 +616,20 @@ const RULES = [
   [/^رمز خاطئ، بقيت لك (\d+) محاولات$/, 'Wrong code, $1 attempts left'],
   [/^(.+)، بعد اليوم تفتح التطبيق بأربعة أرقام بدل كلمة المرور\.$/, '$1, from now on you open the app with four digits instead of your password.'],
   [/^عن طريق (.+)$/, 'via $1'],
+  [/^(\d+) زبون$/, (_, n) => n === '1' ? '1 customer' : n + ' customers'],
+  [/^(\d+) سيارة$/, (_, n) => n === '1' ? '1 car' : n + ' cars'],
+  [/^(\d+) عملية$/, (_, n) => n === '1' ? '1 operation' : n + ' operations'],
+  [/^فائض للزبون (.+)$/, 'Refund due to the customer: $1'],
+  [/^نقص يزيدنا إياه (.+)$/, 'Shortfall the customer owes: $1'],
+  [/^إرجاع (.+)$/, 'Refund $1'],
+  [/^فائض (.+)$/, 'Surplus $1'],
+  [/^نقص (.+)$/, 'Short $1'],
+  [/^حفظ (.+) دج$/, 'Save $1 DA'],
+  [/^المبلغ أكبر من الباقي على الزبون \((.+)\)$/, 'More than the customer still owes ($1)'],
+  [/^أكبر من الفائض المستحق \((.+)\)$/, 'More than the surplus due ($1)'],
+  [/^(.+) دفع (.+) والتكلفة (.+)\. الفائض المستحق له (.+)\.$/, '$1 paid $2 and the cost was $3. Surplus due: $4.'],
+  [/^دفع الزبون (.+)\. بعد الحفظ يحسب النظام الفائض أو النقص\.$/, 'The customer paid $1. After saving, the surplus or shortfall is calculated.'],
+  [/^مجموع ما دفعه للديوانة$/, 'Total paid toward customs'],
   [/^بانتظار تأكيد (.+)$/, 'Awaiting confirmation by $1'],
   [/^في الطريق إلى (.+?) (.+?)، بانتظار تأكيد (.+)$/, 'On the way to $1: $2, awaiting confirmation by $3'],
   [/^يمسك (.+)$/, 'keeps $1'],
@@ -652,6 +721,8 @@ const I = {
   pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
   shield:'<path d="M12 3l7 3v6c0 4.2-2.9 7.4-7 9-4.1-1.6-7-4.8-7-9V6z"/><path d="M9.2 12.2 11 14l4-4.2"/>',
   lockClosed:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3M12 15v2"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  phone:'<path d="M6 3h3l2 5-2.5 1.5a12 12 0 0 0 5 5L15 12l5 2v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4 5.2 2 2 0 0 1 6 3z"/>',
   globe:'<circle cx="12" cy="12" r="9"/><path d="M3.5 9h17M3.5 15h17M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>'
 };
 const ic = (n, cls='') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
@@ -808,6 +879,7 @@ async function loadApp(){
   } catch(x){ if (S.token) { renderShell(false); toast(x.message, true); } }
 }
 async function startApp(){
+  startPulse();
   S._pw = null;
   renderShell(true);
   const ids = S.me.boxes.map(b => b.box_id);
@@ -819,6 +891,7 @@ async function refresh(silent){
   const btn = $('[data-act="refresh"]'); btn && btn.classList.add('spin');
   try {
     S.ov = await api('getOverview');
+    S.sig = S.ov.pulse_sig || S.sig;
     S.hist.loaded = false; S.trf.loaded = false;
     renderShell(false);
     if (!silent) toast('تم التحديث');
@@ -826,12 +899,32 @@ async function refresh(silent){
   finally { const b = $('[data-act="refresh"]'); b && b.classList.remove('spin'); }
 }
 
+/* المتابعة التلقائية: نبضة خفيفة كل 45 ثانية، وفوراً عند العودة إلى التطبيق.
+   لا نحمّل البيانات كاملة إلا إذا تغيّرت بصمة الخادم. */
+const PULSE_MS = 45000;
+let _pulseTimer = null;
+
+async function pulse(force){
+  if (!S.token || S.locked || S.busy || document.hidden) return;
+  try {
+    const p = await api('getPulse');
+    if (S.sig === null || S.sig === undefined){ S.sig = p.sig; return; }
+    if (p.sig !== S.sig){ S.sig = p.sig; await refresh(true); }
+    else if (force) { /* لا جديد */ }
+  } catch(e){ /* الشبكة منقطعة: نحاول في النبضة التالية */ }
+}
+function startPulse(){
+  clearInterval(_pulseTimer);
+  _pulseTimer = setInterval(pulse, PULSE_MS);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(() => pulse(true), 400); });
+
 /* ---------------- Shell & tabs ---------------- */
 function currentBox(){ return S.ov ? S.ov.boxes.find(b => b.box_id === S.boxId) : null; }
 function incomingCount(){ return S.ov ? S.ov.my_incoming_transfers.length : 0; }
 
 function renderShell(loading){
-  const tabs = [['home','home','الرئيسية'],['history','list','السجل'],['plus'],['transfers','swap','التحويلات'],['account','user','حسابي']];
+  const tabs = [['home','home','الرئيسية'],['customers','user','الزبائن'],['plus'],['transfers','swap','التحويلات'],['account','user','حسابي']];
   const n = incomingCount();
   $('#root').innerHTML = `
   ${S.demo ? '<div class="demo-bar">وضع التجربة: البيانات وهمية ولا تُحفظ</div>' : ''}
@@ -845,6 +938,7 @@ function renderShell(loading){
 }
 function renderView(){
   if (!S.ov) return skeleton();
+  if (S.view === 'customers') return viewCustomers();
   if (S.view === 'history') return viewHistory();
   if (S.view === 'transfers') return viewTransfers();
   if (S.view === 'account') return viewAccount();
@@ -856,6 +950,10 @@ function rerender(){ $('#view').innerHTML = renderView(); afterRender(); }
 function afterRender(){
   animateOdo();
   if (S.view === 'history' && !S.hist.loaded) loadHistory();
+  if (S.view === 'customers' && !S.cust.loaded) loadCustomers();
+  const cq = $('#custQ');
+  if (cq) cq.addEventListener('input', e => { S.cust.q = e.target.value; const v = e.target.value;
+    clearTimeout(S._cq); S._cq = setTimeout(() => { rerender(); const el = $('#custQ'); if (el){ el.focus(); el.setSelectionRange(v.length, v.length); } }, 250); });
   if (S.view === 'transfers' && !S.trf.loaded) loadTransfers();
   if (S.view.startsWith('admin') && !S.adm.loaded) loadAdmin();
 }
@@ -1076,6 +1174,7 @@ function viewAccount(){
       <div><b>${esc(u.full_name)}</b><span class="hint" style="margin:0">${ROLE[u.role]}</span></div></div>
     <div class="list menu" style="margin-top:14px">
       <button class="row" data-act="switch-box"><span class="row-ic">${ic('box')}</span><span class="row-main"><span class="row-title">الصندوق الافتراضي</span><span class="row-sub">${box?esc(box.name):'غير محدد'}</span></span>${ic('chev')}</button>
+      <button class="row" data-act="tab" data-v="history"><span class="row-ic">${ic('list')}</span><span class="row-main"><span class="row-title">سجل العمليات</span><span class="row-sub">كل حركات صندوقك</span></span>${ic('chev')}</button>
       <button class="row" data-act="password"><span class="row-ic">${ic('lock')}</span><span class="row-main"><span class="row-title">تغيير كلمة المرور</span></span>${ic('chev')}</button>
       ${!hasPin() ? '' : `<button class="row" data-act="pin-lock"><span class="row-ic">${ic('lockClosed')}</span><span class="row-main"><span class="row-title">قفل التطبيق الآن</span><span class="row-sub">يطلب الرمز فوراً</span></span>${ic('chev')}</button>`}
       ${!pinSupported() ? '' : hasPin() ? `<button class="row" data-act="pin-change"><span class="row-ic">${ic('shield')}</span><span class="row-main"><span class="row-title">رمز الدخول</span><span class="row-sub">تغيير الأرقام الأربعة</span></span>${ic('chev')}</button>`
@@ -1295,6 +1394,399 @@ function lockNow(){
   S.locked = true; S.token = null; sessClear_(); closeSheet(true); renderPinUnlock();
 }
 
+/* ================= الزبائن والسيارات ================= */
+const STAGE_LABEL_EN = { ORDERED:'Ordered', PAID_SUPPLIER:'Paid to supplier', SHIPPED:'Shipped',
+  AT_PORT:'At port', CLEARED:'Cleared', DELIVERED:'Delivered' };
+const stageLabel = o => (isEN() && STAGE_LABEL_EN[o.stage]) || o.stage_label || o.stage;
+
+function viewCustomers(){
+  const list = S.cust.items;
+  const q = S.cust.q.trim();
+  const shown = !q ? list : list.filter(c =>
+    c.full_name.indexOf(q) !== -1 || String(c.phone).indexOf(q) !== -1);
+  const totalDue = list.reduce((s,c) => s + (c.price_remaining || 0), 0);
+  const refunds = list.reduce((s,c) => s + Math.max(0, c.customs_balance || 0), 0);
+
+  return `<div class="page-head"><h1>الزبائن</h1>
+      <button class="icon-btn" data-act="refresh" aria-label="تحديث">${ic('refresh')}</button></div>
+  <div class="page" style="padding-top:8px">
+    <div class="search"><span>${ic('search')}</span>
+      <input class="input" id="custQ" placeholder="ابحث باسم الزبون أو رقمه" value="${esc(S.cust.q)}" autocomplete="off"></div>
+
+    ${!S.cust.loaded ? '<div class="sk" style="height:240px;border-radius:14px;margin-top:14px"></div>' : `
+      <div class="today" style="margin-top:14px">
+        <div class="card"><small>${ic('clock')}الباقي على الزبائن</small><span class="amt out">${fmt(totalDue)}</span></div>
+        <div class="card"><small>${ic('in')}فوائض للإرجاع</small><span class="amt move">${fmt(refunds)}</span></div>
+      </div>
+      <div class="sec">
+        <div class="sec-h"><h2>${shown.length} زبون</h2>
+          <button class="link" data-act="cust-new">+ زبون جديد</button></div>
+        ${shown.length ? `<div class="list">${shown.map(customerRow).join('')}</div>`
+          : `<div class="card empty">${ic('user')}<b>لا يوجد زبون بهذا الاسم</b>جرّب اسماً آخر أو أضف زبوناً جديداً.</div>`}
+      </div>`}
+  </div>`;
+}
+
+function customerRow(c){
+  const due = c.price_remaining || 0, cb = c.customs_balance || 0;
+  return `<button class="row" data-act="cust" data-id="${c.customer_id}">
+    <span class="row-ic ${due > 0 ? 'out' : 'in'}">${ic('user')}</span>
+    <span class="row-main"><span class="row-title">${esc(c.full_name)}</span>
+      <span class="row-sub"><span>${c.orders_count} سيارة</span>${c.wilaya?`<span>${esc(c.wilaya)}</span>`:''}
+      ${c.type==='DEALER'?'<span class="tag grey">تاجر</span>':''}</span></span>
+    <span class="row-end">
+      ${due > 0 ? `<span class="amt out">${fmt(due)}</span><span class="row-bal">باقٍ عليه</span>`
+        : `<span class="tag green">خالص</span>`}
+      ${cb ? `<span class="row-bal" style="color:var(--amber-ink)">${cb>0?'فائض':'نقص'} ${fmt(Math.abs(cb))}</span>` : ''}
+    </span></button>`;
+}
+
+async function loadCustomers(){
+  try {
+    S.cust.items = await api('listCustomers', {});
+    S.cust.loaded = true;
+    if (S.view === 'customers') rerender();
+  } catch(x){ S.cust.loaded = true; toast(x.message, true); }
+}
+
+/* ---------- بطاقة الزبون ---------- */
+async function openCustomer(id){
+  const c = S.cust.items.find(x => x.customer_id === id);
+  openSheet(`${sheetHead(c ? esc(c.full_name) : 'الزبون')}
+    <div class="sheet-body" id="custBody"><div class="sk" style="height:220px;border-radius:14px"></div></div>`, { full:true });
+  try {
+    const r = await api('listOrders', { customer_id:id, limit:100 });
+    if (!$('#custBody')) return;
+    renderCustomerSheet(c, r.items);
+  } catch(x){ closeSheet(); toast(x.message, true); }
+}
+
+function renderCustomerSheet(c, orders){
+  const due = orders.reduce((s,o) => s + Math.max(0, o.price_remaining), 0);
+  const cb = orders.reduce((s,o) => s + (o.customs_balance || 0), 0);
+  $('#custBody').innerHTML = `
+    <div class="cust-head">
+      <span class="avatar">${esc((c.full_name||'?').trim()[0])}</span>
+      <div><b>${esc(c.full_name)}</b>
+        <span class="row-sub">${c.phone?`<span class="num">${esc(c.phone)}</span>`:''}${c.wilaya?`<span>${esc(c.wilaya)}</span>`:''}
+        ${c.type==='DEALER'?'<span class="tag grey">تاجر</span>':''}</span></div>
+      ${c.phone ? `<a class="icon-btn" href="tel:${esc(c.phone)}" aria-label="اتصال">${ic('phone')}</a>` : ''}
+    </div>
+    <div class="today" style="margin-top:14px">
+      <div class="card"><small>الباقي عليه</small><span class="amt ${due?'out':'in'}">${fmt(due)}</span></div>
+      <div class="card"><small>${cb >= 0 ? 'فائض ديوانة له' : 'نقص ديوانة عليه'}</small><span class="amt move">${fmt(Math.abs(cb))}</span></div>
+    </div>
+    <div class="sec">
+      <div class="sec-h"><h2>سياراته</h2><button class="link" data-act="order-new" data-id="${c.customer_id}">+ سيارة</button></div>
+      ${orders.length ? `<div class="list">${orders.map(orderRow).join('')}</div>`
+        : `<div class="card empty">${ic('car')}<b>لا توجد سيارة بعد</b>أضف أول سيارة لهذا الزبون.</div>`}
+    </div>
+    <button class="btn btn-ghost btn-block" style="margin-top:14px" data-act="cust-edit" data-id="${c.customer_id}">تعديل بيانات الزبون</button>`;
+}
+
+function orderRow(o){
+  const sold = o.is_sold;
+  return `<button class="row" data-act="order" data-id="${o.order_id}">
+    <span class="row-ic ${sold?'in':'tr'}">${ic('car')}</span>
+    <span class="row-main"><span class="row-title">${esc(o.car_label || o.car_model)}</span>
+      <span class="row-sub"><span>${esc(stageLabel(o))}</span>${sold?'<span class="tag green">مباعة</span>':''}
+      ${o.customs_known && o.customs_balance ? `<span class="tag amber">${o.customs_balance>0?'فائض':'نقص'}</span>`:''}</span></span>
+    <span class="row-end">${o.price_remaining > 0
+      ? `<span class="amt out">${fmt(o.price_remaining)}</span><span class="row-bal">باقٍ</span>`
+      : `<span class="amt in">${fmt(o.agreed_price)}</span><span class="row-bal">خالص</span>`}</span></button>`;
+}
+
+/* ---------- بطاقة السيارة ---------- */
+async function openOrder(id){
+  openSheet(`${sheetHead('السيارة')}<div class="sheet-body" id="ordBody"><div class="sk" style="height:300px;border-radius:14px"></div></div>`, { full:true });
+  try {
+    const o = await api('getOrder', { order_id:id });
+    if (!$('#ordBody')) return;
+    S.order = o;
+    renderOrderSheet(o);
+  } catch(x){ closeSheet(); toast(x.message, true); }
+}
+
+function renderOrderSheet(o){
+  const paidPct = o.agreed_price ? Math.min(100, Math.round(o.price_paid / o.agreed_price * 100)) : 0;
+  const staff = S.me.user.role !== 'KEEPER';
+  const cb = o.customs_balance;
+  $('.sheet .sheet-head h3').textContent = o.car_label || o.car_model;
+  $('#ordBody').innerHTML = `
+    <div class="ord-top">
+      <div><b>${esc(o.customer_name)}</b>
+        <span class="row-sub"><span>${esc(o.car_label)}</span>${o.is_sold?'<span class="tag green">مباعة</span>':''}</span></div>
+      <button class="chip" data-act="stage" data-id="${o.order_id}">${esc(stageLabel(o))} ${ic('down')}</button>
+    </div>
+
+    <div class="card money-card">
+      <div class="mc-head"><span>ثمن السيارة</span><b class="num">${fmt(o.agreed_price)}</b></div>
+      <div class="prog"><span style="width:${paidPct}%"></span></div>
+      <div class="mc-foot"><span>مدفوع <b class="num">${fmt(o.price_paid)}</b></span>
+        <span class="${o.price_remaining>0?'due':'ok'}">${o.price_remaining>0?`الباقي <b class="num">${fmt(o.price_remaining)}</b>`:'خالص'}</span></div>
+      ${o.price_remaining > 0 ? `<button class="btn btn-primary btn-block btn-sm" style="margin-top:12px" data-act="pay" data-id="${o.order_id}" data-purpose="PRICE">تسجيل دفعة على الثمن</button>` : ''}
+    </div>
+
+    <div class="card money-card">
+      <div class="mc-head"><span>الديوانة</span>${o.customs_expected?`<b class="num">${fmt(o.customs_expected)}</b>`:'<span class="hint" style="margin:0">لم يُحدَّد</span>'}</div>
+      <div class="mc-foot"><span>دفع الزبون <b class="num">${fmt(o.customs_paid)}</b></span>
+        <span>${o.customs_known ? `التكلفة <b class="num">${fmt(o.customs_actual)}</b>` : 'التكلفة غير معروفة بعد'}</span></div>
+      ${o.customs_known ? `<div class="mc-result ${cb>0?'refund':cb<0?'owe':'done'}">
+          ${cb>0 ? `فائض للزبون ${money(cb)}` : cb<0 ? `نقص يزيدنا إياه ${money(-cb)}` : 'الحساب مغلق'}</div>` : ''}
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-soft btn-sm" style="flex:1" data-act="pay" data-id="${o.order_id}" data-purpose="CUSTOMS">استلام ديوانة</button>
+        ${o.customs_known && cb > 0 ? `<button class="btn btn-ghost btn-sm" style="flex:1" data-act="refund" data-id="${o.order_id}">إرجاع الفائض</button>` : ''}
+      </div>
+      ${staff ? `<button class="btn-text" style="width:100%;margin-top:6px" data-act="customs" data-id="${o.order_id}">${o.customs_known?'تعديل تكلفة الديوانة':'إدخال تكلفة الديوانة من الفاتورة'}</button>` : ''}
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h2>دفعات هذه السيارة</h2></div>
+      ${o.entries.length ? `<div class="list">${o.entries.map(orderEntryRow).join('')}</div>`
+        : `<div class="card empty">${ic('list')}<b>لا توجد دفعات بعد</b></div>`}
+    </div>
+    ${o.notes ? `<div class="t-note" style="margin-top:12px">${esc(o.notes)}</div>` : ''}
+    <button class="btn btn-ghost btn-block" style="margin-top:14px" data-act="order-edit" data-id="${o.order_id}">تعديل بيانات السيارة</button>`;
+}
+
+function orderEntryRow(e){
+  const inn = e.direction === 'IN';
+  return `<div class="row">
+    <span class="row-ic ${e.status==='VOIDED'?'void':inn?'in':'out'}">${ic(inn?'in':'out')}</span>
+    <span class="row-main"><span class="row-title">${esc(e.purpose_label || e.entry_type_label)}</span>
+      <span class="row-sub"><span>${esc(e.box_name)}</span><span>${dayLabel(e.entry_date)}</span>
+      ${e.status==='VOIDED'?'<span class="tag grey">ملغاة</span>':''}</span></span>
+    <span class="row-end"><span class="amt ${e.status==='VOIDED'?'voided':inn?'in':'out'}">${inn?'+':'−'} ${fmt(e.amount)}</span></span>
+  </div>`;
+}
+
+/* ---------- نماذج ---------- */
+function boxPicker(id){
+  const boxes = (S.me.boxes || []);
+  if (boxes.length <= 1) return `<input type="hidden" id="${id}" value="${boxes[0] ? boxes[0].box_id : ''}">
+    <div class="hint" style="margin:0 0 14px;display:flex;align-items:center;gap:6px">${ic('box')} إلى ${esc(boxes[0]?boxes[0].name:'')}</div>`;
+  return `<div class="field"><span class="field-l">أي صندوق استلم المبلغ؟</span>
+    <div class="chips" id="${id}-chips">${boxes.map((b,i) =>
+      `<button type="button" class="chip" data-box="${b.box_id}" aria-pressed="${b.box_id===S.boxId || (i===0 && !boxes.some(x=>x.box_id===S.boxId))}">${esc(b.name)}</button>`).join('')}</div>
+    <input type="hidden" id="${id}" value="${S.boxId || (boxes[0]||{}).box_id || ''}"></div>`;
+}
+
+function openPayment(orderId, purpose){
+  const o = S.order && S.order.order_id === orderId ? S.order : null;
+  const isPrice = purpose === 'PRICE';
+  const title = isPrice ? 'دفعة على الثمن' : 'استلام مبلغ ديوانة';
+  const kp = { value:'', currency:'DZD' };
+  openSheet(`${sheetHead(title)}<div class="sheet-body" id="payBody">
+      ${o ? `<div class="hint" style="margin:0 0 14px">${esc(o.customer_name)} — ${esc(o.car_label)}
+        ${isPrice ? `<b style="color:var(--ink)"> الباقي ${fmt(o.price_remaining)} دج</b>` : ''}</div>` : ''}
+      ${boxPicker('payBox')}
+      <span class="field-l">المبلغ</span>${amountBlock()}
+      <div class="hint warn" id="payWarn"></div>
+      <div class="field" style="margin-top:16px"><label class="field-l" for="payDesc">ملاحظة <small>(اختياري)</small></label>
+        <input class="input" id="payDesc" placeholder="${isPrice?'مثال: عربون، تكملة':'مثال: مبلغ الجمركة'}"></div>
+      <div class="field"><div class="date-row"><span>تاريخ العملية</span><input type="date" id="payDate" value="${todayStr()}" max="${todayStr()}"></div></div>
+    </div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" id="payBtn" disabled>أكمل البيانات</button></div>`,
+    { full:true, onMount: sh => {
+      sh.addEventListener('click', e => {
+        const b = e.target.closest('[data-box]');
+        if (b){ $('#payBox').value = b.dataset.box; sh.querySelectorAll('[data-box]').forEach(x => x.setAttribute('aria-pressed', x===b)); }
+      });
+      bindKeypad(sh, kp, () => {
+        const v = Number(kp.value) || 0;
+        const btn = $('#payBtn');
+        btn.disabled = !(v > 0);
+        btn.textContent = v > 0 ? `حفظ ${fmt(v)} دج` : 'أكمل البيانات';
+        $('#payWarn').textContent = (isPrice && o && v > o.price_remaining && o.price_remaining >= 0)
+          ? `المبلغ أكبر من الباقي على الزبون (${fmt(o.price_remaining)} دج)` : '';
+      });
+      $('#payBtn').addEventListener('click', () => submitPayment(orderId, purpose, kp));
+    } });
+}
+
+async function submitPayment(orderId, purpose, kp){
+  const btn = $('#payBtn'); setBtnBusy(btn, true);
+  const key = 'pay:' + orderId + ':' + purpose + ':' + kp.value;
+  try {
+    const r = await api('recordCustomerPayment', {
+      box_id: $('#payBox').value, order_id: orderId, amount: Number(kp.value), purpose: purpose,
+      description: $('#payDesc').value.trim(), entry_date: $('#payDate').value, client_ref: refFor(key)
+    });
+    clearRef(key);
+    const o = r.order;
+    openSheet(`<div class="sheet-body"><div class="success">
+        <div class="check">${`<svg class="i" viewBox="0 0 24 24">${I.check}</svg>`}</div>
+        <h3>${r.just_sold ? 'اكتمل الثمن، السيارة مباعة' : 'تم حفظ الدفعة'}</h3>
+        <p>${esc(o.customer_name)} — ${esc(o.car_label)}</p>
+        <div class="big">${money(Number(kp.value))}</div>
+        <span class="after">${purpose === 'PRICE'
+          ? (o.price_remaining > 0 ? `الباقي عليه <b class="num">${fmt(o.price_remaining)}</b>` : 'خالص الثمن')
+          : `مجموع ما دفعه للديوانة <b class="num">${fmt(o.customs_paid)}</b>`}</span>
+        ${(r.warnings||[])[0] ? `<p class="hint warn" style="margin-top:10px">${esc(r.warnings[0])}</p>` : ''}
+      </div></div>
+      <div class="sheet-foot" style="display:flex;gap:8px">
+        <button class="btn btn-ghost" style="flex:1" data-act="order" data-id="${o.order_id}">بطاقة السيارة</button>
+        <button class="btn btn-primary" style="flex:1" data-act="close-sheet">تم</button></div>`);
+    refresh(true); loadCustomers();
+  } catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
+}
+
+function openRefund(orderId){
+  const o = S.order;
+  const kp = { value:'', currency:'DZD' };
+  openSheet(`${sheetHead('إرجاع فائض الديوانة')}<div class="sheet-body">
+      <p class="lead">${esc(o.customer_name)} دفع ${money(o.customs_paid)} والتكلفة ${money(o.customs_actual)}.
+        الفائض المستحق له ${money(o.customs_balance)}.</p>
+      ${boxPicker('refBox')}
+      <span class="field-l">المبلغ المُرجَع</span>${amountBlock()}
+      <div class="hint warn" id="refWarn"></div>
+    </div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" id="refBtn" disabled>أكمل البيانات</button></div>`,
+    { full:true, onMount: sh => {
+      sh.addEventListener('click', e => {
+        const b = e.target.closest('[data-box]');
+        if (b){ $('#refBox').value = b.dataset.box; sh.querySelectorAll('[data-box]').forEach(x => x.setAttribute('aria-pressed', x===b)); }
+      });
+      bindKeypad(sh, kp, () => {
+        const v = Number(kp.value) || 0;
+        const btn = $('#refBtn');
+        btn.disabled = !(v > 0);
+        btn.textContent = v > 0 ? `إرجاع ${fmt(v)} دج` : 'أكمل البيانات';
+        $('#refWarn').textContent = v > o.customs_balance ? `أكبر من الفائض المستحق (${fmt(o.customs_balance)} دج)` : '';
+      });
+      // اقتراح المبلغ كاملاً بضغطة
+      kp.value = String(o.customs_balance); kp.paint();
+      $('#refBtn').addEventListener('click', async () => {
+        const btn = $('#refBtn'); setBtnBusy(btn, true);
+        const key = 'refund:' + orderId + ':' + kp.value;
+        try {
+          const r = await api('recordCustomerRefund', { box_id: $('#refBox').value, order_id: orderId,
+            amount: Number(kp.value), client_ref: refFor(key) });
+          clearRef(key); closeSheet(); toast('تم إرجاع الفائض');
+          S.order = r.order; openOrder(orderId); refresh(true); loadCustomers();
+        } catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
+      });
+    } });
+}
+
+function openCustoms(orderId){
+  const o = S.order;
+  openSheet(`${sheetHead('تكلفة الديوانة')}<div class="sheet-body">
+    <p class="lead">اكتب التكلفة الحقيقية من فاتورة الترانزيت لهذه السيارة وحدها.</p>
+    <div class="field"><label class="field-l" for="cuVal">التكلفة بالدينار</label>
+      <input class="input num" id="cuVal" inputmode="numeric" value="${o.customs_actual || ''}" placeholder="مثال: 980000"></div>
+    <div class="hint">دفع الزبون ${money(o.customs_paid)}. بعد الحفظ يحسب النظام الفائض أو النقص.</div></div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="customs-go" data-id="${orderId}">حفظ التكلفة</button></div>`);
+}
+
+function openStagePicker(orderId){
+  const o = S.order;
+  const stages = S.stages || { ORDERED:'طلبية', PAID_SUPPLIER:'مدفوعة للمورد', SHIPPED:'مشحونة',
+    AT_PORT:'في الميناء', CLEARED:'مجمركة', DELIVERED:'مسلَّمة' };
+  openSheet(`${sheetHead('مرحلة السيارة')}<div class="sheet-body">
+    ${Object.keys(stages).map(k => `<button class="pick" data-act="stage-set" data-id="${orderId}" data-stage="${k}" aria-pressed="${o.stage===k}">
+      <span class="radio"></span><span class="row-main"><b>${esc(stages[k])}</b></span></button>`).join('')}
+  </div>`);
+}
+
+function openNewCustomer(){
+  openSheet(`${sheetHead('زبون جديد')}<div class="sheet-body">
+    <div class="field"><label class="field-l" for="cuName">الاسم الكامل</label>
+      <input class="input" id="cuName" placeholder="مثال: زغوان الياس" autocomplete="off"></div>
+    <div class="field"><label class="field-l" for="cuPhone">رقم الهاتف <small>(اختياري)</small></label>
+      <input class="input" id="cuPhone" type="tel" dir="ltr" placeholder="0661234567"></div>
+    <div class="field"><label class="field-l" for="cuWilaya">الولاية <small>(اختياري)</small></label>
+      <input class="input" id="cuWilaya" placeholder="ورقلة"></div>
+    <div class="field"><span class="field-l">النوع</span>
+      <div class="chips"><button type="button" class="chip" data-ctype="INDIVIDUAL" aria-pressed="true">زبون</button>
+        <button type="button" class="chip" data-ctype="DEALER" aria-pressed="false">تاجر يأخذ عدة سيارات</button></div></div>
+  </div>
+  <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="cust-save">إضافة الزبون</button></div>`,
+  { onMount: sh => {
+    sh.dataset.ctype = 'INDIVIDUAL';
+    sh.addEventListener('click', e => {
+      const b = e.target.closest('[data-ctype]');
+      if (b){ sh.dataset.ctype = b.dataset.ctype; sh.querySelectorAll('[data-ctype]').forEach(x => x.setAttribute('aria-pressed', x===b)); }
+    });
+  } });
+}
+
+function openNewOrder(customerId){
+  const c = S.cust.items.find(x => x.customer_id === customerId) || {};
+  openSheet(`${sheetHead('سيارة جديدة')}<div class="sheet-body">
+    <div class="hint" style="margin:0 0 14px">${ic('user')} ${esc(c.full_name || '')}</div>
+    <div class="field"><label class="field-l" for="odModel">الموديل</label>
+      <input class="input" id="odModel" placeholder="مثال: كولوراي لاتوت" autocomplete="off"></div>
+    <div class="field"><label class="field-l" for="odColor">اللون <small>(اختياري)</small></label>
+      <input class="input" id="odColor" placeholder="قري"></div>
+    <div class="field"><label class="field-l" for="odPrice">الثمن المتفق عليه</label>
+      <input class="input num" id="odPrice" inputmode="numeric" placeholder="3570000"><div class="hint" id="odPriceHint"></div></div>
+    <div class="field"><label class="field-l" for="odCustoms">الديوانة المتوقعة <small>(اختياري)</small></label>
+      <input class="input num" id="odCustoms" inputmode="numeric" placeholder="1000000"></div>
+  </div>
+  <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="order-save" data-id="${customerId}">إضافة السيارة</button></div>`,
+  { full:true, onMount: sh => {
+    $('#odPrice', sh).addEventListener('input', e => {
+      $('#odPriceHint').textContent = millions(e.target.value);
+    });
+  } });
+}
+
+function openEditCustomer(id){
+  const c = S.cust.items.find(x => x.customer_id === id) || {};
+  openSheet(`${sheetHead('تعديل الزبون')}<div class="sheet-body">
+    <div class="field"><label class="field-l" for="ecName">الاسم الكامل</label><input class="input" id="ecName" value="${esc(c.full_name||'')}"></div>
+    <div class="field"><label class="field-l" for="ecPhone">رقم الهاتف</label><input class="input" id="ecPhone" type="tel" dir="ltr" value="${esc(c.phone||'')}"></div>
+    <div class="field"><label class="field-l" for="ecWilaya">الولاية</label><input class="input" id="ecWilaya" value="${esc(c.wilaya||'')}"></div>
+  </div>
+  <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="cust-update" data-id="${id}">حفظ التعديلات</button></div>`);
+}
+
+function openEditOrder(id){
+  const o = S.order;
+  const staff = S.me.user.role !== 'KEEPER';
+  openSheet(`${sheetHead('تعديل السيارة')}<div class="sheet-body">
+    <div class="field"><label class="field-l" for="eoModel">الموديل</label><input class="input" id="eoModel" value="${esc(o.car_model||'')}"></div>
+    <div class="field"><label class="field-l" for="eoColor">اللون</label><input class="input" id="eoColor" value="${esc(o.color||'')}"></div>
+    ${staff ? `<div class="field"><label class="field-l" for="eoPrice">الثمن المتفق عليه</label>
+      <input class="input num" id="eoPrice" inputmode="numeric" value="${o.agreed_price}">
+      <div class="hint">تغيير الثمن يغيّر الباقي على الزبون.</div></div>` : ''}
+    <div class="field"><label class="field-l" for="eoNotes">ملاحظة</label><input class="input" id="eoNotes" value="${esc(o.notes||'')}"></div>
+  </div>
+  <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="order-update" data-id="${id}">حفظ التعديلات</button></div>`);
+}
+
+/* ---------- اختيار الزبون ثم السيارة (من زر عملية جديدة) ---------- */
+async function openPayFlow(){
+  if (!S.cust.loaded) await loadCustomers();
+  openSheet(`${sheetHead('دفعة زبون على سيارة')}<div class="sheet-body">
+    <div class="search"><span>${ic('search')}</span><input class="input" id="pfQ" placeholder="ابحث عن الزبون" autocomplete="off"></div>
+    <div id="pfList" style="margin-top:12px"></div></div>`, { full:true, onMount: sh => {
+      const paint = () => {
+        const q = $('#pfQ').value.trim();
+        const list = S.cust.items.filter(c => !q || c.full_name.indexOf(q) !== -1 || String(c.phone).indexOf(q) !== -1).slice(0, 40);
+        $('#pfList').innerHTML = list.length
+          ? `<div class="list">${list.map(customerRow).map(h => h.replace('data-act="cust"', 'data-act="pf-cust"')).join('')}</div>`
+          : `<div class="card empty">${ic('user')}<b>لا نتيجة</b></div>`;
+      };
+      $('#pfQ', sh).addEventListener('input', paint);
+      paint();
+    } });
+}
+
+async function openPayFlowCars(customerId){
+  const c = S.cust.items.find(x => x.customer_id === customerId) || {};
+  openSheet(`${sheetHead('اختر السيارة')}<div class="sheet-body" id="pfCars"><div class="sk" style="height:200px;border-radius:14px"></div></div>`, { full:true });
+  try {
+    const r = await api('listOrders', { customer_id: customerId, limit: 50 });
+    if (!$('#pfCars')) return;
+    $('#pfCars').innerHTML = `<div class="hint" style="margin:0 0 12px">${ic('user')} ${esc(c.full_name)}</div>` +
+      (r.items.length ? `<div class="list">${r.items.map(orderRow).join('')}</div>`
+        : `<div class="card empty">${ic('car')}<b>لا توجد سيارة لهذا الزبون</b>
+           <button class="btn btn-soft btn-sm" style="margin-top:10px" data-act="order-new" data-id="${customerId}">إضافة سيارة</button></div>`);
+  } catch(x){ closeSheet(); toast(x.message, true); }
+}
+
 /* ---------------- Sheets ---------------- */
 function openSheet(html, { full=false, onMount, sticky=false }={}){
   closeSheet(true);
@@ -1465,7 +1957,7 @@ function openChooser(){
     <button class="opt" data-act="op" data-type="income"><span class="row-ic in">${ic('in')}</span><span><b>استلام مبلغ</b><small>دخل إلى صندوقك من أي جهة</small></span></button>
     <button class="opt" data-act="op" data-type="expense"><span class="row-ic out">${ic('out')}</span><span><b>مصروف</b><small>نقل، أكل، فليكسي، شهريات…</small></span></button>
     <button class="opt" data-act="op" data-type="transfer"><span class="row-ic tr">${ic('swap')}</span><span><b>تحويل لصندوق آخر</b><small>يصل بعد تأكيد المستلم</small></span></button>
-    <div class="opt soon" aria-disabled="true"><span class="row-ic tr">${ic('car')}</span><span><b>دفعة زبون على سيارة</b><small>قريباً في المرحلة الثانية</small></span></div>
+    <button class="opt" data-act="pay-flow"><span class="row-ic tr">${ic('car')}</span><span><b>دفعة زبون على سيارة</b><small>ثمن السيارة أو الديوانة</small></span></button>
   </div>`);
 }
 
@@ -1665,6 +2157,46 @@ document.addEventListener('click', async e => {
     case 'pin-new': renderPinSetup(); break;
     case 'pin-forgot': openPinForgot(); break;
     case 'pin-forgot-go': pinForget_(); signOutLocal(); break;
+    case 'cust': openCustomer(id); break;
+    case 'cust-new': openNewCustomer(); break;
+    case 'cust-edit': openEditCustomer(id); break;
+    case 'cust-save': { setBtnBusy(el, true);
+      try { const sh = el.closest('.sheet');
+        const c = await api('createCustomer', { full_name:$('#cuName').value.trim(), phone:$('#cuPhone').value.trim(),
+          wilaya:$('#cuWilaya').value.trim(), type: sh.dataset.ctype });
+        closeSheet(); toast('تمت إضافة الزبون'); await loadCustomers(); openNewOrder(c.customer_id);
+      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'cust-update': { setBtnBusy(el, true);
+      try { await api('updateCustomer', { customer_id:id, full_name:$('#ecName').value.trim(),
+          phone:$('#ecPhone').value.trim(), wilaya:$('#ecWilaya').value.trim() });
+        closeSheet(); toast('تم الحفظ'); await loadCustomers(); rerender();
+      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'order': openOrder(id); break;
+    case 'order-new': openNewOrder(id); break;
+    case 'order-edit': openEditOrder(id); break;
+    case 'order-save': { setBtnBusy(el, true);
+      try { const o = await api('createOrder', { customer_id:id, car_model:$('#odModel').value.trim(),
+          color:$('#odColor').value.trim(), agreed_price:Number($('#odPrice').value || 0),
+          customs_expected: $('#odCustoms').value ? Number($('#odCustoms').value) : '' });
+        closeSheet(); toast('تمت إضافة السيارة'); await loadCustomers(); openOrder(o.order_id);
+      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'order-update': { setBtnBusy(el, true);
+      try { const payload = { order_id:id, car_model:$('#eoModel').value.trim(), color:$('#eoColor').value.trim(), notes:$('#eoNotes').value.trim() };
+        if ($('#eoPrice')) payload.agreed_price = Number($('#eoPrice').value || 0);
+        await api('updateOrder', payload); closeSheet(); toast('تم الحفظ'); openOrder(id); loadCustomers();
+      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'pay': openPayment(id, el.dataset.purpose); break;
+    case 'refund': openRefund(id); break;
+    case 'customs': openCustoms(id); break;
+    case 'customs-go': { setBtnBusy(el, true);
+      try { const r = await api('setCustomsActual', { order_id:id, customs_actual:Number($('#cuVal').value || 0) });
+        S.order = r; closeSheet(); toast('تم حفظ التكلفة'); openOrder(id); loadCustomers();
+      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'stage': openStagePicker(id); break;
+    case 'stage-set': { try { await api('setOrderStage', { order_id:id, stage:el.dataset.stage });
+        closeSheet(); openOrder(id); } catch(x){ toast(x.message, true); } break; }
+    case 'pay-flow': openPayFlow(); break;
+    case 'pf-cust': openPayFlowCars(id); break;
     case 'lang': openLang(); break;
     case 'lang-set': if (el.dataset.l !== S.lang) setLang(el.dataset.l); else closeSheet(); break;
     case 'password': openPassword(); break;
@@ -2193,7 +2725,8 @@ const Mock = (() => {
     { box_id:'B5', name:'تحويلات الواد', type:'CASH', location:'الوادي', k:[], status:'ACTIVE' }
   ];
   const cats = ['نقل وتنقل','أكل وشرب','اندرايف وطاكسي','فليكسي وانترنت','تأمين سيارات','ماتريكيل','ديباناج وشاحنات نقل','شهريات','سلف','مصاريف المكتب','ضرائب ورسوم','أخرى'].map((n,i)=>({category_id:'C'+(i+1), name:n}));
-  const TL = { OPENING:'رصيد افتتاحي', INCOME:'دخل', EXPENSE:'مصروف', TRANSFER_OUT:'تحويل صادر', TRANSFER_IN:'تحويل وارد', TRANSFER_RETURN:'إرجاع تحويل', REVERSAL:'إلغاء قيد' };
+  const TL = { OPENING:'رصيد افتتاحي', INCOME:'دخل', EXPENSE:'مصروف', TRANSFER_OUT:'تحويل صادر', TRANSFER_IN:'تحويل وارد', TRANSFER_RETURN:'إرجاع تحويل', REVERSAL:'إلغاء قيد',
+    CUSTOMER_PAYMENT:'دفعة زبون', CUSTOMER_REFUND:'إرجاع لزبون' };
   let seq = 100;
   const L = [];
   const add = o => { const e = Object.assign({ entry_id:'ENT-'+String(++seq).padStart(6,'0'), currency:'DZD', category_id:'', counterparty:'', description:'', verified:true, status:'ACTIVE', created_by:cur, transfer_id:'' }, o); L.push(e); return e; };
@@ -2216,6 +2749,50 @@ const Mock = (() => {
     { transfer_id:'TRF-000003', from_box_id:'B1', to_box_id:'B4', amount:300000, currency:'DZD', received_amount:null, status:'PENDING', via:'صلاح', description:'', created_by:'U1', created_at:hoursAgo(1.2), response_note:'' },
     { transfer_id:'TRF-000004', from_box_id:'B3', to_box_id:'B2', amount:800000, currency:'DZD', received_amount:null, status:'PENDING', via:'', description:'', created_by:'U3', created_at:hoursAgo(2), response_note:'' }
   ];
+  const CUS = [
+    { customer_id:'CUS1', full_name:'زغوان الياس', phone:'0661112233', wilaya:'ورقلة', type:'INDIVIDUAL', status:'ACTIVE' },
+    { customer_id:'CUS2', full_name:'بن عومر محمد', phone:'0770445566', wilaya:'الوادي', type:'INDIVIDUAL', status:'ACTIVE' },
+    { customer_id:'CUS3', full_name:'زكايرة بوبكر', phone:'', wilaya:'باتنة', type:'DEALER', status:'ACTIVE' }
+  ];
+  const ORD = [
+    { order_id:'ORD1', customer_id:'CUS1', car_model:'كولوراي لاتوت', color:'قري', trim:'', agreed_price:3570000,
+      customs_expected:1000000, customs_actual:980000, stage:'CLEARED', status:'ACTIVE', sold_at:'', notes:'', created_at:'' },
+    { order_id:'ORD2', customer_id:'CUS2', car_model:'MG5', color:'أبيض', trim:'', agreed_price:2900000,
+      customs_expected:900000, customs_actual:'', stage:'AT_PORT', status:'ACTIVE', sold_at:'', notes:'', created_at:'' },
+    { order_id:'ORD3', customer_id:'CUS3', car_model:'كولوراي باتل', color:'أسود', trim:'', agreed_price:3800000,
+      customs_expected:1000000, customs_actual:'', stage:'ORDERED', status:'ACTIVE', sold_at:'', notes:'', created_at:'' }
+  ];
+  const STAGE_AR = { ORDERED:'طلبية', PAID_SUPPLIER:'مدفوعة للمورد', SHIPPED:'مشحونة', AT_PORT:'في الميناء', CLEARED:'مجمركة', DELIVERED:'مسلَّمة' };
+  const ordTotals = o => {
+    let price = 0, customs = 0;
+    L.filter(e => e.order_id === o.order_id && e.status !== 'VOIDED_MARK').forEach(e => {
+      const sign = e.direction === 'IN' ? 1 : -1;
+      if (e.purpose === 'PRICE') price += sign * e.amount;
+      if (e.purpose === 'CUSTOMS') customs += sign * e.amount;
+    });
+    const actual = o.customs_actual === '' ? null : Number(o.customs_actual);
+    const remaining = Number(o.agreed_price) - price;
+    return { agreed_price:Number(o.agreed_price), price_paid:price, price_remaining:remaining,
+      is_sold: remaining <= 0, customs_paid:customs, customs_actual:actual,
+      customs_balance: actual === null ? 0 : customs - actual, customs_known: actual !== null };
+  };
+  const ordView = o => Object.assign({
+    order_id:o.order_id, customer_id:o.customer_id,
+    customer_name:(CUS.find(c => c.customer_id === o.customer_id)||{}).full_name || '',
+    car_model:o.car_model, color:o.color, car_label:[o.car_model, o.color].filter(Boolean).join(' '),
+    customs_expected:o.customs_expected || null, stage:o.stage, stage_label:STAGE_AR[o.stage], sold_at:o.sold_at,
+    status:o.status, notes:o.notes
+  }, ordTotals(o));
+
+  add({ box_id:'B1', entry_date:d(2), created_at:ts(2,'11:25'), direction:'IN', amount:170000, entry_type:'CUSTOMER_PAYMENT',
+    purpose:'PRICE', order_id:'ORD1', counterparty:'زغوان الياس', description:'عربون' });
+  add({ box_id:'B1', entry_date:d(1), created_at:ts(1,'09:40'), direction:'IN', amount:3400000, entry_type:'CUSTOMER_PAYMENT',
+    purpose:'PRICE', order_id:'ORD1', counterparty:'زغوان الياس', description:'تكملة الثمن' });
+  add({ box_id:'B1', entry_date:d(1), created_at:ts(1,'09:45'), direction:'IN', amount:1000000, entry_type:'CUSTOMER_PAYMENT',
+    purpose:'CUSTOMS', order_id:'ORD1', counterparty:'زغوان الياس', description:'مبلغ الديوانة' });
+  add({ box_id:'B2', entry_date:d(0), created_at:ts(0,'10:20'), direction:'IN', amount:900000, entry_type:'CUSTOMER_PAYMENT',
+    purpose:'PRICE', order_id:'ORD2', counterparty:'بن عومر محمد', description:'عربون MG5', created_by:'U2' });
+
   const box = id => boxes.find(b => b.box_id === id);
   const keeps = b => b.k.includes(cur);
   const vis = b => b.status === 'ACTIVE' && (staff() || keeps(b));
@@ -2253,6 +2830,7 @@ const Mock = (() => {
         watching_transfers: T.filter(t=>t.status==='PENDING'&&!keeps(box(t.to_box_id))&&vis(box(t.to_box_id)))
           .map(t=>Object.assign(desc(t), { waiting_on: box(t.to_box_id).k.map(uname).join('، ') })),
         pending_transfers: T.filter(t=>t.status==='PENDING'&&(staff()||keeps(box(t.to_box_id))||keeps(box(t.from_box_id)))).map(desc),
+        pulse_sig: L.length + '|' + T.filter(t=>t.status==='PENDING').map(t=>t.transfer_id).sort().join(','),
         recent_entries: sorted().filter(e=>v.some(b=>b.box_id===e.box_id)).reverse().slice(0,15).map(enrich),
         today, alerts:[]
       };
@@ -2278,6 +2856,45 @@ const Mock = (() => {
     cancelTransfer: p => back(p, 'CANCELLED'),
     voidEntry: p => { const e=L.find(x=>x.entry_id===p.entry_id); add({ box_id:e.box_id, entry_date:localDate(new Date()), created_at:now(), direction:e.direction==='IN'?'OUT':'IN', amount:e.amount, currency:e.currency, entry_type:'REVERSAL', counterparty:e.counterparty, description:'إلغاء: '+p.reason }); e.status='VOIDED'; return {}; },
     changePassword: () => { me().must_change_password = false; return {}; },
+    // ---- الزبائن والسيارات ----
+    listCustomers: () => CUS.map(c => {
+      const mine = ORD.filter(o => o.customer_id === c.customer_id);
+      const t = mine.map(ordTotals);
+      return Object.assign({}, c, { orders_count: mine.length,
+        price_remaining: t.reduce((s,x) => s + Math.max(0, x.price_remaining), 0),
+        customs_balance: t.reduce((s,x) => s + x.customs_balance, 0) });
+    }),
+    createCustomer: p => { const c = { customer_id:'CUS'+(CUS.length+1), full_name:p.full_name, phone:p.phone||'',
+        wilaya:p.wilaya||'', type:p.type||'INDIVIDUAL', status:'ACTIVE' }; CUS.push(c); return c; },
+    updateCustomer: p => { const c = CUS.find(x => x.customer_id === p.customer_id); Object.assign(c, p); return c; },
+    listOrders: p => { let rows = ORD.filter(o => !p.customer_id || o.customer_id === p.customer_id);
+      return { total: rows.length, items: rows.map(ordView) }; },
+    getOrder: p => { const o = ORD.find(x => x.order_id === p.order_id);
+      return Object.assign(ordView(o), { entries: L.filter(e => e.order_id === o.order_id).reverse()
+        .map(e => Object.assign(enrich(e), { purpose_label: e.purpose === 'PRICE' ? 'ثمن السيارة' : 'الديوانة' })) }); },
+    createOrder: p => { const o = { order_id:'ORD'+(ORD.length+1), customer_id:p.customer_id, car_model:p.car_model,
+        color:p.color||'', trim:'', agreed_price:Number(p.agreed_price), customs_expected:p.customs_expected||'',
+        customs_actual:'', stage:'ORDERED', status:'ACTIVE', sold_at:'', notes:'', created_at:now() };
+      ORD.push(o); return ordView(o); },
+    updateOrder: p => { const o = ORD.find(x => x.order_id === p.order_id); Object.assign(o, p); return ordView(o); },
+    setOrderStage: p => { const o = ORD.find(x => x.order_id === p.order_id); o.stage = p.stage; return ordView(o); },
+    setCustomsActual: p => { const o = ORD.find(x => x.order_id === p.order_id); o.customs_actual = Number(p.customs_actual); return ordView(o); },
+    recordCustomerPayment: p => { const o = ORD.find(x => x.order_id === p.order_id);
+      const before = ordTotals(o);
+      add({ box_id:p.box_id, entry_date:p.entry_date || localDate(new Date()), created_at:now(), direction:'IN',
+        amount:Number(p.amount), entry_type:'CUSTOMER_PAYMENT', purpose:p.purpose, order_id:o.order_id,
+        counterparty:(CUS.find(c => c.customer_id === o.customer_id)||{}).full_name, description:p.description||'' });
+      const after = ordTotals(o);
+      if (!before.is_sold && after.is_sold) o.sold_at = now();
+      return { order: ordView(o), balance: bal(p.box_id), just_sold: !before.is_sold && after.is_sold, warnings: [] }; },
+    recordCustomerRefund: p => { const o = ORD.find(x => x.order_id === p.order_id);
+      add({ box_id:p.box_id, entry_date:localDate(new Date()), created_at:now(), direction:'OUT', amount:Number(p.amount),
+        entry_type:'CUSTOMER_REFUND', purpose:'CUSTOMS', order_id:o.order_id,
+        counterparty:(CUS.find(c => c.customer_id === o.customer_id)||{}).full_name, description:'إرجاع فائض ديوانة' });
+      return { order: ordView(o), balance: bal(p.box_id), warnings: [] }; },
+    getSalesSummary: () => ({ orders_count: ORD.length }),
+
+    getPulse: () => ({ sig: L.length + '|' + T.filter(t=>t.status==='PENDING').map(t=>t.transfer_id).sort().join(','), at: now() }),
     ping: () => ({ pong:true }),
 
     adminListUsers: () => { requireAdmin(); return {
