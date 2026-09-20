@@ -1,4 +1,4 @@
-<!doctype html>
+<!-- <!doctype html> -->
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
@@ -1055,6 +1055,11 @@ function viewHome(){
   </div>`;
 }
 
+function boxName(id){
+  const b = (S.ov.boxes || []).find(x => x.box_id === id) || (S.me.boxes || []).find(x => x.box_id === id);
+  return b ? b.name : '';
+}
+
 function daysWord(n){
   if (isEN()) return n === 0 ? 'Ships today' : n === 1 ? 'Tomorrow' : `in ${n} days`;
   return n === 0 ? 'يُشحن اليوم' : n === 1 ? 'غداً' : n === 2 ? 'بعد يومين' : `بعد ${n} أيام`;
@@ -1070,7 +1075,8 @@ function shipAlertsHtml(){
           ${a.days_to_ship < 0 ? 'مرّ موعد الشحن' : daysWord(a.days_to_ship)}</span></div>
       <div class="t-amt" style="font-size:18px">${a.kind==='COLLECT'
         ? `باقٍ عليه ${money(a.price_remaining)}` : 'خالص الثمن، أبلغه بموعد الشحن'}</div>
-      <div class="t-meta"><span>الشحن ${dayLabel(a.ship_date)}</span>${a.phone?`<span class="num">${esc(a.phone)}</span>`:''}</div>
+      <div class="t-meta"><span>الشحن ${dayLabel(a.ship_date)}</span>${a.phone?`<span class="num">${esc(a.phone)}</span>`:''}
+        ${S.me.user.role !== 'KEEPER' && a.owner_box_id ? `<span>${esc(boxName(a.owner_box_id))}</span>` : ''}</div>
       <div class="t-actions">
         ${a.kind==='COLLECT'
           ? `<button class="btn btn-primary btn-sm" style="flex:1" data-act="pay" data-id="${a.order_id}" data-purpose="PRICE">تسجيل دفعة</button>`
@@ -2873,12 +2879,12 @@ const Mock = (() => {
     { customer_id:'CUS3', full_name:'زكايرة بوبكر', phone:'', wilaya:'باتنة', type:'DEALER', status:'ACTIVE' }
   ];
   const ORD = [
-    { order_id:'ORD1', customer_id:'CUS1', car_model:'كولوراي لاتوت', color:'قري', trim:'', agreed_price:3570000,
+    { order_id:'ORD1', customer_id:'CUS1', owner_box_id:'B1', created_by:'U1', car_model:'كولوراي لاتوت', color:'قري', trim:'', agreed_price:3570000,
       customs_expected:1000000, customs_actual:980000, stage:'CLEARED', status:'ACTIVE', sold_at:'', notes:'', created_at:'' },
-    { order_id:'ORD2', customer_id:'CUS2', car_model:'MG5', color:'أبيض', trim:'', agreed_price:2900000,
+    { order_id:'ORD2', customer_id:'CUS2', owner_box_id:'B2', created_by:'U2', car_model:'MG5', color:'أبيض', trim:'', agreed_price:2900000,
       customs_expected:900000, customs_actual:'', stage:'AT_PORT', status:'ACTIVE', sold_at:'', notes:'', created_at:'',
       ship_date: localDate(new Date(Date.now() + 2*86400000)), notified_at:'' },
-    { order_id:'ORD3', customer_id:'CUS3', car_model:'كولوراي باتل', color:'أسود', trim:'', agreed_price:3800000,
+    { order_id:'ORD3', customer_id:'CUS3', owner_box_id:'B3', created_by:'U3', car_model:'كولوراي باتل', color:'أسود', trim:'', agreed_price:3800000,
       customs_expected:1000000, customs_actual:'', stage:'ORDERED', status:'ACTIVE', sold_at:'', notes:'', created_at:'',
       ship_date: localDate(new Date(Date.now() + 86400000)), notified_at:'' }
   ];
@@ -2900,10 +2906,14 @@ const Mock = (() => {
     const a = Date.UTC(+t.slice(0,4), +t.slice(5,7)-1, +t.slice(8,10));
     const b = Date.UTC(+ds.slice(0,4), +ds.slice(5,7)-1, +ds.slice(8,10));
     return Math.round((b-a)/86400000); };
-  const shipAlerts = () => ORD.filter(o => o.ship_date && o.stage !== 'DELIVERED' && dUntil(o.ship_date) <= 2)
+  const ownsOrder = o => staff() || (o.owner_box_id
+    ? (box(o.owner_box_id) || {k:[]}).k.includes(cur)
+    : o.created_by === cur);
+  const shipAlerts = () => ORD.filter(o => o.ship_date && o.stage !== 'DELIVERED' && dUntil(o.ship_date) <= 2 && ownsOrder(o))
     .map(o => { const t = ordTotals(o); const c = CUS.find(x => x.customer_id === o.customer_id) || {};
       const kind = t.price_remaining > 0 ? 'COLLECT' : 'NOTIFY';
       return { order_id:o.order_id, customer_id:o.customer_id, customer_name:c.full_name, phone:c.phone||'',
+        owner_box_id:o.owner_box_id || '',
         car_label:[o.car_model, o.color].filter(Boolean).join(' '), ship_date:o.ship_date, days_to_ship:dUntil(o.ship_date),
         kind, price_remaining:t.price_remaining, agreed_price:t.agreed_price, done: kind==='NOTIFY' && !!o.notified_at }; })
     .filter(a => !a.done).sort((a,b) => a.days_to_ship - b.days_to_ship);
@@ -3019,6 +3029,7 @@ const Mock = (() => {
           counterparty:(CUS.find(c => c.customer_id === o.customer_id)||{}).full_name,
           description: mode === 'FULL' ? 'دفع الثمن كاملاً عند الطلب' : 'عربون ' + (p.deposit_percent||30) + '%' });
         if (ordTotals(o).is_sold) o.sold_at = now();
+        if (!o.owner_box_id) o.owner_box_id = p.box_id;
       }
       const v = ordView(o); v.just_sold = ordTotals(o).is_sold; return v; },
     markOrderNotified: p => { const o = ORD.find(x => x.order_id === p.order_id); o.notified_at = now(); return ordView(o); },
@@ -3033,6 +3044,7 @@ const Mock = (() => {
         counterparty:(CUS.find(c => c.customer_id === o.customer_id)||{}).full_name, description:p.description||'' });
       const after = ordTotals(o);
       if (!before.is_sold && after.is_sold) o.sold_at = now();
+      if (!o.owner_box_id) o.owner_box_id = p.box_id;
       return { order: ordView(o), balance: bal(p.box_id), just_sold: !before.is_sold && after.is_sold, warnings: [] }; },
     recordCustomerRefund: p => { const o = ORD.find(x => x.order_id === p.order_id);
       add({ box_id:p.box_id, entry_date:localDate(new Date()), created_at:now(), direction:'OUT', amount:Number(p.amount),
