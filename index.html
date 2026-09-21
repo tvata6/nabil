@@ -1,4 +1,4 @@
-<!-- <!doctype html> -->
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
@@ -306,6 +306,10 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 .mc-foot b{color:var(--ink)}
 .mc-foot .due b{color:var(--out)}
 .mc-foot .ok{color:var(--in);font-weight:500}
+.wiz-count{color:var(--muted);font-size:13px;margin-inline-start:auto;margin-inline-end:8px}
+.wiz-bar{display:flex;gap:6px;padding:0 18px 12px}
+.wiz-bar span{flex:1;height:4px;border-radius:2px;background:var(--line-2)}
+.wiz-bar span.on{background:var(--petrol)}
 .dep-amount{font-weight:600;font-variant-numeric:tabular-nums}
 .ship-row{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);margin-bottom:12px}
 .prog{height:8px;border-radius:99px;background:var(--line-2);overflow:hidden;margin-top:10px}
@@ -401,6 +405,7 @@ const S = {
   hist: { filter: 'all', items: [], total: 0, loaded: false, boxId: null },
   trf: { tab: 'wait', items: [], loaded: false },
   cust: { items: [], loaded: false, q: '' },
+  wiz: null,
   order: null,
   cats: null, targets: null, odo: {},
   adm: { loaded:false, users:[], boxes:[] }, _pw: null, _credMsg: ''
@@ -635,6 +640,9 @@ const RULES = [
   [/^باقٍ عليه (.+)$/, 'Still owes $1'],
   [/^الشحن (.+)$/, 'Shipping $1'],
   [/^إضافة السيارة وتسجيل (.+)$/, 'Add car and record $1'],
+  [/^تسجيل وحفظ (.+)$/, 'Save and record $1'],
+  [/^(\d+) من (\d+)$/, '$1 of $2'],
+  [/^وجدت تسجيلاً لم يكتمل: (.+)\. هل تكمله؟$/, 'Found an unfinished entry: $1. Continue it?'],
   [/^تدخل (.+)$/, 'Goes into $1'],
   [/^نقص (.+)$/, 'Short $1'],
   [/^حفظ (.+) دج$/, 'Save $1 DA'],
@@ -1749,98 +1757,194 @@ function openStagePicker(orderId){
   </div>`);
 }
 
-function openNewCustomer(){
-  openSheet(`${sheetHead('زبون جديد')}<div class="sheet-body">
-    <div class="field"><label class="field-l" for="cuName">الاسم الكامل</label>
-      <input class="input" id="cuName" placeholder="مثال: زغوان الياس" autocomplete="off"></div>
-    <div class="field"><label class="field-l" for="cuPhone">رقم الهاتف <small>(اختياري)</small></label>
-      <input class="input" id="cuPhone" type="tel" dir="ltr" placeholder="0661234567"></div>
-    <div class="field"><label class="field-l" for="cuWilaya">الولاية <small>(اختياري)</small></label>
-      <input class="input" id="cuWilaya" placeholder="ورقلة"></div>
-    <div class="field"><span class="field-l">النوع</span>
-      <div class="chips"><button type="button" class="chip" data-ctype="INDIVIDUAL" aria-pressed="true">زبون</button>
-        <button type="button" class="chip" data-ctype="DEALER" aria-pressed="false">تاجر يأخذ عدة سيارات</button></div></div>
-  </div>
-  <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="cust-save">إضافة الزبون</button></div>`,
-  { onMount: sh => {
-    sh.dataset.ctype = 'INDIVIDUAL';
-    sh.addEventListener('click', e => {
-      const b = e.target.closest('[data-ctype]');
-      if (b){ sh.dataset.ctype = b.dataset.ctype; sh.querySelectorAll('[data-ctype]').forEach(x => x.setAttribute('aria-pressed', x===b)); }
-    });
-  } });
+/* ---------- معالج التسجيل: خطوات مترابطة وحفظ واحد في النهاية ----------
+   لا يُكتب أي شيء في الخادم حتى الضغط على زر الحفظ الأخير،
+   فلا يبقى زبون بلا سيارة إذا انقطع المستخدم في المنتصف.
+   المُدخَل يُحفظ مؤقتاً على الجهاز، فإن خرج وعاد يجده كما تركه. */
+const DRAFT_KEY = 'sc.draft.newcustomer';
+
+function draftSave(){ try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ t: Date.now(), w: S.wiz })); } catch(e){} }
+function draftClear(){ try { localStorage.removeItem(DRAFT_KEY); } catch(e){} }
+function draftLoad(){
+  try {
+    const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+    if (!d || Date.now() - d.t > 24 * 3600 * 1000) return null;
+    return d.w;
+  } catch(e){ return null; }
 }
 
-function openNewOrder(customerId){
-  const c = S.cust.items.find(x => x.customer_id === customerId) || {};
-  const st = { price:0, mode:'PERCENT', pct:30, box:S.boxId || ((S.me.boxes||[])[0]||{}).box_id || '' };
-  openSheet(`${sheetHead('سيارة جديدة')}<div class="sheet-body">
-    <div class="hint" style="margin:0 0 14px">${ic('user')} ${esc(c.full_name || '')}</div>
-    <div class="field"><label class="field-l" for="odModel">الموديل</label>
-      <input class="input" id="odModel" placeholder="مثال: كولوراي لاتوت" autocomplete="off"></div>
-    <div class="field"><label class="field-l" for="odColor">اللون <small>(اختياري)</small></label>
-      <input class="input" id="odColor" placeholder="قري"></div>
-    <div class="field"><label class="field-l" for="odPrice">الثمن المتفق عليه</label>
-      <input class="input num" id="odPrice" inputmode="numeric" placeholder="3570000">
-      <div class="hint" id="odPriceHint"></div></div>
+function openNewCustomer(){ startWizard(null); }
+function openNewOrder(customerId){ startWizard(customerId); }
 
-    <div class="field hidden" id="odPayWrap">
-      <span class="field-l">الدفعة الأولى</span>
-      <div class="seg" id="odModes">
-        <button type="button" data-mode="PERCENT" aria-pressed="true">عربون بنسبة</button>
-        <button type="button" data-mode="FULL" aria-pressed="false">المبلغ كامل</button>
-        <button type="button" data-mode="NONE" aria-pressed="false">لاحقاً</button>
-      </div>
-      <div id="odPctRow" style="display:flex;align-items:center;gap:10px;margin-top:12px">
-        <input class="input num" id="odPct" inputmode="numeric" value="30" style="width:90px;text-align:center">
-        <span class="hint" style="margin:0">%</span>
-        <span class="dep-amount" id="odDep"></span>
-      </div>
-      <div id="odBoxWrap" style="margin-top:12px"></div>
+function startWizard(customerId){
+  const draft = draftLoad();
+  const fresh = {
+    customer_id: customerId || '',
+    customer: { full_name:'', phone:'', wilaya:'', type:'INDIVIDUAL' },
+    car: { car_model:'', color:'', agreed_price:'', customs_expected:'', ship_date:'' },
+    pay: { mode:'PERCENT', percent:30, box_id: S.boxId || ((S.me.boxes||[])[0]||{}).box_id || '' },
+    step: customerId ? 2 : 1
+  };
+  if (draft && draft.customer_id === fresh.customer_id &&
+      (draft.customer.full_name || draft.car.car_model)) {
+    S.wiz = fresh;
+    return openSheet(`${sheetHead('متابعة تسجيل سابق')}<div class="sheet-body">
+      <p class="lead">وجدت تسجيلاً لم يكتمل: <b>${esc(draft.customer.full_name || draft.car.car_model)}</b>. هل تكمله؟</p></div>
+      <div class="sheet-foot" style="display:flex;gap:8px">
+        <button class="btn btn-ghost" style="flex:1" data-act="wiz-fresh">ابدأ من جديد</button>
+        <button class="btn btn-primary" style="flex:1" data-act="wiz-resume">أكمل</button></div>`);
+  }
+  S.wiz = fresh;
+  renderWizard();
+}
+
+const WIZ_STEPS = 3;
+function renderWizard(){
+  const w = S.wiz;
+  const cust = w.customer_id ? (S.cust.items.find(c => c.customer_id === w.customer_id) || {}) : null;
+  const total = w.customer_id ? 2 : WIZ_STEPS;
+  const shown = w.customer_id ? w.step - 1 : w.step;
+  const body = w.step === 1 ? wizStep1() : w.step === 2 ? wizStep2(cust) : wizStep3(cust);
+  const last = w.step === 3;
+  openSheet(`<div class="sheet-head">
+      <h3>${w.step === 1 ? 'بيانات الزبون' : w.step === 2 ? 'بيانات السيارة' : 'الدفعة الأولى'}</h3>
+      <span class="wiz-count">${shown} من ${total}</span>
+      <button class="icon-btn" data-act="wiz-close" aria-label="إغلاق">${ic('x')}</button></div>
+    <div class="wiz-bar">${[1,2,3].slice(w.customer_id ? 1 : 0).map(i =>
+      `<span class="${i <= w.step ? 'on' : ''}"></span>`).join('')}</div>
+    <div class="sheet-body" id="wizBody">${body}</div>
+    <div class="sheet-foot" style="display:flex;gap:8px">
+      ${w.step > (w.customer_id ? 2 : 1) ? `<button class="btn btn-ghost" data-act="wiz-back">رجوع</button>` : ''}
+      <button class="btn btn-primary" style="flex:1" id="wizNext" data-act="${last ? 'wiz-save' : 'wiz-next'}">${last ? 'تسجيل' : 'التالي'}</button>
+    </div>`, { full:true, onMount: bindWizard });
+}
+
+function wizStep1(){
+  const c = S.wiz.customer;
+  return `<div class="field"><label class="field-l" for="wName">الاسم الكامل</label>
+      <input class="input" id="wName" value="${esc(c.full_name)}" placeholder="مثال: زغوان الياس" autocomplete="off"></div>
+    <div class="field"><label class="field-l" for="wPhone">رقم الهاتف <small>(اختياري)</small></label>
+      <input class="input" id="wPhone" type="tel" dir="ltr" value="${esc(c.phone)}" placeholder="0661234567"></div>
+    <div class="field"><label class="field-l" for="wWilaya">الولاية <small>(اختياري)</small></label>
+      <input class="input" id="wWilaya" value="${esc(c.wilaya)}" placeholder="ورقلة"></div>
+    <div class="field"><span class="field-l">النوع</span>
+      <div class="chips"><button type="button" class="chip" data-wtype="INDIVIDUAL" aria-pressed="${c.type==='INDIVIDUAL'}">زبون</button>
+        <button type="button" class="chip" data-wtype="DEALER" aria-pressed="${c.type==='DEALER'}">تاجر يأخذ عدة سيارات</button></div></div>
+    <p class="hint">لن يُحفظ شيء حتى نهاية الخطوات.</p>`;
+}
+
+function wizStep2(cust){
+  const w = S.wiz, car = w.car;
+  const who = cust ? cust.full_name : (w.customer.full_name || 'الزبون الجديد');
+  return `<div class="hint" style="margin:0 0 14px">${ic('user')} ${esc(who)}</div>
+    <div class="field"><label class="field-l" for="wModel">الموديل</label>
+      <input class="input" id="wModel" value="${esc(car.car_model)}" placeholder="مثال: كولوراي لاتوت" autocomplete="off"></div>
+    <div class="field"><label class="field-l" for="wColor">اللون <small>(اختياري)</small></label>
+      <input class="input" id="wColor" value="${esc(car.color)}" placeholder="قري"></div>
+    <div class="field"><label class="field-l" for="wPrice">الثمن المتفق عليه</label>
+      <input class="input num" id="wPrice" inputmode="numeric" value="${esc(car.agreed_price)}" placeholder="3570000">
+      <div class="hint" id="wPriceHint">${millions(car.agreed_price)}</div></div>
+    <div class="field"><label class="field-l" for="wShip">تاريخ الشحن المتوقع <small>(اختياري)</small></label>
+      <div class="date-row"><span>${ic('clock')}</span><input type="date" id="wShip" style="flex:1" value="${esc(car.ship_date)}"></div>
+      <div class="hint">يذكّرك النظام قبله بيومين.</div></div>
+    <div class="field"><label class="field-l" for="wCustoms">الديوانة المتوقعة <small>(اختياري)</small></label>
+      <input class="input num" id="wCustoms" inputmode="numeric" value="${esc(car.customs_expected)}" placeholder="1000000"></div>`;
+}
+
+function wizStep3(cust){
+  const w = S.wiz, price = Number(w.car.agreed_price || 0);
+  const who = cust ? cust.full_name : w.customer.full_name;
+  const boxes = S.me.boxes || [];
+  const dep = w.pay.mode === 'FULL' ? price : w.pay.mode === 'PERCENT' ? Math.round(price * w.pay.percent / 100) : 0;
+  return `<div class="card" style="padding:14px;margin-bottom:16px">
+      <div class="mc-head"><span>${esc(who)}</span><b>${esc(w.car.car_model)}${w.car.color ? ' ' + esc(w.car.color) : ''}</b></div>
+      <div class="mc-foot"><span>الثمن المتفق عليه</span><b class="num">${fmt(price)}</b></div>
+      ${w.car.ship_date ? `<div class="mc-foot"><span>الشحن المتوقع</span><b>${dayLabel(w.car.ship_date)}</b></div>` : ''}
     </div>
+    <span class="field-l">كم دفع الآن؟</span>
+    <div class="seg" id="wModes">
+      <button type="button" data-wmode="PERCENT" aria-pressed="${w.pay.mode==='PERCENT'}">عربون بنسبة</button>
+      <button type="button" data-wmode="FULL" aria-pressed="${w.pay.mode==='FULL'}">المبلغ كامل</button>
+      <button type="button" data-wmode="NONE" aria-pressed="${w.pay.mode==='NONE'}">لم يدفع بعد</button>
+    </div>
+    <div id="wPctRow" style="display:${w.pay.mode==='PERCENT'?'flex':'none'};align-items:center;gap:10px;margin-top:12px">
+      <input class="input num" id="wPct" inputmode="numeric" value="${w.pay.percent}" style="width:90px;text-align:center">
+      <span class="hint" style="margin:0">%</span><span class="dep-amount" id="wDep">${dep?fmt(dep)+' دج':''}</span>
+    </div>
+    <div id="wBoxWrap" style="margin-top:14px"></div>`;
+}
 
-    <div class="field"><label class="field-l" for="odShip">تاريخ الشحن المتوقع <small>(اختياري)</small></label>
-      <div class="date-row"><span>${ic('clock')}</span><input type="date" id="odShip" style="flex:1"></div>
-      <div class="hint">يذكّرك النظام قبله بيومين: إن بقي مبلغ يطلب تحصيله، وإن كان خالصاً يذكّرك بإبلاغ الزبون.</div></div>
+function bindWizard(sh){
+  const w = S.wiz;
+  const sync = () => {
+    if ($('#wName')) { w.customer.full_name = $('#wName').value; w.customer.phone = $('#wPhone').value; w.customer.wilaya = $('#wWilaya').value; }
+    if ($('#wModel')) {
+      w.car.car_model = $('#wModel').value; w.car.color = $('#wColor').value;
+      w.car.agreed_price = $('#wPrice').value; w.car.ship_date = $('#wShip').value; w.car.customs_expected = $('#wCustoms').value;
+      const h = $('#wPriceHint'); if (h) h.textContent = millions(w.car.agreed_price);
+    }
+    if ($('#wPct')) w.pay.percent = Math.min(100, Math.max(1, Number($('#wPct').value || 0)));
+    paint(); draftSave();
+  };
+  const paint = () => {
+    const btn = $('#wizNext');
+    if (w.step === 1) btn.disabled = w.customer.full_name.trim().length < 2;
+    else if (w.step === 2) btn.disabled = !(w.car.car_model.trim().length >= 2 && Number(w.car.agreed_price) > 0);
+    else {
+      const price = Number(w.car.agreed_price || 0);
+      const dep = w.pay.mode === 'FULL' ? price : w.pay.mode === 'PERCENT' ? Math.round(price * w.pay.percent / 100) : 0;
+      const d = $('#wDep'); if (d) d.textContent = dep ? fmt(dep) + ' دج' : '';
+      const r = $('#wPctRow'); if (r) r.style.display = w.pay.mode === 'PERCENT' ? 'flex' : 'none';
+      const boxes = S.me.boxes || [];
+      const wrap = $('#wBoxWrap');
+      if (wrap) wrap.innerHTML = (w.pay.mode === 'NONE' || !dep) ? ''
+        : (boxes.length <= 1
+          ? `<div class="hint" style="margin:0;display:flex;align-items:center;gap:6px">${ic('box')} تدخل ${esc((boxes[0]||{}).name || '')}</div>`
+          : `<span class="field-l">أي صندوق استلم المبلغ؟</span><div class="chips">${boxes.map(b =>
+              `<button type="button" class="chip" data-wbox="${b.box_id}" aria-pressed="${b.box_id===w.pay.box_id}">${esc(b.name)}</button>`).join('')}</div>`);
+      btn.disabled = false;
+      btn.textContent = dep ? `تسجيل وحفظ ${fmt(dep)} دج` : 'تسجيل';
+    }
+  };
+  sh.addEventListener('input', sync);
+  sh.addEventListener('click', e => {
+    const t = e.target.closest('[data-wtype]');
+    if (t){ w.customer.type = t.dataset.wtype; sh.querySelectorAll('[data-wtype]').forEach(x => x.setAttribute('aria-pressed', x===t)); draftSave(); }
+    const m = e.target.closest('[data-wmode]');
+    if (m){ w.pay.mode = m.dataset.wmode; sh.querySelectorAll('[data-wmode]').forEach(x => x.setAttribute('aria-pressed', x===m)); paint(); draftSave(); }
+    const b = e.target.closest('[data-wbox]');
+    if (b){ w.pay.box_id = b.dataset.wbox; paint(); draftSave(); }
+  });
+  paint();
+  const first = $('#wName') || $('#wModel');
+  if (first) setTimeout(() => first.focus(), 120);
+}
 
-    <div class="field"><label class="field-l" for="odCustoms">الديوانة المتوقعة <small>(اختياري)</small></label>
-      <input class="input num" id="odCustoms" inputmode="numeric" placeholder="1000000"></div>
-  </div>
-  <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="order-save" data-id="${customerId}" disabled>أكمل البيانات</button></div>`,
-  { full:true, onMount: sh => {
-    const boxes = S.me.boxes || [];
-    const paint = () => {
-      const price = Number($('#odPrice').value || 0);
-      st.price = price;
-      $('#odPriceHint').textContent = millions(price);
-      show2($('#odPayWrap'), price > 0);
-      $('#odPctRow').style.display = st.mode === 'PERCENT' ? 'flex' : 'none';
-      const dep = st.mode === 'FULL' ? price : st.mode === 'PERCENT' ? Math.round(price * st.pct / 100) : 0;
-      $('#odDep').textContent = dep ? fmt(dep) + ' دج' : '';
-      $('#odBoxWrap').innerHTML = (st.mode === 'NONE' || !dep) ? '' : (boxes.length <= 1
-        ? `<div class="hint" style="margin:0;display:flex;align-items:center;gap:6px">${ic('box')} تدخل ${esc((boxes[0]||{}).name || '')}</div>`
-        : `<span class="field-l">أي صندوق استلم المبلغ؟</span><div class="chips">${boxes.map(b =>
-            `<button type="button" class="chip" data-obox="${b.box_id}" aria-pressed="${b.box_id===st.box}">${esc(b.name)}</button>`).join('')}</div>`);
-      const btn = $('.sheet-foot .btn');
-      const ok = price > 0 && $('#odModel').value.trim().length >= 2;
-      btn.disabled = !ok;
-      btn.textContent = !ok ? 'أكمل البيانات'
-        : dep ? `إضافة السيارة وتسجيل ${fmt(dep)} دج` : 'إضافة السيارة';
-      sh.dataset.mode = st.mode; sh.dataset.pct = st.pct; sh.dataset.box = st.box;
-    };
-    const show2 = (el, on) => { if (on) el.classList.remove('hidden'); else el.classList.add('hidden'); };
-    sh.addEventListener('input', e => {
-      if (e.target.id === 'odPct'){ st.pct = Math.min(100, Math.max(1, Number(e.target.value || 0))); }
-      paint();
-    });
-    sh.addEventListener('click', e => {
-      const m = e.target.closest('[data-mode]');
-      if (m){ st.mode = m.dataset.mode; sh.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', x===m)); paint(); }
-      const b = e.target.closest('[data-obox]');
-      if (b){ st.box = b.dataset.obox; paint(); }
-    });
-    paint();
-  } });
+async function wizardSave(btn){
+  const w = S.wiz;
+  setBtnBusy(btn, true);
+  const key = 'wiz:' + (w.customer_id || w.customer.full_name) + ':' + w.car.car_model + ':' + w.car.agreed_price;
+  const payload = {
+    car_model: w.car.car_model.trim(), color: w.car.color.trim(),
+    agreed_price: Number(w.car.agreed_price || 0),
+    customs_expected: w.car.customs_expected ? Number(w.car.customs_expected) : '',
+    ship_date: w.car.ship_date || '',
+    deposit_mode: w.pay.mode, deposit_percent: w.pay.percent,
+    box_id: w.pay.mode === 'NONE' ? '' : w.pay.box_id,
+    client_ref: refFor(key)
+  };
+  if (w.customer_id) payload.customer_id = w.customer_id;
+  else payload.customer = { full_name: w.customer.full_name.trim(), phone: w.customer.phone.trim(),
+    wilaya: w.customer.wilaya.trim(), type: w.customer.type };
+
+  try {
+    const o = await api('createOrder', payload);
+    clearRef(key); draftClear(); S.wiz = null;
+    toast(w.customer_id ? 'تمت إضافة السيارة' : 'تم تسجيل الزبون وسيارته');
+    await loadCustomers();
+    refresh(true);
+    openOrder(o.order_id);
+  } catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
 }
 
 function openEditCustomer(id){
@@ -2271,36 +2375,15 @@ document.addEventListener('click', async e => {
     case 'cust': openCustomer(id); break;
     case 'cust-new': openNewCustomer(); break;
     case 'cust-edit': openEditCustomer(id); break;
-    case 'cust-save': { setBtnBusy(el, true);
-      try { const sh = el.closest('.sheet');
-        const c = await api('createCustomer', { full_name:$('#cuName').value.trim(), phone:$('#cuPhone').value.trim(),
-          wilaya:$('#cuWilaya').value.trim(), type: sh.dataset.ctype });
-        closeSheet(); toast('تمت إضافة الزبون'); await loadCustomers(); openNewOrder(c.customer_id);
-      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
-    case 'cust-update': { setBtnBusy(el, true);
-      try { await api('updateCustomer', { customer_id:id, full_name:$('#ecName').value.trim(),
-          phone:$('#ecPhone').value.trim(), wilaya:$('#ecWilaya').value.trim() });
-        closeSheet(); toast('تم الحفظ'); await loadCustomers(); rerender();
-      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
     case 'order': openOrder(id); break;
     case 'order-new': openNewOrder(id); break;
     case 'order-edit': openEditOrder(id); break;
-    case 'order-save': { setBtnBusy(el, true);
-      const sh = el.closest('.sheet');
-      const key = 'order:' + id + ':' + $('#odModel').value.trim() + ':' + $('#odPrice').value;
-      try { const o = await api('createOrder', { customer_id:id, car_model:$('#odModel').value.trim(),
-          color:$('#odColor').value.trim(), agreed_price:Number($('#odPrice').value || 0),
-          customs_expected: $('#odCustoms').value ? Number($('#odCustoms').value) : '',
-          ship_date: $('#odShip').value || '', deposit_mode: sh.dataset.mode || 'NONE',
-          deposit_percent: Number(sh.dataset.pct || 30), box_id: sh.dataset.box || '', client_ref: refFor(key) });
-        clearRef(key);
-        closeSheet(); toast('تمت إضافة السيارة'); await loadCustomers(); openOrder(o.order_id);
-      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
-    case 'order-update': { setBtnBusy(el, true);
-      try { const payload = { order_id:id, car_model:$('#eoModel').value.trim(), color:$('#eoColor').value.trim(), notes:$('#eoNotes').value.trim() };
-        if ($('#eoPrice')) payload.agreed_price = Number($('#eoPrice').value || 0);
-        await api('updateOrder', payload); closeSheet(); toast('تم الحفظ'); openOrder(id); loadCustomers();
-      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'wiz-next': S.wiz.step++; renderWizard(); break;
+    case 'wiz-back': S.wiz.step--; renderWizard(); break;
+    case 'wiz-save': wizardSave(el); break;
+    case 'wiz-close': closeSheet(); break;
+    case 'wiz-resume': { const d = draftLoad(); if (d){ S.wiz = d; } renderWizard(); break; }
+    case 'wiz-fresh': draftClear(); renderWizard(); break;
     case 'pay': openPayment(id, el.dataset.purpose); break;
     case 'refund': openRefund(id); break;
     case 'customs': openCustoms(id); break;
@@ -3016,7 +3099,17 @@ const Mock = (() => {
     getOrder: p => { const o = ORD.find(x => x.order_id === p.order_id);
       return Object.assign(ordView(o), { entries: L.filter(e => e.order_id === o.order_id).reverse()
         .map(e => Object.assign(enrich(e), { purpose_label: e.purpose === 'PRICE' ? 'ثمن السيارة' : 'الديوانة' })) }); },
-    createOrder: p => { const o = { order_id:'ORD'+(ORD.length+1), customer_id:p.customer_id, car_model:p.car_model,
+    createOrder: p => {
+      let cid = p.customer_id;
+      if (!cid){
+        if (!p.customer || !String(p.customer.full_name||'').trim()) err('اختر الزبون أو أدخل بياناته');
+        if (CUS.some(c => c.full_name === p.customer.full_name.trim())) err('يوجد زبون بنفس الاسم');
+        const c = { customer_id:'CUS'+(CUS.length+1), full_name:p.customer.full_name.trim(), phone:p.customer.phone||'',
+          wilaya:p.customer.wilaya||'', type:p.customer.type||'INDIVIDUAL', status:'ACTIVE' };
+        CUS.push(c); cid = c.customer_id;
+      }
+      p = Object.assign({}, p, { customer_id: cid });
+      const o = { order_id:'ORD'+(ORD.length+1), customer_id:p.customer_id, car_model:p.car_model,
         color:p.color||'', trim:'', agreed_price:Number(p.agreed_price), customs_expected:p.customs_expected||'',
         customs_actual:'', stage:'ORDERED', status:'ACTIVE', sold_at:'', notes:'', created_at:now(),
         ship_date:p.ship_date||'', notified_at:'' };
