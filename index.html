@@ -322,6 +322,21 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 .mc-result.owe{background:var(--out-tint);color:var(--out)}
 .mc-result.done{background:var(--in-tint);color:var(--in)}
 
+.offbar{display:flex;align-items:center;gap:8px;width:100%;max-width:520px;margin:0 auto;padding:9px 14px;
+  font-size:13px;font-weight:500;text-align:start}
+.offbar span{flex:1}
+.offbar svg.i{width:17px;height:17px}
+.offbar.off{background:var(--asphalt-2);color:#E6ECF1}
+.offbar.wait{background:var(--amber-tint);color:var(--amber-ink)}
+.offbar.bad{background:var(--out-tint);color:var(--out)}
+.sync-state{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--line);border-radius:var(--r-card)}
+.sync-state b{display:block;font-weight:600}
+.sync-state small{color:var(--muted);font-size:12.5px}
+.sync-state.on{background:var(--in-tint);border-color:transparent;color:var(--in)}
+.sync-state.on b,.sync-state.on small{color:var(--ink)}
+.sync-state.off{background:var(--paper)}
+.row.queued{opacity:.75}
+
 /* Toast */
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + var(--safe-b));z-index:60;display:flex;justify-content:center;pointer-events:none}
 .toast{max-width:480px;background:var(--asphalt);color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.2);display:flex;gap:10px;align-items:center;animation:reveal .2s}
@@ -520,6 +535,22 @@ const DICT = {
   'اسم المستخدم والكلمة المؤقتة':'Username and temporary password','نسخ الرسالة':'Copy message',
   'إرسال عبر واتساب':'Send on WhatsApp','أرسلها الآن. لن تظهر كلمة المرور مرة أخرى.':'Send it now. The password will not be shown again.',
   'الهاتف':'Phone','إغلاق':'Close','حذف':'Delete','تم النسخ':'Copied',
+
+  // العمل بدون إنترنت
+  'المزامنة':'Sync','مزامنة الآن':'Sync now','كل شيء متزامن':'Everything is synced','بدون اتصال':'Offline',
+  'بانتظار عودة الاتصال':'Waiting for the connection','متصل بالإنترنت':'Online','لا يوجد اتصال':'No connection',
+  'عمليات على الجهاز':'Saved on this device','لا توجد عمليات محفوظة على الجهاز.':'Nothing is waiting on this device.',
+  'بانتظار الإرسال':'Waiting to send','بانتظار المزامنة':'Waiting to sync','قائمة المزامنة':'Sync list',
+  'محفوظة على الجهاز، تُرسل عند عودة الاتصال':'Saved on this device, will be sent when you are back online',
+  'مصروف محفوظ دون اتصال':'Expense saved offline','تحويل محفوظ دون اتصال':'Transfer saved offline',
+  'استلام مبلغ محفوظ دون اتصال':'Income saved offline','الدفعة محفوظة دون اتصال':'Payment saved offline',
+  'الإرجاع محفوظ دون اتصال':'Refund saved offline','الإلغاء محفوظ دون اتصال':'Void saved offline',
+  'التسجيل محفوظ دون اتصال':'Entry saved offline','لم تُقبل':'Rejected','إعادة':'Retry',
+  'لا توجد بيانات محفوظة':'No saved data','لا توجد عمليات بانتظار المزامنة':'Nothing to sync',
+  'لا يوجد اتصال. تعمل على آخر نسخة محفوظة':'No connection. You are seeing the last saved data',
+  'انقطع الاتصال. ستُحفظ عملياتك وتُرسل لاحقاً':'Connection lost. Your entries are saved and will be sent later',
+  'حُذفت العملية من قائمة المزامنة':'Removed from the sync list','الآن':'now',
+  'بدون اتصال · تعمل على آخر نسخة محفوظة':'Offline · showing the last saved data',
 
   // رمز الدخول
   'رمز الدخول':'Access code','اختر رمز الدخول':'Choose your access code','تغيير رمز الدخول':'Change access code',
@@ -747,6 +778,7 @@ const I = {
   lockClosed:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3M12 15v2"/>',
   search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   phone:'<path d="M6 3h3l2 5-2.5 1.5a12 12 0 0 0 5 5L15 12l5 2v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4 5.2 2 2 0 0 1 6 3z"/>',
+  cloudOff:'<path d="M3 3l18 18M7.5 8A5 5 0 0 0 7 18h10a4 4 0 0 0 2.4-7.2M9.5 5.6A5 5 0 0 1 17 9.5a4 4 0 0 1 2 .8"/>',
   globe:'<circle cx="12" cy="12" r="9"/><path d="M3.5 9h17M3.5 15h17M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>'
 };
 const ic = (n, cls='') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
@@ -812,8 +844,221 @@ const newRef = () => (crypto.randomUUID ? crypto.randomUUID() : 'r' + Date.now()
 function refFor(key){ return REFS[key] || (REFS[key] = newRef()); }
 function clearRef(key){ delete REFS[key]; }
 
+/* ================= العمل بدون إنترنت =================
+   ثلاث طبقات:
+   1) ذاكرة محلية: آخر نسخة ناجحة من البيانات، حتى يفتح التطبيق ويعرض كل شيء بلا شبكة.
+   2) صندوق صادر: العمليات التي سُجّلت دون اتصال تُحفظ على الجهاز بترتيبها.
+   3) مزامنة: تُرسل عند عودة الشبكة. الخادم يرفض التكرار بفضل مرجع العملية،
+      فإعادة الإرسال بعد انقطاع لا تسجّل المبلغ مرتين.                                */
+
+const CACHE_KEY = 'sc.cache';
+const OUTBOX_KEY = 'sc.outbox';
+
+/* العمليات المسموح بها دون اتصال: كلها حركة مال يمكن تأجيل إرسالها.
+   الإدارة (مستخدمون وصناديق) تحتاج رد الخادم فوراً، فتبقى للاتصال. */
+const OFFLINE_OK = {
+  recordIncome: 'دخل', recordExpense: 'مصروف', createTransfer: 'تحويل',
+  confirmTransfer: 'تأكيد استلام', rejectTransfer: 'رفض تحويل', cancelTransfer: 'إلغاء تحويل',
+  voidEntry: 'إلغاء عملية', recordCustomerPayment: 'دفعة زبون', recordCustomerRefund: 'إرجاع لزبون',
+  createOrder: 'تسجيل سيارة', createCustomer: 'تسجيل زبون', markOrderNotified: 'إغلاق تنبيه'
+};
+const CACHEABLE = ['getMe', 'getOverview', 'listCustomers', 'listOrders', 'listEntries', 'listTransfers',
+  'listCategories', 'listTransferTargets'];
+
+const isOnline = () => navigator.onLine !== false;
+
+/* ---------- الذاكرة المحلية ---------- */
+function cacheKey_(action, payload){
+  const p = payload || {};
+  const bits = [p.box_id, p.customer_id, p.order_id].filter(Boolean).join('|');
+  return action + (bits ? ':' + bits : '');
+}
+function cacheAll_(){ try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); } catch(e){ return {}; } }
+function cachePut_(action, payload, data){
+  if (CACHEABLE.indexOf(action) === -1) return;
+  try {
+    const c = cacheAll_();
+    c[cacheKey_(action, payload)] = { at: Date.now(), data: data };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(c));
+  } catch(e){ /* الذاكرة ممتلئة: نتجاهل */ }
+}
+function cacheGet_(action, payload){
+  const hit = cacheAll_()[cacheKey_(action, payload)];
+  return hit || null;
+}
+function cacheClear_(){ try { localStorage.removeItem(CACHE_KEY); } catch(e){} }
+
+/* ---------- صندوق الصادر ---------- */
+function outbox(){ try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]'); } catch(e){ return []; } }
+function outboxSet_(list){ try { localStorage.setItem(OUTBOX_KEY, JSON.stringify(list)); } catch(e){} }
+function outboxCount(){ return outbox().filter(o => o.status !== 'DONE').length; }
+
+function outboxAdd_(action, payload){
+  const list = outbox();
+  const item = {
+    id: 'q' + Date.now() + Math.random().toString(16).slice(2, 6),
+    action: action, payload: payload, label: OFFLINE_OK[action] || action,
+    summary: outboxSummary_(action, payload),
+    amount: Number(payload.amount || 0) || 0,
+    box_id: payload.box_id || payload.from_box_id || '',
+    dir: ['recordExpense', 'createTransfer', 'recordCustomerRefund'].indexOf(action) !== -1 ? 'OUT' : 'IN',
+    created_at: now_local(), status: 'PENDING', error: ''
+  };
+  list.push(item); outboxSet_(list);
+  return item;
+}
+function now_local(){
+  const t = new Date(), p = n => String(n).padStart(2, '0');
+  return `${localDate(t)} ${p(t.getHours())}:${p(t.getMinutes())}:${p(t.getSeconds())}`;
+}
+function outboxSummary_(action, p){
+  const boxOf = id => ((S.me && S.me.boxes) || []).concat((S.ov && S.ov.boxes) || [])
+    .filter(b => b.box_id === id).map(b => b.name)[0] || '';
+  if (action === 'createTransfer') return `إلى ${boxOf(p.to_box_id) || 'صندوق'}`;
+  if (action === 'recordIncome') return p.counterparty || p.description || '';
+  if (action === 'recordExpense') return p.description || '';
+  if (action === 'recordCustomerPayment') return p.purpose === 'CUSTOMS' ? 'ديوانة' : 'ثمن السيارة';
+  if (action === 'createOrder') return p.car_model || '';
+  if (action === 'createCustomer') return p.full_name || '';
+  return '';
+}
+
+/* أثر العمليات المعلّقة على الأرصدة المعروضة، حتى لا يرى المستخدم رقماً قديماً */
+function applyOutboxToOverview(ov){
+  const pend = outbox().filter(o => o.status !== 'DONE' && o.amount > 0 && o.box_id);
+  if (!pend.length || !ov) return ov;
+  const copy = JSON.parse(JSON.stringify(ov));
+  pend.forEach(o => {
+    const b = (copy.boxes || []).find(x => x.box_id === o.box_id);
+    if (!b) return;
+    b.balances = b.balances || {};
+    b.balances.DZD = (b.balances.DZD || 0) + (o.dir === 'IN' ? o.amount : -o.amount);
+  });
+  copy.queued = pend.map(o => ({
+    entry_id: o.id, entry_date: o.created_at.slice(0, 10), created_at: o.created_at, box_id: o.box_id,
+    direction: o.dir, amount: o.amount, currency: 'DZD', entry_type: 'QUEUED',
+    entry_type_label: o.label, counterparty: o.summary, description: '', verified: false,
+    status: 'QUEUED', queued: true
+  }));
+  return copy;
+}
+
+/* ---------- المزامنة ---------- */
+let _syncing = false;
+
+async function syncOutbox(manual){
+  if (_syncing || !isOnline() || !S.token || S.demo) return;
+  const list = outbox().filter(o => o.status === 'PENDING');
+  if (!list.length){ if (manual) toast('لا توجد عمليات بانتظار المزامنة'); return; }
+  _syncing = true;
+  let done = 0, failed = 0;
+  for (const item of list) {
+    try {
+      await apiDirect(item.action, item.payload);
+      const all = outbox().filter(o => o.id !== item.id);
+      outboxSet_(all); done++;
+    } catch(x){
+      if (x.code === 'NETWORK'){ break; }              // الشبكة سقطت من جديد: نكمل لاحقاً
+      const all = outbox().map(o => o.id === item.id ? Object.assign({}, o, { status:'FAILED', error:x.message }) : o);
+      outboxSet_(all); failed++;
+    }
+  }
+  _syncing = false;
+  if (done) toast(done === 1 ? 'تمت مزامنة عملية واحدة' : `تمت مزامنة ${done} عمليات`);
+  if (failed) toast(`${failed} عملية لم تُقبل، راجع قسم المزامنة`, true);
+  if (done || failed) await refresh(true);
+  renderShell(false);
+}
+
+function outboxRetry(id){
+  outboxSet_(outbox().map(o => o.id === id ? Object.assign({}, o, { status:'PENDING', error:'' }) : o));
+  syncOutbox(true);
+}
+function outboxDrop(id){
+  outboxSet_(outbox().filter(o => o.id !== id));
+  renderShell(false);
+  toast('حُذفت العملية من قائمة المزامنة');
+}
+
+window.addEventListener('online', () => { renderShell(false); syncOutbox(); });
+window.addEventListener('offline', () => { renderShell(false); toast('انقطع الاتصال. ستُحفظ عملياتك وتُرسل لاحقاً'); });
+
+/* ---------- شريط الحالة وقائمة المزامنة ---------- */
+function offlineBar(){
+  const n = outboxCount();
+  const failed = outbox().some(o => o.status === 'FAILED');
+  if (isOnline() && !n) return '';
+  const cls = !isOnline() ? 'off' : failed ? 'bad' : 'wait';
+  const txt = !isOnline()
+    ? (n ? `بدون اتصال · ${n} عملية محفوظة على الجهاز` : 'بدون اتصال · تعمل على آخر نسخة محفوظة')
+    : failed ? `${n} عملية تحتاج مراجعة` : `${n} عملية بانتظار المزامنة`;
+  return `<button class="offbar ${cls}" data-act="sync-open">${ic(isOnline() ? 'refresh' : 'cloudOff')}<span>${txt}</span>${ic('chev')}</button>`;
+}
+
+function openSyncSheet(){
+  const list = outbox();
+  const stale = cacheGet_('getOverview', {});
+  openSheet(`${sheetHead('المزامنة')}<div class="sheet-body">
+    <div class="sync-state ${isOnline() ? 'on' : 'off'}">
+      ${ic(isOnline() ? 'globe' : 'cloudOff')}
+      <div><b>${isOnline() ? 'متصل بالإنترنت' : 'لا يوجد اتصال'}</b>
+        <small>${stale ? 'آخر تحديث للبيانات: ' + agoFromMs(stale.at) : 'لا توجد بيانات محفوظة'}</small></div>
+    </div>
+    ${list.length ? `<div class="sec"><div class="sec-h"><h2>عمليات على الجهاز</h2></div>
+      <div class="list">${list.map(o => `<div class="row">
+        <span class="row-ic ${o.status==='FAILED'?'out':'tr'}">${ic(o.status==='FAILED'?'x':'clock')}</span>
+        <span class="row-main"><span class="row-title">${esc(o.label)}${o.summary?' — '+esc(o.summary):''}</span>
+          <span class="row-sub"><span>${dayLabel(o.created_at.slice(0,10))} ${o.created_at.slice(11,16)}</span>
+          ${o.status==='FAILED'?`<span class="tag red">لم تُقبل</span>`:`<span class="tag amber">بانتظار الإرسال</span>`}</span>
+          ${o.error?`<span class="row-sub" style="color:var(--out);white-space:normal">${esc(o.error)}</span>`:''}</span>
+        <span class="row-end">${o.amount?`<span class="amt ${o.dir==='IN'?'in':'out'}">${fmt(o.amount)}</span>`:''}
+          ${o.status==='FAILED'?`<button class="link" data-act="sync-retry" data-id="${o.id}">إعادة</button>
+            <button class="link" style="color:var(--out)" data-act="sync-drop" data-id="${o.id}">حذف</button>`:''}</span>
+      </div>`).join('')}</div></div>`
+      : `<div class="card empty" style="margin-top:14px">${ic('check')}<b>كل شيء متزامن</b>لا توجد عمليات محفوظة على الجهاز.</div>`}
+  </div>
+  ${list.some(o => o.status === 'PENDING') ? `<div class="sheet-foot">
+    <button class="btn btn-primary btn-block" data-act="sync-now" ${isOnline()?'':'disabled'}>
+      ${isOnline() ? 'مزامنة الآن' : 'بانتظار عودة الاتصال'}</button></div>` : ''}`);
+}
+
+function agoFromMs(ms){
+  const mins = Math.round((Date.now() - ms) / 60000);
+  if (mins < 1) return 'الآن';
+  if (mins < 60) return `منذ ${mins} دقيقة`;
+  const h = Math.round(mins / 60);
+  if (h < 24) return h === 1 ? 'منذ ساعة' : `منذ ${h} ساعات`;
+  return `منذ ${Math.round(h / 24)} يوم`;
+}
+
 /* ---------------- API ---------------- */
 async function api(action, payload={}){
+  if (S.demo) return Mock.handle(action, payload, S.token);
+
+  // كتابة بدون اتصال: تُحفظ على الجهاز وتُرسل عند عودة الشبكة
+  if (!isOnline() && OFFLINE_OK[action]){
+    const item = outboxAdd_(action, payload);
+    return { queued: true, queued_id: item.id };
+  }
+
+  try {
+    const data = await apiDirect(action, payload);
+    cachePut_(action, payload, data);
+    return data;
+  } catch(x){
+    if (x.code === 'NETWORK'){
+      if (OFFLINE_OK[action]){                       // سقطت الشبكة أثناء الإرسال
+        const item = outboxAdd_(action, payload);
+        return { queued: true, queued_id: item.id };
+      }
+      const hit = cacheGet_(action, payload);         // قراءة: نعطي آخر نسخة محفوظة
+      if (hit){ S.stale = hit.at; return hit.data; }
+    }
+    throw x;
+  }
+}
+
+async function apiDirect(action, payload={}){
   if (S.demo) return Mock.handle(action, payload, S.token);
   if (!S.api) throw Object.assign(new Error('لم يُضبط رابط الخادم بعد'), { code:'NO_API' });
   let res;
@@ -900,7 +1145,16 @@ async function loadApp(){
     if (S.me.must_change_password) return renderForcePassword();
     if (!hasPin() && !S.demo && pinSupported()) return renderPinSetup();
     await startApp();
-  } catch(x){ if (S.token) { renderShell(false); toast(x.message, true); } }
+  } catch(x){
+    if (!S.token) return;
+    const cached = cacheGet_('getMe', {});
+    if (cached && x.code === 'NETWORK'){
+      S.me = cached.data; S.stale = cached.at;
+      toast('لا يوجد اتصال. تعمل على آخر نسخة محفوظة');
+      return startApp();
+    }
+    renderShell(false); toast(x.message, true);
+  }
 }
 async function startApp(){
   startPulse();
@@ -914,13 +1168,24 @@ async function startApp(){
 async function refresh(silent){
   const btn = $('[data-act="refresh"]'); btn && btn.classList.add('spin');
   try {
-    S.ov = await api('getOverview');
+    S.ovRaw = await api('getOverview');
+    S.ov = applyOutboxToOverview(S.ovRaw);
     S.sig = S.ov.pulse_sig || S.sig;
+    prefetchForOffline();
     S.hist.loaded = false; S.trf.loaded = false;
     renderShell(false);
     if (!silent) toast('تم التحديث');
   } catch(x){ toast(x.message, true); }
   finally { const b = $('[data-act="refresh"]'); b && b.classList.remove('spin'); }
+}
+
+/* نحمّل البيانات المرجعية ونحن متصلون، فتكون جاهزة عند الانقطاع:
+   تصنيفات المصاريف، وجهات التحويل، وقائمة الزبائن. */
+async function prefetchForOffline(){
+  if (!isOnline() || S.demo) return;
+  try { S.cats = await api('listCategories'); } catch(e){}
+  try { S.targets = await api('listTransferTargets'); } catch(e){}
+  try { const c = await api('listCustomers', {}); S.cust.items = c; S.cust.loaded = true; } catch(e){}
 }
 
 /* المتابعة التلقائية: نبضة خفيفة كل 45 ثانية، وفوراً عند العودة إلى التطبيق.
@@ -952,6 +1217,7 @@ function renderShell(loading){
   const n = incomingCount();
   $('#root').innerHTML = `
   ${S.demo ? '<div class="demo-bar">وضع التجربة: البيانات وهمية ولا تُحفظ</div>' : ''}
+  ${offlineBar()}
   <div id="app"><main id="view">${loading ? skeleton() : renderView()}</main></div>
   <nav class="tabbar" aria-label="التنقل">
     ${tabs.map(t => t[0]==='plus'
@@ -1020,7 +1286,8 @@ function viewHome(){
   const incoming = S.ov.my_incoming_transfers.filter(t => t.to_box_id === box.box_id);
   const watching = (S.ov.watching_transfers || []).filter(t => t.to_box_id === box.box_id);
   const otherIncoming = S.ov.my_incoming_transfers.length - incoming.length;
-  const entries = S.ov.recent_entries.filter(e => e.box_id === box.box_id).slice(0, 6);
+  const entries = (S.ov.queued || []).filter(e => e.box_id === box.box_id)
+    .concat(S.ov.recent_entries.filter(e => e.box_id === box.box_id)).slice(0, 6);
   const multi = S.ov.boxes.filter(b => b.type !== 'SYSTEM').length > 1;
   const t = S.ov.today;
 
@@ -1125,12 +1392,18 @@ function amtClass(e){
 
 function entryRow(e){
   const m = entryMeta(e);
+  if (e.queued) return `<div class="row queued">
+    <span class="row-ic tr">${ic('clock')}</span>
+    <span class="row-main"><span class="row-title">${esc(e.counterparty || e.entry_type_label)}</span>
+      <span class="row-sub"><span>${esc(e.entry_type_label)}</span><span class="tag amber">بانتظار المزامنة</span></span></span>
+    <span class="row-end"><span class="amt ${e.direction==='IN'?'in':'out'}">${e.direction==='IN'?'+':'−'} ${fmt(e.amount)}</span></span>
+  </div>`;
   const sign = e.direction === 'IN' ? '+' : '−';
   return `<button class="row" data-act="entry" data-id="${e.entry_id}">
     <span class="row-ic ${m.cls}">${ic(m.icon)}</span>
     <span class="row-main"><span class="row-title">${esc(m.title)}</span>
       <span class="row-sub"><span>${esc(e.entry_type==='EXPENSE'?e.category_name:typeLabel(e))}</span><span>${timeOf(e.created_at)}</span>
-      ${!e.verified?'<span class="tag amber">غير مؤكد</span>':''}${e.status==='VOIDED'?'<span class="tag grey">ملغى</span>':''}</span></span>
+      ${e.queued?'<span class="tag amber">بانتظار المزامنة</span>':!e.verified?'<span class="tag amber">غير مؤكد</span>':''}${e.status==='VOIDED'?'<span class="tag grey">ملغى</span>':''}</span></span>
     <span class="row-end"><span class="amt ${amtClass(e)}">${sign} ${fmt(e.amount)}${e.currency!=='DZD'?' '+(CUR[e.currency]||e.currency):''}</span>
       ${e.balance_after!=null?`<span class="row-bal num">${fmt(e.balance_after)}</span>`:''}</span>
   </button>`;
@@ -1235,6 +1508,7 @@ function viewAccount(){
       ${!hasPin() ? '' : `<button class="row" data-act="pin-lock"><span class="row-ic">${ic('lockClosed')}</span><span class="row-main"><span class="row-title">قفل التطبيق الآن</span><span class="row-sub">يطلب الرمز فوراً</span></span>${ic('chev')}</button>`}
       ${!pinSupported() ? '' : hasPin() ? `<button class="row" data-act="pin-change"><span class="row-ic">${ic('shield')}</span><span class="row-main"><span class="row-title">رمز الدخول</span><span class="row-sub">تغيير الأرقام الأربعة</span></span>${ic('chev')}</button>`
       : `<button class="row" data-act="pin-new"><span class="row-ic">${ic('shield')}</span><span class="row-main"><span class="row-title">رمز الدخول</span><span class="row-sub">غير مفعّل، فعّله لحماية الجهاز</span></span>${ic('chev')}</button>`}
+      <button class="row" data-act="sync-open"><span class="row-ic">${ic('cloudOff')}</span><span class="row-main"><span class="row-title">المزامنة</span><span class="row-sub">${outboxCount() ? outboxCount() + ' عملية على الجهاز' : (isOnline() ? 'كل شيء متزامن' : 'بدون اتصال')}</span></span>${ic('chev')}</button>
       <button class="row" data-act="lang"><span class="row-ic">${ic('globe')}</span><span class="row-main"><span class="row-title">اللغة</span><span class="row-sub" data-noi18n>${S.lang === 'en' ? 'English' : 'العربية'}</span></span>${ic('chev')}</button>
       ${S.demo ? `<div class="row"><span class="row-ic">${ic('server')}</span><span class="row-main"><span class="row-title">الخادم</span><span class="row-sub">وضع التجربة</span></span></div>` : ''}
     </div>
@@ -1675,6 +1949,7 @@ async function submitPayment(orderId, purpose, kp){
       description: $('#payDesc').value.trim(), entry_date: $('#payDate').value, client_ref: refFor(key)
     });
     clearRef(key);
+    if (r && r.queued) return queuedSheet('الدفعة محفوظة دون اتصال', '', Number(kp.value));
     const o = r.order;
     openSheet(`<div class="sheet-body"><div class="success">
         <div class="check">${`<svg class="i" viewBox="0 0 24 24">${I.check}</svg>`}</div>
@@ -1724,7 +1999,9 @@ function openRefund(orderId){
         try {
           const r = await api('recordCustomerRefund', { box_id: $('#refBox').value, order_id: orderId,
             amount: Number(kp.value), client_ref: refFor(key) });
-          clearRef(key); closeSheet(); toast('تم إرجاع الفائض');
+          clearRef(key);
+          if (r && r.queued){ closeSheet(); return queuedSheet('الإرجاع محفوظ دون اتصال', '', Number(kp.value)); }
+          closeSheet(); toast('تم إرجاع الفائض');
           S.order = r.order; openOrder(orderId); refresh(true); loadCustomers();
         } catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
       });
@@ -1943,6 +2220,10 @@ async function wizardSave(btn){
   try {
     const o = await api('createOrder', payload);
     clearRef(key); draftClear(); S.wiz = null;
+    if (o && o.queued){
+      await loadCustomers();
+      return queuedSheet('التسجيل محفوظ دون اتصال', payload.car_model || '', 0);
+    }
     toast(w.customer_id ? 'تمت إضافة السيارة' : 'تم تسجيل الزبون وسيارته');
     await loadCustomers();
     refresh(true);
@@ -2079,7 +2360,8 @@ async function doVoid(id, btn){
   const reason = $('#vr').value.trim(); if (!reason) return toast('اكتب سبب الإلغاء', true);
   setBtnBusy(btn, true);
   const vkey = 'void:' + id;
-  try { await api('voidEntry', { entry_id:id, reason, client_ref: refFor(vkey) }); clearRef(vkey); closeSheet(); toast('أُلغيت العملية'); await refresh(true); if (S.view==='history') loadHistory(); }
+  try { const rv = await api('voidEntry', { entry_id:id, reason, client_ref: refFor(vkey) }); clearRef(vkey); closeSheet();
+    if (rv && rv.queued){ return queuedSheet('الإلغاء محفوظ دون اتصال', reason, 0); } toast('أُلغيت العملية'); await refresh(true); if (S.view==='history') loadHistory(); }
   catch(x){ setBtnBusy(btn,false); toast(x.message, true); }
 }
 
@@ -2133,7 +2415,12 @@ async function transferAction(action, payload, btn, okMsg){
   setBtnBusy(btn, true);
   const key = action + ':' + (payload.transfer_id || '');
   payload.client_ref = refFor(key);
-  try { await api(action, payload); clearRef(key); closeSheet(); toast(okMsg); await refresh(true); }
+  try {
+    const r = await api(action, payload);
+    clearRef(key); closeSheet();
+    toast(r && r.queued ? 'محفوظة على الجهاز، تُرسل عند عودة الاتصال' : okMsg);
+    await refresh(true);
+  }
   catch(x){ setBtnBusy(btn,false); toast(x.message, true); }
 }
 
@@ -2169,6 +2456,24 @@ function bindKeypad(root, kp, onChange){
 }
 function formatTyping(v){ const [a,b] = v.split('.'); return nf.format(Number(a||0)) + (b!==undefined ? '.'+b : ''); }
 
+function refreshQueuedView(){
+  if (S.ovRaw) S.ov = applyOutboxToOverview(S.ovRaw);
+}
+
+function queuedSheet(title, note, amount){
+  refreshQueuedView();
+  openSheet(`<div class="sheet-body"><div class="success">
+      <div class="check amber">${`<svg class="i" viewBox="0 0 24 24">${I.clock}</svg>`}</div>
+      <h3>${esc(title)}</h3><p>${esc(note || '')}</p>
+      ${amount ? `<div class="big">${money(amount)}</div>` : ''}
+      <span class="after">محفوظة على الجهاز، تُرسل عند عودة الاتصال</span>
+    </div></div>
+    <div class="sheet-foot" style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1" data-act="sync-open">قائمة المزامنة</button>
+      <button class="btn btn-primary" style="flex:1" data-act="close-sheet">تم</button></div>`);
+  renderShell(false);
+}
+
 /* ---------------- New operation ---------------- */
 function openChooser(){
   openSheet(`${sheetHead('عملية جديدة')}<div class="sheet-body">
@@ -2189,7 +2494,12 @@ async function openOp(type){
   try {
     if (needCats) S.cats = await api('listCategories');
     if (needTargets) S.targets = await api('listTransferTargets');
-  } catch(x){ closeSheet(); return toast(x.message, true); }
+  } catch(x){
+    closeSheet();
+    return toast(!isOnline()
+      ? 'هذه القائمة غير محفوظة على الجهاز. افتحها مرة وأنت متصل لتعمل لاحقاً دون إنترنت'
+      : x.message, true);
+  }
   if (!$('#opBody')) return;
   renderOpForm(op, box);
 }
@@ -2327,6 +2637,10 @@ async function submitOp(op, box){
       title = 'أُرسل التحويل'; note = `بانتظار تأكيد ${to}`; amber = true;
     }
     op._ref = null;
+    if (r && r.queued){
+      const verb = op.type==='income' ? 'استلام مبلغ' : op.type==='expense' ? 'مصروف' : 'تحويل';
+      return queuedSheet(verb + ' محفوظ دون اتصال', op.counterparty || op.description || '', amount);
+    }
     const newBal = r.balance ? r.balance[op.currency] : null;
     const warn = (r.warnings||[])[0];
     openSheet(`<div class="sheet-body"><div class="success">
@@ -2428,6 +2742,10 @@ document.addEventListener('click', async e => {
         closeSheet(); openOrder(id); } catch(x){ toast(x.message, true); } break; }
     case 'pay-flow': openPayFlow(); break;
     case 'pf-cust': openPayFlowCars(id); break;
+    case 'sync-open': openSyncSheet(); break;
+    case 'sync-now': setBtnBusy(el, true); await syncOutbox(true); closeSheet(); break;
+    case 'sync-retry': outboxRetry(id); closeSheet(); break;
+    case 'sync-drop': outboxDrop(id); closeSheet(); break;
     case 'lang': openLang(); break;
     case 'lang-set': if (el.dataset.l !== S.lang) setLang(el.dataset.l); else closeSheet(); break;
     case 'password': openPassword(); break;
