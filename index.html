@@ -2673,7 +2673,7 @@ async function saveUserForm(f, u){
       await api('adminUpdateUser', payload);
       closeSheet(); toast('تم حفظ التغييرات'); afterAdminChange();
     } else {
-      const akey = 'adminCreateUser:' + (uf.username || '') ;
+      const akey = 'adminCreateUser:' + (f.username || '');
       const r = await api('adminCreateUser', { client_ref: refFor(akey),
         full_name:f.full_name.trim(), phone:f.phone.trim(), role:f.role, username:f.username, box_ids:[...f.box_ids],
         new_box: f.new_box ? { name:f.nb_name.trim(), type:f.nb_type, location:f.nb_location.trim() } : null
