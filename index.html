@@ -98,6 +98,14 @@ svg.i{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .sec:first-child{margin-top:4px}
 .sec-h{display:flex;align-items:baseline;justify-content:space-between;margin:0 2px 10px}
 .sec-h h2{margin:0;font-size:16px;font-weight:600}
+.action-center{margin-top:2px}
+.action-center .sec-h{align-items:center}
+.action-count{background:var(--out-tint);color:var(--out);border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600}
+.action-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line-2)}
+.action-item:last-child{border-bottom:0}
+.action-copy{flex:1;min-width:0}.action-copy b,.action-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.action-copy b{font-size:13px}.action-copy small{color:var(--muted);font-size:12px;margin-top:2px}
+.action-item .btn{flex:none;white-space:nowrap}
 .link{color:var(--petrol);font-size:13.5px;font-weight:500}
 
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card)}
@@ -1456,8 +1464,7 @@ function viewHome(){
     </div>
   </section>
   <div class="page">
-    ${incoming.length ? `<section class="sec"><div class="sec-h"><h2>تنتظر تأكيدك</h2></div>${incoming.map(transferCard).join('')}</section>` : ''}
-    ${shipAlertsHtml()}
+    ${actionCenterHtml()}
     ${watching.length ? `<section class="sec"><div class="sec-h"><h2>بانتظار تأكيد صاحب الصندوق</h2></div>${watching.map(transferCard).join('')}</section>` : ''}
     ${otherIncoming ? `<button class="card row" data-act="tab" data-v="transfers" style="margin-top:12px">${ic('clock')}<span class="row-main">${otherIncoming} تحويل ينتظر تأكيدك في صناديق أخرى</span>${ic('chev')}</button>` : ''}
     <section class="sec">
@@ -1483,6 +1490,21 @@ function boxName(id){
 function daysWord(n){
   if (isEN()) return n === 0 ? 'Ships today' : n === 1 ? 'Tomorrow' : `in ${n} days`;
   return n === 0 ? 'يُشحن اليوم' : n === 1 ? 'غداً' : n === 2 ? 'بعد يومين' : `بعد ${n} أيام`;
+}
+
+/* إجراءات المستخدم من كل الصناديق، مع ربط كل بند بالمعالج الموجود أصلاً. */
+function actionCenterHtml(){
+  const transfers = (S.ov.my_incoming_transfers || []).filter(t => t.status === 'PENDING' && t.can_confirm && !isMineSender(t));
+  const alerts = S.ov.shipping_alerts || [];
+  const failed = outbox().filter(o => o.status === 'FAILED');
+  const count = transfers.length + alerts.length + failed.length;
+  if (!count) return '';
+  const items = [
+    ...failed.map(o => `<div class="action-item"><span class="row-ic out">${ic('x')}</span><span class="action-copy"><b>${isEN()?'Sync needs attention':'عملية تحتاج مراجعة'}</b><small>${esc(o.label)}${o.summary?' · '+esc(o.summary):''}</small></span><button class="btn btn-ghost btn-sm" data-act="sync-open">${isEN()?'Review':'مراجعة'}</button></div>`),
+    ...transfers.map(t => `<div class="action-item"><span class="row-ic tr">${ic('swap')}</span><span class="action-copy"><b>${isEN()?'Incoming transfer':'تحويل ينتظر تأكيدك'} · ${money(t.amount,t.currency)}</b><small>${esc(t.from_box_name)} ← ${esc(t.to_box_name)}</small></span><button class="btn btn-primary btn-sm" data-act="t-confirm" data-id="${esc(t.transfer_id)}">${isEN()?'Receive':'استلمت'}</button></div>`),
+    ...alerts.map(a => `<div class="action-item"><span class="row-ic ${a.kind==='COLLECT'?'out':'tr'}">${ic('clock')}</span><span class="action-copy"><b>${esc(a.customer_name)} · ${esc(a.car_label)}</b><small>${a.kind==='COLLECT' ? (isEN()?'Collect balance':'تحصيل الباقي')+' '+money(a.price_remaining) : (isEN()?'Notify customer of shipping':'إبلاغ الزبون بالشحن')} · ${a.days_to_ship<0?(isEN()?'Overdue':'تأخر الموعد'):daysWord(a.days_to_ship)}</small></span><button class="btn btn-primary btn-sm" data-act="${a.kind==='COLLECT'?'pay':'notified'}" data-id="${esc(a.order_id)}" ${a.kind==='COLLECT'?'data-purpose="PRICE"':''}>${a.kind==='COLLECT'?(isEN()?'Payment':'دفعة'):(isEN()?'Notified':'أبلغته')}</button></div>`)
+  ];
+  return `<section class="sec action-center" aria-label="${isEN()?'Needs your attention':'تحتاج متابعتك'}"><div class="sec-h"><h2>${isEN()?'Needs your attention':'تحتاج متابعتك'}</h2><span class="action-count">${count}</span></div><div class="list">${items.join('')}</div></section>`;
 }
 
 function shipAlertsHtml(){
