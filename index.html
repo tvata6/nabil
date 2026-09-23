@@ -337,14 +337,18 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 .sync-state.off{background:var(--paper)}
 .row.queued{opacity:.75}
 
-.followup .sec-h h2{font-weight:600;color:var(--ink);font-size:16px}
-.fu-count{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 7px;border-radius:11px;
-  background:var(--amber);color:var(--asphalt);font-size:12px;font-weight:700}
-.fu-tier + .fu-tier{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
-.fu-tech .row{min-height:52px}
-.fu-tech .row-title{font-weight:400;color:var(--muted);font-size:13.5px}
-.fu-tech .row-ic{width:32px;height:32px}
-.fu-tech .row-ic svg.i{width:16px;height:16px}
+.fu-bar{display:flex;align-items:center;gap:10px;width:100%;margin-top:14px;padding:11px 14px;border-radius:14px;
+  background:rgba(233,162,12,.14);color:#F6C866;font-size:14px;font-weight:500;text-align:start}
+.fu-bar span:nth-child(2){flex:1}
+.fu-bar svg.i{width:18px;height:18px;opacity:.7}
+.fu-bar:active{background:rgba(233,162,12,.22)}
+.fu-count{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 7px;border-radius:12px;
+  background:var(--amber);color:var(--asphalt);font-size:13px;font-weight:700}
+.sheet-head .fu-count{margin-inline-start:auto;margin-inline-end:8px}
+.fu-label{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12.5px;margin:0 2px 9px}
+.fu-label svg.i{width:15px;height:15px}
+.fu-tier + .fu-tier{margin-top:20px;padding-top:18px;border-top:1px solid var(--line-2)}
+.fu-tier .row-title{font-weight:400;color:var(--muted);font-size:13.5px}
 
 /* Toast */
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + var(--safe-b));z-index:60;display:flex;justify-content:center;pointer-events:none}
@@ -1446,7 +1450,7 @@ function viewHome(){
   const entries = (S.ov.queued || []).filter(e => e.box_id === box.box_id)
     .concat(S.ov.recent_entries.filter(e => e.box_id === box.box_id)).slice(0, 6);
   const multi = S.ov.boxes.filter(b => b.type !== 'SYSTEM').length > 1;
-  const hasFollowUp = followUpItems(incoming, watching, otherIncoming).n > 0;
+  const fu = followUpItems(incoming, watching, otherIncoming);
   const t = S.ov.today;
 
   return `
@@ -1465,6 +1469,8 @@ function viewHome(){
       ? `<div class="transit"><span class="dot"></span>في الطريق إليك ${money(pin)}</div>`
       : (watching.length ? '' : `<div class="transit watch"><span class="dot"></span>في الطريق إلى ${esc(box.name)} ${money(pin)}، بانتظار تأكيد ${esc(waitingOn(box.box_id))}</div>`)) : ''}
     ${pout ? `<div class="transit out"><span class="dot"></span>أرسلت ${money(pout)} ولم يؤكَّد استلامها بعد</div>` : ''}
+    ${fu.n ? `<button class="fu-bar" data-act="followup"><span class="fu-count">${fu.n}</span>
+      <span>تحتاج متابعتك</span>${ic('chev')}</button>` : ''}
     <div class="quick">
       <button data-act="op" data-type="income"><span class="qi in">${ic('in')}</span>استلام مبلغ</button>
       <button data-act="op" data-type="expense"><span class="qi out">${ic('out')}</span>مصروف</button>
@@ -1472,7 +1478,6 @@ function viewHome(){
     </div>
   </section>
   <div class="page">
-    ${followUpHtml(incoming, watching, otherIncoming)}
     <section class="sec">
       <div class="sec-h"><h2>اليوم</h2><span class="hint" style="margin:0">${t.count} عملية</span></div>
       <div class="today">
@@ -1532,7 +1537,6 @@ function followUpItems(incoming, watching, otherIncoming){
   const ship = S.ov.shipping_alerts || [];
   const queued = outboxCount();
   const failed = outbox().filter(o => o.status === 'FAILED').length;
-  const unverified = S.me.user.role !== 'KEEPER' ? (S.ov.unverified_count || 0) : 0;
   const tech = [];
   if (failed) tech.push({ k:'sync-bad', icon:'x', cls:'out', act:'sync-open',
     text:`${failed} عملية لم تُقبل، راجعها`, n:failed });
@@ -1540,26 +1544,31 @@ function followUpItems(incoming, watching, otherIncoming){
     text:`${queued} عملية بانتظار المزامنة`, n:queued });
   if (otherIncoming) tech.push({ k:'other', icon:'swap', cls:'tr', act:'tab', v:'transfers',
     text:`${otherIncoming} تحويل ينتظر تأكيدك في صناديق أخرى`, n:otherIncoming });
-  if (unverified) tech.push({ k:'unv', icon:'clock', cls:'tr', act:'tab', v:'history',
-    text:`${unverified} قيد بانتظار التثبيت`, n:unverified });
 
   const n = incoming.length + ship.length + watching.length + tech.reduce((a,b)=>a+b.n,0);
   return { incoming, ship, watching, tech, n };
 }
 
-function followUpHtml(incoming, watching, otherIncoming){
-  const f = followUpItems(incoming, watching, otherIncoming);
-  if (!f.n) return '';
+function openFollowUp(){
+  const box = currentBox();
+  const incoming = S.ov.my_incoming_transfers.filter(t => t.to_box_id === box.box_id);
+  const watching = (S.ov.watching_transfers || []).filter(t => t.to_box_id === box.box_id);
+  const other = S.ov.my_incoming_transfers.length - incoming.length;
+  const f = followUpItems(incoming, watching, other);
+
   const tier2 = shipAlertsHtml(true) + (f.watching.length ? f.watching.map(transferCard).join('') : '');
-  return `<section class="sec followup">
-    <div class="sec-h"><h2>تحتاج متابعتك</h2><span class="fu-count">${f.n}</span></div>
-    ${f.incoming.length ? `<div class="fu-tier">${f.incoming.map(transferCard).join('')}</div>` : ''}
-    ${tier2 ? `<div class="fu-tier">${tier2}</div>` : ''}
-    ${f.tech.length ? `<div class="fu-tier fu-tech"><div class="list">${f.tech.map(t => `
-      <button class="row" data-act="${t.act}" ${t.v?`data-v="${t.v}"`:''}>
-        <span class="row-ic ${t.cls}">${ic(t.icon)}</span>
-        <span class="row-main"><span class="row-title">${esc(t.text)}</span></span>${ic('chev')}</button>`).join('')}</div></div>` : ''}
-  </section>`;
+  openSheet(`<div class="sheet-head"><h3>تحتاج متابعتك</h3>
+      <span class="fu-count">${f.n}</span>
+      <button class="icon-btn" data-act="close-sheet" aria-label="إغلاق">${ic('x')}</button></div>
+    <div class="sheet-body">
+      ${f.incoming.length ? `<div class="fu-tier"><span class="fu-label">${ic('swap')}تأكيد استلام</span>
+        ${f.incoming.map(transferCard).join('')}</div>` : ''}
+      ${tier2 ? `<div class="fu-tier"><span class="fu-label">${ic('car')}قبل الشحن</span>${tier2}</div>` : ''}
+      ${f.tech.length ? `<div class="fu-tier"><span class="fu-label">${ic('cloudOff')}أمور تقنية</span>
+        <div class="list">${f.tech.map(t => `<button class="row" data-act="${t.act}" ${t.v?`data-v="${t.v}"`:''}>
+          <span class="row-ic ${t.cls}">${ic(t.icon)}</span>
+          <span class="row-main"><span class="row-title">${esc(t.text)}</span></span>${ic('chev')}</button>`).join('')}</div></div>` : ''}
+    </div>`, { full:true });
 }
 
 function waitingOn(boxId){
@@ -2944,6 +2953,7 @@ document.addEventListener('click', async e => {
         closeSheet(); openOrder(id); } catch(x){ toast(x.message, true); } break; }
     case 'pay-flow': openPayFlow(); break;
     case 'pf-cust': openPayFlowCars(id); break;
+    case 'followup': openFollowUp(); break;
     case 'ava-open': openAvatarSheet(id, ''); break;
     case 'ava-pick': closeSheet(); pickAvatar(id); break;
     case 'ava-del': removeAvatar(id); break;
