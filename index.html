@@ -98,14 +98,6 @@ svg.i{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .sec:first-child{margin-top:4px}
 .sec-h{display:flex;align-items:baseline;justify-content:space-between;margin:0 2px 10px}
 .sec-h h2{margin:0;font-size:16px;font-weight:600}
-.action-center{margin-top:2px}
-.action-center .sec-h{align-items:center}
-.action-count{background:var(--out-tint);color:var(--out);border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600}
-.action-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line-2)}
-.action-item:last-child{border-bottom:0}
-.action-copy{flex:1;min-width:0}.action-copy b,.action-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.action-copy b{font-size:13px}.action-copy small{color:var(--muted);font-size:12px;margin-top:2px}
-.action-item .btn{flex:none;white-space:nowrap}
 .link{color:var(--petrol);font-size:13.5px;font-weight:500}
 
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card)}
@@ -344,6 +336,15 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 .sync-state.on b,.sync-state.on small{color:var(--ink)}
 .sync-state.off{background:var(--paper)}
 .row.queued{opacity:.75}
+
+.followup .sec-h h2{font-weight:600;color:var(--ink);font-size:16px}
+.fu-count{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 7px;border-radius:11px;
+  background:var(--amber);color:var(--asphalt);font-size:12px;font-weight:700}
+.fu-tier + .fu-tier{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.fu-tech .row{min-height:52px}
+.fu-tech .row-title{font-weight:400;color:var(--muted);font-size:13.5px}
+.fu-tech .row-ic{width:32px;height:32px}
+.fu-tech .row-ic svg.i{width:16px;height:16px}
 
 /* Toast */
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + var(--safe-b));z-index:60;display:flex;justify-content:center;pointer-events:none}
@@ -1361,10 +1362,20 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) setT
 /* ---------------- Shell & tabs ---------------- */
 function currentBox(){ return S.ov ? S.ov.boxes.find(b => b.box_id === S.boxId) : null; }
 function incomingCount(){ return S.ov ? S.ov.my_incoming_transfers.length : 0; }
+function followUpCount(){
+  if (!S.ov || !S.me) return 0;
+  const box = currentBox();
+  if (!box) return outboxCount();
+  const incoming = S.ov.my_incoming_transfers.filter(t => t.to_box_id === box.box_id);
+  const watching = (S.ov.watching_transfers || []).filter(t => t.to_box_id === box.box_id);
+  const other = S.ov.my_incoming_transfers.length - incoming.length;
+  return followUpItems(incoming, watching, other).n;
+}
 
 function renderShell(loading){
   const tabs = [['home','home','الرئيسية'],['customers','user','الزبائن'],['plus'],['transfers','swap','التحويلات'],['account','user','حسابي']];
   const n = incomingCount();
+  const fu = followUpCount();
   $('#root').innerHTML = `
   ${S.demo ? '<div class="demo-bar">وضع التجربة: البيانات وهمية ولا تُحفظ</div>' : ''}
   ${offlineBar()}
@@ -1372,7 +1383,7 @@ function renderShell(loading){
   <nav class="tabbar" aria-label="التنقل">
     ${tabs.map(t => t[0]==='plus'
       ? `<button class="tab-plus" data-act="new-op" aria-label="عملية جديدة">${ic('plus')}</button>`
-      : `<button class="tab" data-act="tab" data-v="${t[0]}" ${(S.view.startsWith('admin')?'account':S.view)===t[0]?'aria-current="page"':''}>${ic(t[1])}<span>${t[2]}</span>${t[0]==='transfers'&&n?`<span class="badge">${n}</span>`:''}</button>`).join('')}
+      : `<button class="tab" data-act="tab" data-v="${t[0]}" ${(S.view.startsWith('admin')?'account':S.view)===t[0]?'aria-current="page"':''}>${ic(t[1])}<span>${t[2]}</span>${t[0]==='transfers'&&n?`<span class="badge">${n}</span>`:''}${t[0]==='home'&&fu?`<span class="badge">${fu}</span>`:''}</button>`).join('')}
   </nav>`;
   if (!loading) afterRender();
 }
@@ -1464,9 +1475,7 @@ function viewHome(){
     </div>
   </section>
   <div class="page">
-    ${actionCenterHtml()}
-    ${watching.length ? `<section class="sec"><div class="sec-h"><h2>بانتظار تأكيد صاحب الصندوق</h2></div>${watching.map(transferCard).join('')}</section>` : ''}
-    ${otherIncoming ? `<button class="card row" data-act="tab" data-v="transfers" style="margin-top:12px">${ic('clock')}<span class="row-main">${otherIncoming} تحويل ينتظر تأكيدك في صناديق أخرى</span>${ic('chev')}</button>` : ''}
+    ${followUpHtml(incoming, watching, otherIncoming)}
     <section class="sec">
       <div class="sec-h"><h2>اليوم</h2><span class="hint" style="margin:0">${t.count} عملية</span></div>
       <div class="today">
@@ -1492,26 +1501,8 @@ function daysWord(n){
   return n === 0 ? 'يُشحن اليوم' : n === 1 ? 'غداً' : n === 2 ? 'بعد يومين' : `بعد ${n} أيام`;
 }
 
-/* إجراءات المستخدم من كل الصناديق، مع ربط كل بند بالمعالج الموجود أصلاً. */
-function actionCenterHtml(){
-  const transfers = (S.ov.my_incoming_transfers || []).filter(t => t.status === 'PENDING' && t.can_confirm && !isMineSender(t));
-  const alerts = S.ov.shipping_alerts || [];
-  const failed = outbox().filter(o => o.status === 'FAILED');
-  const count = transfers.length + alerts.length + failed.length;
-  if (!count) return '';
-  const items = [
-    ...failed.map(o => `<div class="action-item"><span class="row-ic out">${ic('x')}</span><span class="action-copy"><b>${isEN()?'Sync needs attention':'عملية تحتاج مراجعة'}</b><small>${esc(o.label)}${o.summary?' · '+esc(o.summary):''}</small></span><button class="btn btn-ghost btn-sm" data-act="sync-open">${isEN()?'Review':'مراجعة'}</button></div>`),
-    ...transfers.map(t => `<div class="action-item"><span class="row-ic tr">${ic('swap')}</span><span class="action-copy"><b>${isEN()?'Incoming transfer':'تحويل ينتظر تأكيدك'} · ${money(t.amount,t.currency)}</b><small>${esc(t.from_box_name)} ← ${esc(t.to_box_name)}</small></span><button class="btn btn-primary btn-sm" data-act="t-confirm" data-id="${esc(t.transfer_id)}">${isEN()?'Receive':'استلمت'}</button></div>`),
-    ...alerts.map(a => `<div class="action-item"><span class="row-ic ${a.kind==='COLLECT'?'out':'tr'}">${ic('clock')}</span><span class="action-copy"><b>${esc(a.customer_name)} · ${esc(a.car_label)}</b><small>${a.kind==='COLLECT' ? (isEN()?'Collect balance':'تحصيل الباقي')+' '+money(a.price_remaining) : (isEN()?'Notify customer of shipping':'إبلاغ الزبون بالشحن')} · ${a.days_to_ship<0?(isEN()?'Overdue':'تأخر الموعد'):daysWord(a.days_to_ship)}</small></span><button class="btn btn-primary btn-sm" data-act="${a.kind==='COLLECT'?'pay':'notified'}" data-id="${esc(a.order_id)}" ${a.kind==='COLLECT'?'data-purpose="PRICE"':''}>${a.kind==='COLLECT'?(isEN()?'Payment':'دفعة'):(isEN()?'Notified':'أبلغته')}</button></div>`)
-  ];
-  return `<section class="sec action-center" aria-label="${isEN()?'Needs your attention':'تحتاج متابعتك'}"><div class="sec-h"><h2>${isEN()?'Needs your attention':'تحتاج متابعتك'}</h2><span class="action-count">${count}</span></div><div class="list">${items.join('')}</div></section>`;
-}
-
-function shipAlertsHtml(){
-  const list = (S.ov.shipping_alerts || []);
-  if (!list.length) return '';
-  return `<section class="sec"><div class="sec-h"><h2>قبل الشحن</h2></div>
-    ${list.map(a => `<article class="tcard ${a.kind==='COLLECT'?'':'done'}" style="border-inline-start-color:${a.kind==='COLLECT'?'var(--out)':'var(--petrol)'}">
+function shipCard(a){
+  return `<article class="tcard ${a.kind==='COLLECT'?'':'done'}" style="border-inline-start-color:${a.kind==='COLLECT'?'var(--out)':'var(--petrol)'}">
       <div class="t-route"><b>${esc(a.customer_name)}</b><span>${esc(a.car_label)}</span>
         <span style="margin-inline-start:auto" class="tag ${a.days_to_ship < 0 ? 'red' : 'amber'}">
           ${a.days_to_ship < 0 ? 'مرّ موعد الشحن' : daysWord(a.days_to_ship)}</span></div>
@@ -1525,7 +1516,53 @@ function shipAlertsHtml(){
           : `<button class="btn btn-primary btn-sm" style="flex:1" data-act="notified" data-id="${a.order_id}">${ic('check')}أبلغته</button>`}
         ${a.phone?`<a class="btn btn-ghost btn-sm" href="tel:${esc(a.phone)}">${ic('phone')}اتصال</a>`:''}
         <button class="btn btn-ghost btn-sm" data-act="order" data-id="${a.order_id}">السيارة</button>
-      </div></article>`).join('')}</section>`;
+      </div></article>`;
+}
+
+function shipAlertsHtml(inside){
+  const list = (S.ov.shipping_alerts || []);
+  if (!list.length) return '';
+  if (inside) return list.map(shipCard).join('');
+  return `<section class="sec"><div class="sec-h"><h2>قبل الشحن</h2></div>${list.map(shipCard).join('')}</section>`;
+}
+
+/* تحتاج متابعتك:
+   الدرجة 1 قرارات مالية لا تُلغى  → بطاقة كاملة بالمبلغ الكبير وزر واضح.
+   الدرجة 2 مهام اليوم              → بطاقات بأزرارها كما هي.
+   الدرجة 3 أمور تقنية              → سطر واحد هادئ، لا يزاحم المال.
+   الدرجة التي لا شيء فيها لا تظهر أصلاً، وإن خلت الثلاث اختفى القسم كله. */
+function followUpItems(incoming, watching, otherIncoming){
+  const ship = S.ov.shipping_alerts || [];
+  const queued = outboxCount();
+  const failed = outbox().filter(o => o.status === 'FAILED').length;
+  const unverified = S.me.user.role !== 'KEEPER' ? (S.ov.unverified_count || 0) : 0;
+  const tech = [];
+  if (failed) tech.push({ k:'sync-bad', icon:'x', cls:'out', act:'sync-open',
+    text:`${failed} عملية لم تُقبل، راجعها`, n:failed });
+  else if (queued) tech.push({ k:'sync', icon:'cloudOff', cls:'tr', act:'sync-open',
+    text:`${queued} عملية بانتظار المزامنة`, n:queued });
+  if (otherIncoming) tech.push({ k:'other', icon:'swap', cls:'tr', act:'tab', v:'transfers',
+    text:`${otherIncoming} تحويل ينتظر تأكيدك في صناديق أخرى`, n:otherIncoming });
+  if (unverified) tech.push({ k:'unv', icon:'clock', cls:'tr', act:'tab', v:'history',
+    text:`${unverified} قيد بانتظار التثبيت`, n:unverified });
+
+  const n = incoming.length + ship.length + watching.length + tech.reduce((a,b)=>a+b.n,0);
+  return { incoming, ship, watching, tech, n };
+}
+
+function followUpHtml(incoming, watching, otherIncoming){
+  const f = followUpItems(incoming, watching, otherIncoming);
+  if (!f.n) return '';
+  const tier2 = shipAlertsHtml(true) + (f.watching.length ? f.watching.map(transferCard).join('') : '');
+  return `<section class="sec followup">
+    <div class="sec-h"><h2>تحتاج متابعتك</h2><span class="fu-count">${f.n}</span></div>
+    ${f.incoming.length ? `<div class="fu-tier">${f.incoming.map(transferCard).join('')}</div>` : ''}
+    ${tier2 ? `<div class="fu-tier">${tier2}</div>` : ''}
+    ${f.tech.length ? `<div class="fu-tier fu-tech"><div class="list">${f.tech.map(t => `
+      <button class="row" data-act="${t.act}" ${t.v?`data-v="${t.v}"`:''}>
+        <span class="row-ic ${t.cls}">${ic(t.icon)}</span>
+        <span class="row-main"><span class="row-title">${esc(t.text)}</span></span>${ic('chev')}</button>`).join('')}</div></div>` : ''}
+  </section>`;
 }
 
 function waitingOn(boxId){
