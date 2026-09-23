@@ -1,4 +1,4 @@
-<!doctype html>
+<!-- <!doctype html> -->
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
@@ -1032,15 +1032,11 @@ setInterval(() => { if (outbox().some(o => o.status === 'PENDING')) syncOutbox()
 window.addEventListener('offline', () => { renderShell(false); toast('انقطع الاتصال. ستُحفظ عملياتك وتُرسل لاحقاً'); });
 
 /* ---------- شريط الحالة وقائمة المزامنة ---------- */
+/* الشريط العلوي يقول حالة الاتصال فقط.
+   العمليات التي تحتاج مراجعة مكانها قسم «تحتاج متابعتك» ولا تتكرر هنا. */
 function offlineBar(){
-  const n = outboxCount();
-  const failed = outbox().some(o => o.status === 'FAILED');
-  if (isOnline() && !n) return '';
-  const cls = !isOnline() ? 'off' : failed ? 'bad' : 'wait';
-  const txt = !isOnline()
-    ? (n ? `بدون اتصال · ${n} عملية محفوظة على الجهاز` : 'بدون اتصال · تعمل على آخر نسخة محفوظة')
-    : failed ? `${n} عملية تحتاج مراجعة` : `${n} عملية بانتظار المزامنة`;
-  return `<button class="offbar ${cls}" data-act="sync-open">${ic(isOnline() ? 'refresh' : 'cloudOff')}<span>${txt}</span>${ic('chev')}</button>`;
+  if (isOnline()) return '';
+  return `<div class="offbar off">${ic('cloudOff')}<span>بدون اتصال · تعمل على آخر نسخة محفوظة</span></div>`;
 }
 
 function openSyncSheet(){
@@ -1450,6 +1446,7 @@ function viewHome(){
   const entries = (S.ov.queued || []).filter(e => e.box_id === box.box_id)
     .concat(S.ov.recent_entries.filter(e => e.box_id === box.box_id)).slice(0, 6);
   const multi = S.ov.boxes.filter(b => b.type !== 'SYSTEM').length > 1;
+  const hasFollowUp = followUpItems(incoming, watching, otherIncoming).n > 0;
   const t = S.ov.today;
 
   return `
@@ -1464,9 +1461,9 @@ function viewHome(){
     <div class="bal-label">رصيد الصندوق</div>
     <div class="odo-wrap">${odometer(dzd, box.box_id)}<span class="odo-cur">${CUR.DZD}</span></div>
     ${fx.length ? `<div class="fx-row">${fx.map(c=>`<span class="fx">${money(bal[c], c)}</span>`).join('')}</div>` : ''}
-    ${pin ? (myBox
+    ${pin && !incoming.length ? (myBox
       ? `<div class="transit"><span class="dot"></span>في الطريق إليك ${money(pin)}</div>`
-      : `<div class="transit watch"><span class="dot"></span>في الطريق إلى ${esc(box.name)} ${money(pin)}، بانتظار تأكيد ${esc(waitingOn(box.box_id))}</div>`) : ''}
+      : (watching.length ? '' : `<div class="transit watch"><span class="dot"></span>في الطريق إلى ${esc(box.name)} ${money(pin)}، بانتظار تأكيد ${esc(waitingOn(box.box_id))}</div>`)) : ''}
     ${pout ? `<div class="transit out"><span class="dot"></span>أرسلت ${money(pout)} ولم يؤكَّد استلامها بعد</div>` : ''}
     <div class="quick">
       <button data-act="op" data-type="income"><span class="qi in">${ic('in')}</span>استلام مبلغ</button>
