@@ -876,6 +876,16 @@ function millions(v){
   const n = Number(v); if (!n || n < 10000) return '';
   const m = n / 10000; return `${nf.format(Math.round(m*100)/100)} ${isEN() ? 'malyoun' : 'مليون'}`;
 }
+/* الصفر الأول في أرقام الهواتف: نعيده عند العرض حتى لو وصل ناقصاً من الخادم */
+function normPhone(v){
+  let t = String(v == null ? '' : v).trim().replace(/[\s.\-()]/g, '');
+  if (!t) return '';
+  if (t[0] === '+') return t;
+  if (/^213\d{9}$/.test(t)) return '+' + t;
+  if (/^[5-7]\d{8}$/.test(t)) return '0' + t;
+  return t;
+}
+
 const ROLE_AR = { ADMIN:'مدير', ACCOUNTANT:'محاسب', KEEPER:'صاحب صندوق' };
 const ROLE_EN = { ADMIN:'Manager', ACCOUNTANT:'Accountant', KEEPER:'Box keeper' };
 const ROLE = new Proxy({}, { get: (_, k) => (isEN() ? ROLE_EN : ROLE_AR)[k] });
@@ -1537,13 +1547,13 @@ function shipCard(a){
           ${a.days_to_ship < 0 ? `متأخر ${Math.abs(a.days_to_ship)} يوم` : daysWord(a.days_to_ship)}</span></div>
       <div class="t-amt" style="font-size:18px">${a.kind==='COLLECT'
         ? `باقٍ عليه ${money(a.price_remaining)}` : 'خالص الثمن، أبلغه بموعد الشحن'}</div>
-      <div class="t-meta"><span>الشحن ${dayLabel(a.ship_date)}</span>${a.phone?`<span class="num">${esc(a.phone)}</span>`:''}
+      <div class="t-meta"><span>الشحن ${dayLabel(a.ship_date)}</span>${a.phone?`<span class="num">${esc(normPhone(a.phone))}</span>`:''}
         ${S.me.user.role !== 'KEEPER' && a.owner_box_id ? `<span>${esc(boxName(a.owner_box_id))}</span>` : ''}</div>
       <div class="t-actions">
         ${a.kind==='COLLECT'
           ? `<button class="btn btn-primary btn-sm" style="flex:1" data-act="pay" data-id="${a.order_id}" data-purpose="PRICE">تسجيل دفعة</button>`
           : `<button class="btn btn-primary btn-sm" style="flex:1" data-act="notified" data-id="${a.order_id}">${ic('check')}أبلغته</button>`}
-        ${a.phone?`<a class="btn btn-ghost btn-sm" href="tel:${esc(a.phone)}">${ic('phone')}اتصال</a>`:''}
+        ${a.phone?`<a class="btn btn-ghost btn-sm" href="tel:${esc(normPhone(a.phone))}">${ic('phone')}اتصال</a>`:''}
         <button class="btn btn-ghost btn-sm" data-act="order" data-id="${a.order_id}">السيارة</button>
       </div></article>`;
 }
@@ -2071,9 +2081,9 @@ function renderCustomerSheet(c, orders){
     <div class="cust-head">
       <span class="avatar">${esc((c.full_name||'?').trim()[0])}</span>
       <div><b>${esc(c.full_name)}</b>
-        <span class="row-sub">${c.phone?`<span class="num">${esc(c.phone)}</span>`:''}${c.wilaya?`<span>${esc(c.wilaya)}</span>`:''}
+        <span class="row-sub">${c.phone?`<span class="num">${esc(normPhone(c.phone))}</span>`:''}${c.wilaya?`<span>${esc(c.wilaya)}</span>`:''}
         ${c.type==='DEALER'?'<span class="tag grey">تاجر</span>':''}</span></div>
-      ${c.phone ? `<a class="icon-btn" href="tel:${esc(c.phone)}" aria-label="اتصال">${ic('phone')}</a>` : ''}
+      ${c.phone ? `<a class="icon-btn" href="tel:${esc(normPhone(c.phone))}" aria-label="اتصال">${ic('phone')}</a>` : ''}
     </div>
     <div class="today" style="margin-top:14px">
       <div class="card"><small>الباقي عليه</small><span class="amt ${due?'out':'in'}">${fmt(due)}</span></div>
@@ -3177,7 +3187,7 @@ function openUserDetail(id){
     <dl class="dl">
       <div><dt>الدور</dt><dd>${ROLE[u.role]}</dd></div>
       <div><dt>الصناديق</dt><dd>${u.boxes.length ? esc(u.boxes.map(b=>b.name).join('، ')) : 'لا يوجد'}</dd></div>
-      ${u.phone ? `<div><dt>الهاتف</dt><dd class="num">${esc(u.phone)}</dd></div>` : ''}
+      ${u.phone ? `<div><dt>الهاتف</dt><dd class="num">${esc(normPhone(u.phone))}</dd></div>` : ''}
       <div><dt>آخر دخول</dt><dd>${lastLogin(u)}</dd></div>
       <div><dt>الحالة</dt><dd>${off ? '<span class="tag grey">موقوف</span>' : u.must_change_password ? '<span class="tag amber">لم يغيّر كلمة المرور المؤقتة</span>' : '<span class="tag green">نشط</span>'}</dd></div>
     </dl>
