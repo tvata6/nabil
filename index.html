@@ -1,4 +1,4 @@
-<!-- <!doctype html> -->
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
@@ -345,6 +345,31 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 .fu-count{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 7px;border-radius:12px;
   background:var(--amber);color:var(--asphalt);font-size:13px;font-weight:700}
 .sheet-head .fu-count{margin-inline-start:auto;margin-inline-end:8px}
+.fu-sum{display:flex;gap:14px;padding:12px 18px 14px;border-bottom:1px solid var(--line-2);background:var(--paper)}
+.fu-sum div{flex:1}
+.fu-sum small{display:block;color:var(--faint);font-size:11.5px;margin-bottom:2px}
+.fu-sum b{font-size:18px;font-weight:600;letter-spacing:-.02em}
+.fu-sum .late b{color:var(--out)}
+.fu-tier .tcard{margin-bottom:8px}
+.fu-tier .tcard:last-child{margin-bottom:0}
+.fu-row{align-items:center;gap:10px;padding:12px 14px}
+.fu-row.late{box-shadow:inset 3px 0 0 var(--out)}
+.fu-main{flex:1;min-width:0;text-align:start;display:block}
+.fu-line1{display:flex;align-items:baseline;gap:8px;min-width:0}
+.fu-line1 b{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fu-car{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fu-line2{display:flex;gap:10px;color:var(--faint);font-size:11.5px;margin-top:2px}
+.fu-row.late .fu-line2 span:first-child{color:var(--out);font-weight:500}
+.fu-amt{display:block;margin-top:6px;font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.fu-amt small{font-size:12px;font-weight:400;color:var(--muted)}
+.fu-amt.ok{font-size:13.5px;font-weight:500;color:var(--petrol)}
+.fu-acts{display:flex;flex-direction:column;gap:6px;align-items:stretch;flex:none}
+.fu-acts .btn-sm{height:38px;padding:0 14px;border-radius:11px}
+.fu-acts .call{width:100%;height:32px;border-radius:10px;background:var(--paper);color:var(--petrol)}
+.fu-n{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;
+  background:var(--line-2);color:var(--muted);font-size:11px;font-weight:600}
+.fu-label.hot{color:var(--out)}
+.fu-label.hot .fu-n{background:var(--out-tint);color:var(--out)}
 .fu-label{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12.5px;margin:0 2px 9px}
 .fu-label svg.i{width:15px;height:15px}
 .fu-tier + .fu-tier{margin-top:20px;padding-top:18px;border-top:1px solid var(--line-2)}
@@ -697,6 +722,8 @@ const RULES = [
   [/^نقص يزيدنا إياه (.+)$/, 'Shortfall the customer owes: $1'],
   [/^إرجاع (.+)$/, 'Refund $1'],
   [/^فائض (.+)$/, 'Surplus $1'],
+  [/^متأخر (\d+) يوم$/, (_, n) => n === '1' ? '1 day late' : n + ' days late'],
+  [/^(\d+) سيارة$/, (_, n) => n === '1' ? '1 car' : n + ' cars'],
   [/^بعد (\d+) يوم$/, (_, n) => 'in ' + n + (n === '1' ? ' day' : ' days')],
   [/^باقٍ عليه (.+)$/, 'Still owes $1'],
   [/^الشحن (.+)$/, 'Shipping $1'],
@@ -1507,7 +1534,7 @@ function shipCard(a){
   return `<article class="tcard ${a.kind==='COLLECT'?'':'done'}" style="border-inline-start-color:${a.kind==='COLLECT'?'var(--out)':'var(--petrol)'}">
       <div class="t-route"><b>${esc(a.customer_name)}</b><span>${esc(a.car_label)}</span>
         <span style="margin-inline-start:auto" class="tag ${a.days_to_ship < 0 ? 'red' : 'amber'}">
-          ${a.days_to_ship < 0 ? 'مرّ موعد الشحن' : daysWord(a.days_to_ship)}</span></div>
+          ${a.days_to_ship < 0 ? `متأخر ${Math.abs(a.days_to_ship)} يوم` : daysWord(a.days_to_ship)}</span></div>
       <div class="t-amt" style="font-size:18px">${a.kind==='COLLECT'
         ? `باقٍ عليه ${money(a.price_remaining)}` : 'خالص الثمن، أبلغه بموعد الشحن'}</div>
       <div class="t-meta"><span>الشحن ${dayLabel(a.ship_date)}</span>${a.phone?`<span class="num">${esc(a.phone)}</span>`:''}
@@ -1549,6 +1576,20 @@ function followUpItems(incoming, watching, otherIncoming){
   return { incoming, ship, watching, tech, n };
 }
 
+/* صفحة «تحتاج متابعتك»
+   مرتبة حسب الإلحاح لا حسب النوع: المتأخر أولاً، ثم القريب، ثم القادم.
+   داخل كل مجموعة الأكبر مبلغاً أولاً، لأن التحصيل يبدأ من حيث المال أكثر.
+   صف واحد لكل سيارة بزر أساسي واحد، والضغط على الصف يفتح بطاقتها. */
+function shipGroups(list){
+  const g = [
+    { key:'late',  title:'متأخر',        items: list.filter(a => a.days_to_ship < 0) },
+    { key:'soon',  title:'اليوم وغداً',  items: list.filter(a => a.days_to_ship >= 0 && a.days_to_ship <= 1) },
+    { key:'next',  title:'خلال يومين',   items: list.filter(a => a.days_to_ship > 1) }
+  ];
+  g.forEach(x => x.items.sort((a, b) => (b.price_remaining || 0) - (a.price_remaining || 0)));
+  return g.filter(x => x.items.length);
+}
+
 function openFollowUp(){
   const box = currentBox();
   const incoming = S.ov.my_incoming_transfers.filter(t => t.to_box_id === box.box_id);
@@ -1556,14 +1597,35 @@ function openFollowUp(){
   const other = S.ov.my_incoming_transfers.length - incoming.length;
   const f = followUpItems(incoming, watching, other);
 
-  const tier2 = shipAlertsHtml(true) + (f.watching.length ? f.watching.map(transferCard).join('') : '');
+  const ship = S.ov.shipping_alerts || [];
+  const toCollect = ship.reduce((sum, a) => sum + (a.kind === 'COLLECT' ? a.price_remaining : 0), 0);
+  const toConfirm = incoming.reduce((sum, t) => sum + t.amount, 0);
+
+  const groups = shipGroups(ship);
+  const late = ship.filter(a => a.days_to_ship < 0).length;
+
   openSheet(`<div class="sheet-head"><h3>تحتاج متابعتك</h3>
       <span class="fu-count">${f.n}</span>
       <button class="icon-btn" data-act="close-sheet" aria-label="إغلاق">${ic('x')}</button></div>
+
+    ${(toCollect || toConfirm) ? `<div class="fu-sum">
+      ${toCollect ? `<div><small>للتحصيل قبل الشحن</small><b class="num">${fmt(toCollect)}</b></div>` : ''}
+      ${toConfirm ? `<div><small>بانتظار تأكيدك</small><b class="num">${fmt(toConfirm)}</b></div>` : ''}
+      ${late ? `<div class="late"><small>متأخرة</small><b>${late} سيارة</b></div>` : ''}
+    </div>` : ''}
+
     <div class="sheet-body">
-      ${f.incoming.length ? `<div class="fu-tier"><span class="fu-label">${ic('swap')}تأكيد استلام</span>
-        ${f.incoming.map(transferCard).join('')}</div>` : ''}
-      ${tier2 ? `<div class="fu-tier"><span class="fu-label">${ic('car')}قبل الشحن</span>${tier2}</div>` : ''}
+      ${incoming.length ? `<div class="fu-tier"><span class="fu-label">${ic('swap')}تأكيد استلام</span>
+        ${incoming.map(transferCard).join('')}</div>` : ''}
+
+      ${groups.map(g => `<div class="fu-tier">
+        <span class="fu-label ${g.key === 'late' ? 'hot' : ''}">${ic('car')}${g.title}
+          <span class="fu-n">${g.items.length}</span></span>
+        ${g.items.map(shipCard).join('')}</div>`).join('')}
+
+      ${watching.length ? `<div class="fu-tier"><span class="fu-label">${ic('clock')}بانتظار تأكيد غيرك</span>
+        ${watching.map(transferCard).join('')}</div>` : ''}
+
       ${f.tech.length ? `<div class="fu-tier"><span class="fu-label">${ic('cloudOff')}أمور تقنية</span>
         <div class="list">${f.tech.map(t => `<button class="row" data-act="${t.act}" ${t.v?`data-v="${t.v}"`:''}>
           <span class="row-ic ${t.cls}">${ic(t.icon)}</span>
