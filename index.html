@@ -524,12 +524,10 @@ const DICT = {
   'التصنيف':'Category','المبلغ':'Amount','إلى أي صندوق؟':'To which box?','عن طريق':'Via','ملاحظة':'Note',
   'تفاصيل المصروف':'Expense details','اكتب نوع المصروف':'What was this expense?',
   'حتى يبقى المصروف مفهوماً عند مراجعة السجل لاحقاً.':'So the entry still makes sense when you review the history later.',
-  'مثال: إصلاح مكيّف المكتب':'e.g. fixing the office air conditioner','سبب التحويل':'Reason for the transfer','تاريخ العملية':'Operation date',
+'سبب التحويل':'Reason for the transfer','تاريخ العملية':'Operation date',
   'المبلغ غير مؤكد بعد':'Amount not confirmed yet','يظهر للمحاسب ليثبّته لاحقاً':'The accountant will confirm it later',
   'أكمل البيانات':'Complete the fields','تم حفظ الاستلام':'Income saved','تم حفظ المصروف':'Expense saved',
   'أُرسل التحويل':'Transfer sent','تم':'Done','(اختياري)':'(optional)',
-  'مثال: تكملة كولوراي لاتوت':'e.g. balance for Coolray Latoot','مثال: أجرة شاحنة من سكيكدة':'e.g. truck fare from Skikda',
-  'مثال: صديق نبيل، سائق الشاحنة':'e.g. Nabil\'s friend, the truck driver',
 
   // السجل والتفاصيل
   'الكل':'All','دخل':'Income','تحويلات':'Transfers','تصفية':'Filter','عرض عمليات أقدم':'Show older operations',
@@ -537,7 +535,7 @@ const DICT = {
   'تفاصيل العملية':'Operation details','النوع':'Type','الصندوق':'Box','سجّلها':'Recorded by','وقت التسجيل':'Recorded at',
   'رقم القيد':'Entry number','الحالة':'Status','من':'From','إلى':'To','مؤكد':'Confirmed','غير مؤكد':'Unconfirmed',
   'ملغى':'Voided','إلغاء هذه العملية':'Void this operation','إلغاء العملية':'Void operation','سبب الإلغاء':'Reason for voiding',
-  'تأكيد الإلغاء':'Confirm voiding','مثال: سجلت المبلغ مرتين':'e.g. I recorded it twice','أُلغيت العملية':'Operation voided',
+  'تأكيد الإلغاء':'Confirm voiding','أُلغيت العملية':'Operation voided',
 
   // التحويلات
   'بانتظاري':'Waiting for me','أرسلتها':'Sent by me','استلمت':'Received','مشكلة؟':'Problem?',
@@ -546,7 +544,7 @@ const DICT = {
   'وصلني مبلغ ناقص':'I received less','سجّل المبلغ الذي استلمته فعلاً':'Record what you actually received',
   'لم يصلني شيء':'I received nothing','يرجع المبلغ لصندوق المرسل':'The money goes back to the sender\'s box',
   'المبلغ المستلم فعلاً':'Amount actually received','تأكيد المبلغ المستلم':'Confirm received amount',
-  'ماذا حدث؟':'What happened?','مثال: المبلغ كان ناقصاً عند العد':'e.g. it was short when counted',
+  'ماذا حدث؟':'What happened?',
   'السبب':'Reason','رفض التحويل':'Reject transfer','إلغاء التحويل':'Cancel transfer','المرسَل':'Sent',
   'تم تأكيد الاستلام':'Receipt confirmed','تم تسجيل المبلغ المستلم':'Received amount recorded',
   'رُفض التحويل ورجع المبلغ للمرسل':'Transfer rejected, money returned to sender','أُلغي التحويل':'Transfer cancelled',
@@ -586,6 +584,14 @@ const DICT = {
   'اسم المستخدم والكلمة المؤقتة':'Username and temporary password','نسخ الرسالة':'Copy message',
   'إرسال عبر واتساب':'Send on WhatsApp','أرسلها الآن. لن تظهر كلمة المرور مرة أخرى.':'Send it now. The password will not be shown again.',
   'الهاتف':'Phone','إغلاق':'Close','حذف':'Delete','تم النسخ':'Copied',
+
+  // نصوص الخانات
+  'الاسم واللقب':'Full name','رقم الهاتف':'Phone number','الولاية':'Wilaya','المكان':'Location',
+  'موديل السيارة':'Car model','اللون':'Colour','المبلغ بالدينار':'Amount in dinars','الاسم أو الجهة':'Name or company',
+  'سبب الاستلام':'Reason for the payment','تفاصيل المصروف':'Expense details','سبب التحويل':'Reason for the transfer',
+  'نوع المصروف':'Type of expense','اسم الناقل':'Who carried it','نوع الدفعة':'Type of payment',
+  'سبب النقص':'Reason for the shortfall','سبب الرفض':'Reason for rejecting','سبب الإلغاء':'Reason for voiding',
+  'اسم الصندوق':'Box name','ملاحظة':'Note',
 
   // العمل بدون إنترنت
   'صورة الملف الشخصي':'Profile photo','اختيار صورة':'Choose a photo','تغيير الصورة':'Change photo',
@@ -656,8 +662,7 @@ const DICT = {
   'ثمن السيارة أو الديوانة':'Car price or customs','تمت إضافة الزبون':'Customer added','تمت إضافة السيارة':'Car added',
   'تم حفظ الدفعة':'Payment saved','بطاقة السيارة':'Car card','سجل العمليات':'Operations history','كل حركات صندوقك':'Every movement in your box',
   'دفعة زبون':'Customer payment','إرجاع لزبون':'Customer refund','ملاحظة':'Note','اتصال':'Call',
-  'مثال: عربون، تكملة':'e.g. deposit, balance','مثال: مبلغ الجمركة':'e.g. customs amount','مثال: زغوان الياس':'e.g. Zeghouan Elias',
-  'مثال: كولوراي لاتوت':'e.g. Coolray Latoot','طلبية':'Ordered','مدفوعة للمورد':'Paid to supplier','مشحونة':'Shipped',
+'طلبية':'Ordered','مدفوعة للمورد':'Paid to supplier','مشحونة':'Shipped',
   'في الميناء':'At port','مجمركة':'Cleared','مسلَّمة':'Delivered',
 
   // تصنيفات المصاريف الافتراضية
@@ -2205,7 +2210,7 @@ function openPayment(orderId, purpose){
       <span class="field-l">المبلغ</span>${amountBlock()}
       <div class="hint warn" id="payWarn"></div>
       <div class="field" style="margin-top:16px"><label class="field-l" for="payDesc">ملاحظة <small>(اختياري)</small></label>
-        <input class="input" id="payDesc" placeholder="${isPrice?'مثال: عربون، تكملة':'مثال: مبلغ الجمركة'}"></div>
+        <input class="input" id="payDesc" placeholder="${isPrice?'نوع الدفعة':'ملاحظة'}"></div>
       <div class="field"><div class="date-row"><span>تاريخ العملية</span><input type="date" id="payDate" value="${todayStr()}" max="${todayStr()}"></div></div>
     </div>
     <div class="sheet-foot"><button class="btn btn-primary btn-block" id="payBtn" disabled>أكمل البيانات</button></div>`,
@@ -2299,7 +2304,7 @@ function openCustoms(orderId){
   openSheet(`${sheetHead('تكلفة الديوانة')}<div class="sheet-body">
     <p class="lead">اكتب التكلفة الحقيقية من فاتورة الترانزيت لهذه السيارة وحدها.</p>
     <div class="field"><label class="field-l" for="cuVal">التكلفة بالدينار</label>
-      <input class="input num" id="cuVal" inputmode="numeric" value="${o.customs_actual || ''}" placeholder="مثال: 980000"></div>
+      <input class="input num" id="cuVal" inputmode="numeric" value="${o.customs_actual || ''}" placeholder="المبلغ بالدينار"></div>
     <div class="hint">دفع الزبون ${money(o.customs_paid)}. بعد الحفظ يحسب النظام الفائض أو النقص.</div></div>
     <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="customs-go" data-id="${orderId}">حفظ التكلفة</button></div>`);
 }
@@ -2388,11 +2393,11 @@ function renderWizard(){
 function wizStep1(){
   const c = S.wiz.customer;
   return `<div class="field"><label class="field-l" for="wName">الاسم الكامل</label>
-      <input class="input" id="wName" value="${esc(c.full_name)}" placeholder="مثال: زغوان الياس" autocomplete="off"></div>
+      <input class="input" id="wName" value="${esc(c.full_name)}" placeholder="الاسم واللقب" autocomplete="off"></div>
     <div class="field"><label class="field-l" for="wPhone">رقم الهاتف <small>(اختياري)</small></label>
-      <input class="input" id="wPhone" type="tel" dir="ltr" value="${esc(c.phone)}" placeholder="0661234567"></div>
+      <input class="input" id="wPhone" type="tel" dir="ltr" value="${esc(c.phone)}" placeholder="رقم الهاتف"></div>
     <div class="field"><label class="field-l" for="wWilaya">الولاية <small>(اختياري)</small></label>
-      <input class="input" id="wWilaya" value="${esc(c.wilaya)}" placeholder="ورقلة"></div>
+      <input class="input" id="wWilaya" value="${esc(c.wilaya)}" placeholder="الولاية"></div>
     <div class="field"><span class="field-l">النوع</span>
       <div class="chips"><button type="button" class="chip" data-wtype="INDIVIDUAL" aria-pressed="${c.type==='INDIVIDUAL'}">زبون</button>
         <button type="button" class="chip" data-wtype="DEALER" aria-pressed="${c.type==='DEALER'}">تاجر يأخذ عدة سيارات</button></div></div>
@@ -2404,17 +2409,17 @@ function wizStep2(cust){
   const who = cust ? cust.full_name : (w.customer.full_name || 'الزبون الجديد');
   return `<div class="hint" style="margin:0 0 14px">${ic('user')} ${esc(who)}</div>
     <div class="field"><label class="field-l" for="wModel">الموديل</label>
-      <input class="input" id="wModel" value="${esc(car.car_model)}" placeholder="مثال: كولوراي لاتوت" autocomplete="off"></div>
+      <input class="input" id="wModel" value="${esc(car.car_model)}" placeholder="موديل السيارة" autocomplete="off"></div>
     <div class="field"><label class="field-l" for="wColor">اللون <small>(اختياري)</small></label>
-      <input class="input" id="wColor" value="${esc(car.color)}" placeholder="قري"></div>
+      <input class="input" id="wColor" value="${esc(car.color)}" placeholder="اللون"></div>
     <div class="field"><label class="field-l" for="wPrice">الثمن المتفق عليه</label>
-      <input class="input num" id="wPrice" inputmode="numeric" value="${esc(car.agreed_price)}" placeholder="3570000">
+      <input class="input num" id="wPrice" inputmode="numeric" value="${esc(car.agreed_price)}" placeholder="المبلغ بالدينار">
       <div class="hint" id="wPriceHint">${millions(car.agreed_price)}</div></div>
     <div class="field"><label class="field-l" for="wShip">تاريخ الشحن المتوقع <small>(اختياري)</small></label>
       <div class="date-row"><span>${ic('clock')}</span><input type="date" id="wShip" style="flex:1" value="${esc(car.ship_date)}"></div>
       <div class="hint">يذكّرك النظام قبله بيومين.</div></div>
     <div class="field"><label class="field-l" for="wCustoms">الديوانة المتوقعة <small>(اختياري)</small></label>
-      <input class="input num" id="wCustoms" inputmode="numeric" value="${esc(car.customs_expected)}" placeholder="1000000"></div>`;
+      <input class="input num" id="wCustoms" inputmode="numeric" value="${esc(car.customs_expected)}" placeholder="المبلغ بالدينار"></div>`;
 }
 
 function wizStep3(cust){
@@ -2639,7 +2644,7 @@ function openVoid(id){
   const e = findEntry(id);
   openSheet(`${sheetHead('إلغاء العملية')}<div class="sheet-body">
     <p class="lead">سيُضاف قيد عكسي بمبلغ ${money(e.amount,e.currency)} ويبقى الأصل ظاهراً في السجل كملغى.</p>
-    <div class="field"><label for="vr">سبب الإلغاء</label><textarea class="input" id="vr" placeholder="مثال: سجلت المبلغ مرتين"></textarea></div></div>
+    <div class="field"><label for="vr">سبب الإلغاء</label><textarea class="input" id="vr" placeholder="سبب الإلغاء"></textarea></div></div>
     <div class="sheet-foot"><button class="btn btn-danger btn-block" data-act="void-go" data-id="${id}">تأكيد الإلغاء</button></div>`);
 }
 async function doVoid(id, btn){
@@ -2674,7 +2679,7 @@ function openDiff(id){
   openSheet(`${sheetHead('المبلغ المستلم فعلاً')}<div class="sheet-body">
     <p class="lead">المرسَل ${money(t.amount,t.currency)} من ${esc(t.from_box_name)}.</p>
     ${amountBlock()}
-    <div class="field" style="margin-top:16px"><label for="dn">ماذا حدث؟</label><textarea class="input" id="dn" placeholder="مثال: المبلغ كان ناقصاً عند العد"></textarea></div>
+    <div class="field" style="margin-top:16px"><label for="dn">ماذا حدث؟</label><textarea class="input" id="dn" placeholder="سبب النقص"></textarea></div>
     <div class="hint warn" id="dshort"></div></div>
     <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="t-diff-go" data-id="${id}" disabled>تأكيد المبلغ المستلم</button></div>`,
     { full:true, onMount: sh => bindKeypad(sh, kp, () => {
@@ -2687,7 +2692,7 @@ function openDiff(id){
 function openReject(id){
   openSheet(`${sheetHead('لم يصلني شيء')}<div class="sheet-body">
     <p class="lead">سيرجع المبلغ كاملاً إلى صندوق المرسل ويُبلَّغ بالرفض.</p>
-    <div class="field"><label for="rn">السبب</label><textarea class="input" id="rn" placeholder="مثال: الوسيط لم يسلّمني أي مبلغ"></textarea></div></div>
+    <div class="field"><label for="rn">السبب</label><textarea class="input" id="rn" placeholder="سبب الرفض"></textarea></div></div>
     <div class="sheet-foot"><button class="btn btn-danger btn-block" data-act="t-reject-go" data-id="${id}">رفض التحويل</button></div>`);
 }
 function openCancel(id){
@@ -2795,14 +2800,14 @@ function renderOpForm(op, box){
   const recent = [...new Set(S.ov.recent_entries.filter(e=>e.entry_type==='INCOME'&&e.counterparty).map(e=>e.counterparty))].slice(0,4);
   const step1 = op.type === 'income' ? `
       <div class="field"><label class="field-l" for="cp">من سلّمك المبلغ؟</label>
-        <input class="input" id="cp" placeholder="اسم الشخص أو الجهة" autocomplete="off">
+        <input class="input" id="cp" placeholder="الاسم أو الجهة" autocomplete="off">
         ${recent.length?`<div class="suggest">${recent.map(r=>`<button type="button" data-fill="${esc(r)}">${esc(r)}</button>`).join('')}</div>`:''}</div>`
     : op.type === 'expense' ? `
       <div class="field"><span class="field-l">التصنيف</span>
         <div class="cat-grid">${S.cats.map(c=>`<button type="button" class="cat" data-cat="${c.category_id}" data-name="${esc(c.name)}" aria-pressed="false">${esc(c.name)}</button>`).join('')}</div>
         <div class="field hidden" id="otherWrap" style="margin:14px 0 0">
           <label class="field-l" for="otherDesc">اكتب نوع المصروف</label>
-          <input class="input" id="otherDesc" placeholder="مثال: إصلاح مكيّف المكتب" autocomplete="off">
+          <input class="input" id="otherDesc" placeholder="نوع المصروف" autocomplete="off">
           <div class="hint">حتى يبقى المصروف مفهوماً عند مراجعة السجل لاحقاً.</div>
         </div></div>`
     : `
@@ -2816,9 +2821,9 @@ function renderOpForm(op, box){
     <div class="field hidden" id="stepAmount"><span class="field-l">المبلغ</span>${amountBlock()}
       <div class="hint warn" id="balWarn"></div></div>
     <div class="hidden" id="stepMore">
-      ${op.type==='transfer'?`<div class="field"><label class="field-l" for="via">عن طريق <small>(اختياري)</small></label><input class="input" id="via" placeholder="مثال: صديق نبيل، سائق الشاحنة"></div>`:''}
+      ${op.type==='transfer'?`<div class="field"><label class="field-l" for="via">عن طريق <small>(اختياري)</small></label><input class="input" id="via" placeholder="اسم الناقل"></div>`:''}
       <div class="field"><label class="field-l" for="desc">${op.type==='expense'?'تفاصيل المصروف':'ملاحظة'} <small>(اختياري)</small></label>
-        <input class="input" id="desc" placeholder="${op.type==='income'?'مثال: تكملة كولوراي لاتوت':op.type==='expense'?'مثال: أجرة شاحنة من سكيكدة':'سبب التحويل'}"></div>
+        <input class="input" id="desc" placeholder="${op.type==='income'?'سبب الاستلام':op.type==='expense'?'تفاصيل المصروف':'سبب التحويل'}"></div>
       ${op.type==='income'?`<div class="field"><div class="switch-row"><span><b>المبلغ غير مؤكد بعد</b><small>يظهر للمحاسب ليثبّته لاحقاً</small></span>
         <button type="button" class="switch" role="switch" aria-checked="false" id="unc" aria-label="المبلغ غير مؤكد"></button></div></div>`:''}
       <div class="field"><div class="date-row"><span>تاريخ العملية</span><input type="date" id="dt" value="${op.date}" max="${op.date}"></div></div>
@@ -3216,9 +3221,9 @@ function openUserForm(id){
   openSheet(`${sheetHead(edit ? 'تعديل المستخدم' : 'مستخدم جديد')}
   <div class="sheet-body">
     <div class="field"><label class="field-l" for="uf-name">الاسم الكامل</label>
-      <input class="input" id="uf-name" value="${esc(f.full_name)}" placeholder="مثال: حشيفة إسماعيل" autocomplete="off"></div>
+      <input class="input" id="uf-name" value="${esc(f.full_name)}" placeholder="الاسم واللقب" autocomplete="off"></div>
     <div class="field"><label class="field-l" for="uf-phone">رقم الهاتف <small>(اختياري، لإرسال بيانات الدخول عبر واتساب)</small></label>
-      <input class="input" id="uf-phone" dir="ltr" inputmode="tel" value="${esc(f.phone)}" placeholder="0661234567" autocomplete="off"></div>
+      <input class="input" id="uf-phone" dir="ltr" inputmode="tel" value="${esc(f.phone)}" placeholder="رقم الهاتف" autocomplete="off"></div>
 
     <div class="field ${edit?'':'hidden'}" id="uf-s-role"><span class="field-l">الدور</span>
       ${['KEEPER','ACCOUNTANT','ADMIN'].map(r => `<button type="button" class="pick" data-role="${r}" aria-pressed="${f.role===r}" ${self && r!=='ADMIN'?'disabled':''}>
@@ -3234,7 +3239,7 @@ function openUserForm(id){
       <div class="nb hidden" id="uf-nb">
         <div class="field"><label class="field-l" for="uf-nbname">اسم الصندوق</label><input class="input" id="uf-nbname" autocomplete="off"></div>
         <div class="field"><span class="field-l">النوع</span><div class="seg">${Object.keys(BOX_TYPE).map(t => `<button type="button" data-nbtype="${t}" aria-pressed="${t==='CASH'}">${BOX_TYPE[t]}</button>`).join('')}</div></div>
-        <div class="field" style="margin-bottom:0"><label class="field-l" for="uf-nbloc">المكان <small>(اختياري)</small></label><input class="input" id="uf-nbloc" placeholder="مثال: الوادي" autocomplete="off"></div>
+        <div class="field" style="margin-bottom:0"><label class="field-l" for="uf-nbloc">المكان <small>(اختياري)</small></label><input class="input" id="uf-nbloc" placeholder="المكان" autocomplete="off"></div>
       </div>`}
     </div>
 
@@ -3436,9 +3441,9 @@ function openBoxForm(id){
   const f = { name:b?b.name:'', location:b?b.location:'', type:b?b.type:'CASH', keepers:new Set(b?b.keeper_user_ids:[]) };
   const users = S.adm.users.filter(u => u.status === 'ACTIVE' || f.keepers.has(u.user_id));
   openSheet(`${sheetHead(edit ? 'تعديل الصندوق' : 'صندوق جديد')}<div class="sheet-body">
-    <div class="field"><label class="field-l" for="bf-name">اسم الصندوق</label><input class="input" id="bf-name" value="${esc(f.name)}" placeholder="مثال: مكتب باتنة" autocomplete="off"></div>
+    <div class="field"><label class="field-l" for="bf-name">اسم الصندوق</label><input class="input" id="bf-name" value="${esc(f.name)}" placeholder="اسم الصندوق" autocomplete="off"></div>
     ${edit ? '' : `<div class="field"><span class="field-l">النوع</span><div class="seg">${Object.keys(BOX_TYPE).map(t => `<button type="button" data-bftype="${t}" aria-pressed="${t===f.type}">${BOX_TYPE[t]}</button>`).join('')}</div></div>`}
-    <div class="field"><label class="field-l" for="bf-loc">المكان <small>(اختياري)</small></label><input class="input" id="bf-loc" value="${esc(f.location)}" placeholder="مثال: باتنة" autocomplete="off"></div>
+    <div class="field"><label class="field-l" for="bf-loc">المكان <small>(اختياري)</small></label><input class="input" id="bf-loc" value="${esc(f.location)}" placeholder="المكان" autocomplete="off"></div>
     <div class="field"><span class="field-l">من يمسكه؟ <small>(يمكن اختيار أكثر من شخص)</small></span>
       ${users.map(u => `<button type="button" class="pick" data-keeper="${u.user_id}" aria-pressed="${f.keepers.has(u.user_id)}">
         <span class="radio sq"></span><span class="row-main"><b>${esc(u.full_name)}</b><small>${ROLE[u.role]}${u.status!=='ACTIVE'?'، موقوف':''}</small></span></button>`).join('')}
