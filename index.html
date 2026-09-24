@@ -519,7 +519,7 @@ const DICT = {
   'دخل إلى صندوقك من أي جهة':'Money coming into your box from anyone',
   'نقل، أكل، فليكسي، شهريات…':'Transport, food, credit, salaries…',
   'يصل بعد تأكيد المستلم':'Arrives after the receiver confirms',
-  'دفعة زبون على سيارة':'Customer payment for a car','لون السيارةباً في المرحلة الثانية':'Coming in phase two',
+  'دفعة زبون على سيارة':'Customer payment for a car','قريباً في المرحلة الثانية':'Coming in phase two',
   'من سلّمك المبلغ؟':'Who gave you the money?','اسم الشخص أو الجهة':'Person or company name',
   'التصنيف':'Category','المبلغ':'Amount','إلى أي صندوق؟':'To which box?','عن طريق':'Via','ملاحظة':'Note',
   'تفاصيل المصروف':'Expense details','اكتب نوع المصروف':'What was this expense?',
@@ -656,7 +656,7 @@ const DICT = {
   'ثمن السيارة أو الديوانة':'Car price or customs','تمت إضافة الزبون':'Customer added','تمت إضافة السيارة':'Car added',
   'تم حفظ الدفعة':'Payment saved','بطاقة السيارة':'Car card','سجل العمليات':'Operations history','كل حركات صندوقك':'Every movement in your box',
   'دفعة زبون':'Customer payment','إرجاع لزبون':'Customer refund','ملاحظة':'Note','اتصال':'Call',
-  'مثال: عربون، تكملة':'e.g. deposit, balance','مثال: مبلغ الجمركة':'e.g. customs amount','اسم الزبون':'e.g. Zeghouan Elias',
+  'مثال: عربون، تكملة':'e.g. deposit, balance','مثال: مبلغ الجمركة':'e.g. customs amount','مثال: زغوان الياس':'e.g. Zeghouan Elias',
   'مثال: كولوراي لاتوت':'e.g. Coolray Latoot','طلبية':'Ordered','مدفوعة للمورد':'Paid to supplier','مشحونة':'Shipped',
   'في الميناء':'At port','مجمركة':'Cleared','مسلَّمة':'Delivered',
 
@@ -1590,7 +1590,7 @@ function followUpItems(incoming, watching, otherIncoming){
 }
 
 /* صفحة «تحتاج متابعتك»
-   مرتبة حسب الإلحاح لا حسب النوع: المتأخر أولاً، ثم اللون السيارةب، ثم القادم.
+   مرتبة حسب الإلحاح لا حسب النوع: المتأخر أولاً، ثم القريب، ثم القادم.
    داخل كل مجموعة الأكبر مبلغاً أولاً، لأن التحصيل يبدأ من حيث المال أكثر.
    صف واحد لكل سيارة بزر أساسي واحد، والضغط على الصف يفتح بطاقتها. */
 function shipGroups(list){
@@ -2406,7 +2406,7 @@ function wizStep2(cust){
     <div class="field"><label class="field-l" for="wModel">الموديل</label>
       <input class="input" id="wModel" value="${esc(car.car_model)}" placeholder="مثال: كولوراي لاتوت" autocomplete="off"></div>
     <div class="field"><label class="field-l" for="wColor">اللون <small>(اختياري)</small></label>
-      <input class="input" id="wColor" value="${esc(car.color)}" placeholder="لون السيارة"></div>
+      <input class="input" id="wColor" value="${esc(car.color)}" placeholder="قري"></div>
     <div class="field"><label class="field-l" for="wPrice">الثمن المتفق عليه</label>
       <input class="input num" id="wPrice" inputmode="numeric" value="${esc(car.agreed_price)}" placeholder="3570000">
       <div class="hint" id="wPriceHint">${millions(car.agreed_price)}</div></div>
@@ -3573,7 +3573,7 @@ const Mock = (() => {
   add({ box_id:'B1', entry_date:d(4), created_at:ts(4,'09:01'), direction:'IN', amount:1600, currency:'EUR', entry_type:'OPENING', created_by:'U2' });
   add({ box_id:'B2', entry_date:d(4), created_at:ts(4,'09:02'), direction:'IN', amount:12270000, entry_type:'OPENING', created_by:'U2' });
   add({ box_id:'B3', entry_date:d(4), created_at:ts(4,'09:03'), direction:'IN', amount:2100000, entry_type:'OPENING', created_by:'U2' });
-  add({ box_id:'B1', entry_date:d(2), created_at:ts(2,'11:20'), direction:'IN', amount:3400000, entry_type:'INCOME', counterparty:'زغوان الياس', description:'تكملة كولوراي لاتوت لون السيارة' });
+  add({ box_id:'B1', entry_date:d(2), created_at:ts(2,'11:20'), direction:'IN', amount:3400000, entry_type:'INCOME', counterparty:'زغوان الياس', description:'تكملة كولوراي لاتوت قري' });
   add({ box_id:'B1', entry_date:d(2), created_at:ts(2,'16:05'), direction:'OUT', amount:85000, entry_type:'EXPENSE', category_id:'C7', description:'أجرة شاحنة من سكيكدة' });
   add({ box_id:'B1', entry_date:d(1), created_at:ts(1,'10:40'), direction:'OUT', amount:1500000, entry_type:'TRANSFER_OUT', counterparty:'منزل نبيل', transfer_id:'TRF-000001' });
   add({ box_id:'B2', entry_date:d(1), created_at:ts(1,'13:10'), direction:'IN', amount:1500000, entry_type:'TRANSFER_IN', counterparty:'صندوق القايد', transfer_id:'TRF-000001', created_by:'U2' });
@@ -3595,7 +3595,7 @@ const Mock = (() => {
     { customer_id:'CUS3', full_name:'زكايرة بوبكر', phone:'', wilaya:'باتنة', type:'DEALER', status:'ACTIVE' }
   ];
   const ORD = [
-    { order_id:'ORD1', customer_id:'CUS1', owner_box_id:'B1', created_by:'U1', car_model:'كولوراي لاتوت', color:'لون السيارة', trim:'', agreed_price:3570000,
+    { order_id:'ORD1', customer_id:'CUS1', owner_box_id:'B1', created_by:'U1', car_model:'كولوراي لاتوت', color:'قري', trim:'', agreed_price:3570000,
       customs_expected:1000000, customs_actual:980000, stage:'CLEARED', status:'ACTIVE', sold_at:'', notes:'', created_at:'' },
     { order_id:'ORD2', customer_id:'CUS2', owner_box_id:'B2', created_by:'U2', car_model:'MG5', color:'أبيض', trim:'', agreed_price:2900000,
       customs_expected:900000, customs_actual:'', stage:'AT_PORT', status:'ACTIVE', sold_at:'', notes:'', created_at:'',
