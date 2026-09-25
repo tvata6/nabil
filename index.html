@@ -1111,11 +1111,13 @@ async function syncOutbox(manual){
 
   _syncing = false;
   startPulse();
-  if (done) toast(done === 1 ? 'تمت مزامنة عملية واحدة' : `تمت مزامنة ${done} عمليات`);
+  // الإرسال في الخلفية صامت: المستخدم يرى نتيجته في شاشته. الرسالة للمزامنة اليدوية فقط.
+  if (manual && done) toast(done === 1 ? 'تمت مزامنة عملية واحدة' : `تمت مزامنة ${done} عمليات`);
   if (failed) toast(`${failed} عملية لم يقبلها الخادم، راجع قسم المزامنة`, true);
   if (stopped && !done) toast('تعذّر الوصول للخادم الآن، سنعيد المحاولة تلقائياً', true);
   if (done || failed) await refresh(true);
   renderShell(false);
+  if (manual && !done && !failed) toast('لا جديد للمزامنة');
 }
 
 function outboxRetry(id){
@@ -1295,6 +1297,38 @@ function saveInstant(action, payload){
 function boxBalanceNow(boxId, cur = 'DZD'){
   const b = (S.ov && S.ov.boxes || []).find(x => x.box_id === boxId);
   return b && b.balances ? (b.balances[cur] || 0) : 0;
+}
+
+/**
+ * تنفيذ في الخلفية: نغلق الشاشة ونُظهر النتيجة فوراً، والطلب يمشي وحده.
+ * إن رفضه الخادم يظهر سبب الرفض، فلا شيء يضيع بصمت.
+ */
+function bg(action, payload, opts){
+  opts = opts || {};
+  tap();
+  if (opts.keepSheet !== true) closeSheet();
+  if (opts.ok) toast(opts.ok);
+  return api(action, payload)
+    .then(r => { if (opts.after) opts.after(r); return r; })
+    .catch(x => { toast(x.message, true); if (opts.onError) opts.onError(x); });
+}
+
+/**
+ * تنفيذ في الخلفية: نغلق الشاشة ونُظهر النتيجة فوراً، والطلب يمضي بعدها.
+ * يُستعمل لكل ما لا ينتظر ردّاً من الخادم ليُكمل المستخدم عمله.
+ *   okMsg: الرسالة الفورية.  after: ما يُنفَّذ بعد نجاح الطلب (تحديث قائمة مثلاً).
+ */
+function bgRun(action, payload, opts){
+  opts = opts || {};
+  tap();
+  if (opts.closeSheet !== false) closeSheet();
+  if (opts.okMsg) toast(opts.okMsg);
+  api(action, payload)
+    .then(r => {
+      if (opts.after) { try { opts.after(r); } catch(e){} }
+      if (opts.refresh !== false) refresh(true);
+    })
+    .catch(x => toast(x.message, true));
 }
 
 /* ---------------- API ---------------- */
@@ -2423,17 +2457,17 @@ function openRefund(orderId){
       });
       // اقتراح المبلغ كاملاً بضغطة
       kp.value = String(o.customs_balance); kp.paint();
-      $('#refBtn').addEventListener('click', async () => {
-        const btn = $('#refBtn'); setBtnBusy(btn, true);
+      $('#refBtn').addEventListener('click', () => {
         const key = 'refund:' + orderId + ':' + kp.value;
-        try {
-          const r = await api('recordCustomerRefund', { box_id: $('#refBox').value, order_id: orderId,
-            amount: Number(kp.value), client_ref: refFor(key) });
-          clearRef(key);
-          if (r && r.queued){ closeSheet(); return queuedSheet('الإرجاع محفوظ دون اتصال', '', Number(kp.value)); }
-          closeSheet(); toast('تم إرجاع الفائض');
-          S.order = r.order; openOrder(orderId); refresh(true); loadCustomers();
-        } catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
+        const amount = Number(kp.value);
+        if (S.order && S.order.order_id === orderId){
+          S.order.customs_paid -= amount;
+          S.order.customs_balance = (S.order.customs_balance || 0) - amount;
+        }
+        saveInstant('recordCustomerRefund', { box_id: $('#refBox').value, order_id: orderId,
+          amount: amount, client_ref: refFor(key) });
+        clearRef(key); tap(); closeSheet(); toast('تم إرجاع الفائض');
+        openOrder(orderId); loadCustomers();
       });
     } });
 }
@@ -2632,7 +2666,6 @@ function bindWizard(sh){
 
 async function wizardSave(btn){
   const w = S.wiz;
-  setBtnBusy(btn, true);
   const key = 'wiz:' + (w.customer_id || w.customer.full_name) + ':' + w.car.car_model + ':' + w.car.agreed_price;
   const payload = {
     car_model: w.car.car_model.trim(), color: w.car.color.trim(),
@@ -2647,18 +2680,20 @@ async function wizardSave(btn){
   else payload.customer = { full_name: w.customer.full_name.trim(), phone: w.customer.phone.trim(),
     wilaya: w.customer.wilaya.trim(), type: w.customer.type };
 
-  try {
-    const o = await api('createOrder', payload);
-    clearRef(key); draftClear(); S.wiz = null;
-    if (o && o.queued){
-      await loadCustomers();
-      return queuedSheet('التسجيل محفوظ دون اتصال', payload.car_model || '', 0);
-    }
-    toast(w.customer_id ? 'تمت إضافة السيارة' : 'تم تسجيل الزبون وسيارته');
-    await loadCustomers();
-    refresh(true);
-    openOrder(o.order_id);
-  } catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
+  // نغلق فوراً ونُكمل الإرسال في الخلفية، ثم نفتح بطاقة السيارة عند وصول رقمها
+  draftClear(); S.wiz = null;
+  tap(); closeSheet();
+  toast(w.customer_id ? 'تمت إضافة السيارة' : 'تم تسجيل الزبون وسيارته');
+  api('createOrder', payload)
+    .then(o => {
+      clearRef(key);
+      loadCustomers();
+      refresh(true);
+      if (o && o.queued) return;
+      if (o && o.order_id) openOrder(o.order_id);
+    })
+    .catch(x => toast(x.message, true));
+  return;
 }
 
 function openEditCustomer(id){
@@ -2933,15 +2968,16 @@ function openPaySupplier(soId){
         $('#spWarn').textContent = v > o.remaining_usd ? `أكبر من الباقي للمورد (${fmt(o.remaining_usd)} $)`
           : (v > (br.usd_balance || 0) ? `رصيد ${br.name || 'الوسيط'} سيصبح بالسالب` : '');
       });
-      $('#spBtn').addEventListener('click', async () => {
-        const btn = $('#spBtn'); setBtnBusy(btn, true);
+      $('#spBtn').addEventListener('click', () => {
         const key = 'sopay:' + soId + ':' + kp.value;
-        try {
-          const r = await api('paySupplier', { so_id: soId, broker_id: sh.dataset.broker,
-            usd_amount: Number(kp.value), description: $('#spDesc').value.trim(), client_ref: refFor(key) });
-          clearRef(key); closeSheet(); toast('تم تسجيل الدفعة');
-          S.so = r.so; openSO(soId); loadSuppliers(); refresh(true);
-        } catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
+        const amount = Number(kp.value);
+        if (S.so && S.so.so_id === soId){       // نحدّث البطاقة محلياً قبل رد الخادم
+          S.so.paid_usd += amount; S.so.remaining_usd -= amount;
+          S.so.is_paid = S.so.remaining_usd <= 0;
+        }
+        bgRun('paySupplier', { so_id: soId, broker_id: sh.dataset.broker, usd_amount: amount,
+          description: $('#spDesc').value.trim(), client_ref: refFor(key) },
+          { okMsg:'تم تسجيل الدفعة', after: () => { clearRef(key); loadSuppliers(); openSO(soId); } });
       });
     } });
 }
@@ -3209,17 +3245,18 @@ function openCancel(id){
     <div class="field"><label for="cn">ملاحظة <small>(اختياري)</small></label><input class="input" id="cn"></div></div>
     <div class="sheet-foot"><button class="btn btn-danger btn-block" data-act="t-cancel-go" data-id="${id}">إلغاء التحويل</button></div>`);
 }
-async function transferAction(action, payload, btn, okMsg){
-  setBtnBusy(btn, true);
+function transferAction(action, payload, btn, okMsg){
   const key = action + ':' + (payload.transfer_id || '');
   payload.client_ref = refFor(key);
-  try {
-    const r = await api(action, payload);
-    clearRef(key); closeSheet();
-    toast(r && r.queued ? 'محفوظة على الجهاز، تُرسل عند عودة الاتصال' : okMsg);
-    await refresh(true);
+  // نُزيل التحويل من الشاشة فوراً، ثم يمضي الطلب في الخلفية
+  if (S.ov){
+    S.ov.my_incoming_transfers = (S.ov.my_incoming_transfers || []).filter(t => t.transfer_id !== payload.transfer_id);
+    S.ov.pending_transfers = (S.ov.pending_transfers || []).filter(t => t.transfer_id !== payload.transfer_id);
+    S.ov.watching_transfers = (S.ov.watching_transfers || []).filter(t => t.transfer_id !== payload.transfer_id);
   }
-  catch(x){ setBtnBusy(btn,false); toast(x.message, true); }
+  S.trf.loaded = false;
+  saveInstant(action, payload);
+  clearRef(key); tap(); closeSheet(); toast(okMsg);
 }
 
 /* ---------------- Keypad ---------------- */
@@ -3577,70 +3614,81 @@ document.addEventListener('click', async e => {
     case 'pay': openPayment(id, el.dataset.purpose); break;
     case 'refund': openRefund(id); break;
     case 'customs': openCustoms(id); break;
-    case 'customs-go': { setBtnBusy(el, true);
-      try { const r = await api('setCustomsActual', { order_id:id, customs_actual:Number($('#cuVal').value || 0) });
-        S.order = r; closeSheet(); toast('تم حفظ التكلفة'); openOrder(id); loadCustomers();
-      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'customs-go': {
+      const val = Number($('#cuVal').value || 0);
+      if (S.order && S.order.order_id === id){
+        S.order.customs_actual = val; S.order.customs_known = true;
+        S.order.customs_balance = (S.order.customs_paid || 0) - val;
+      }
+      bgRun('setCustomsActual', { order_id:id, customs_actual:val },
+        { okMsg:'تم حفظ التكلفة', after: () => { loadCustomers(); } });
+      if (S.order && S.order.order_id === id) renderOrderSheet(S.order);
+      break; }
     case 'ship-date': openShipDate(id); break;
-    case 'ship-save': { setBtnBusy(el, true);
-      try { await api('updateOrder', { order_id:id, ship_date: $('#shipVal').value || '' });
-        closeSheet(); toast('تم حفظ التاريخ'); openOrder(id); refresh(true);
-      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
-    case 'notified': { setBtnBusy(el, true);
-      try { await api('markOrderNotified', { order_id:id }); toast('تم، أُغلق التنبيه'); await refresh(true);
-      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'ship-save': {
+      const d = $('#shipVal').value || '';
+      bgRun('updateOrder', { order_id:id, ship_date:d }, { okMsg:'تم حفظ التاريخ', after: () => openOrder(id) });
+      break; }
+    case 'notified': {
+      if (S.ov) S.ov.shipping_alerts = (S.ov.shipping_alerts || []).filter(a => a.order_id !== id);
+      renderShell(false);
+      bgRun('markOrderNotified', { order_id:id }, { okMsg:'تم، أُغلق التنبيه', closeSheet:false });
+      break; }
     case 'stage': openStagePicker(id); break;
-    case 'stage-set': { try { await api('setOrderStage', { order_id:id, stage:el.dataset.stage });
-        closeSheet(); openOrder(id); } catch(x){ toast(x.message, true); } break; }
+    case 'stage-set': {
+      if (S.order && S.order.order_id === id){ S.order.stage = el.dataset.stage; S.order.stage_label = ''; }
+      bgRun('setOrderStage', { order_id:id, stage:el.dataset.stage }, { after: () => openOrder(id) });
+      break; }
     case 'pay-flow': openPayFlow(); break;
     case 'pf-cust': openPayFlowCars(id); break;
     case 'followup': openFollowUp(); break;
     case 'sup': openSupplier(id); break;
     case 'sup-new': openNewSupplier(); break;
-    case 'sup-save': { setBtnBusy(el, true);
-      try { await api('createSupplier', { name:$('#spName').value.trim(), country:$('#spCountry').value.trim(),
-          contact:$('#spContact').value.trim() });
-        closeSheet(); toast('تمت إضافة المورد'); await loadSuppliers(); rerender();
-      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'sup-save': {
+      bgRun('createSupplier', { name:$('#spName').value.trim(), country:$('#spCountry').value.trim(),
+        contact:$('#spContact').value.trim() },
+        { okMsg:'تمت إضافة المورد', refresh:false, after: () => loadSuppliers() });
+      break; }
     case 'so': openSO(id); break;
     case 'so-new': openNewSO(id); break;
-    case 'so-save': { setBtnBusy(el, true);
+    case 'so-save': {
       const sh = el.closest('.sheet');
-      try { const o = await api('createSupplierOrder', { supplier_id:id, label:$('#soLabel').value.trim(),
-          total_usd:Number($('#soTotal').value || 0), due_date:$('#soDue').value || '',
-          alert_days:Number($('#soAlert').value || 7),
-          deposit_usd: $('#soDep').value ? Number($('#soDep').value) : '', broker_id: sh.dataset.broker });
-        closeSheet(); toast('تمت إضافة الطلبية'); await loadSuppliers(); openSO(o.so_id); refresh(true);
-      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+      const payload = { supplier_id:id, label:$('#soLabel').value.trim(),
+        total_usd:Number($('#soTotal').value || 0), due_date:$('#soDue').value || '',
+        alert_days:Number($('#soAlert').value || 7),
+        deposit_usd: $('#soDep').value ? Number($('#soDep').value) : '', broker_id: sh.dataset.broker };
+      bgRun('createSupplierOrder', payload, { okMsg:'تمت إضافة الطلبية',
+        after: o => { loadSuppliers(); if (o && o.so_id) openSO(o.so_id); } });
+      break; }
     case 'so-pay': openPaySupplier(id); break;
     case 'so-due': openSODue(id); break;
-    case 'so-due-save': { setBtnBusy(el, true);
-      try { await api('updateSupplierOrder', { so_id:id, due_date:$('#dueVal').value || '',
-          alert_days:Number($('#dueAlert').value || 7) });
-        closeSheet(); toast('تم الحفظ'); openSO(id); refresh(true);
-      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'so-due-save': {
+      bgRun('updateSupplierOrder', { so_id:id, due_date:$('#dueVal').value || '',
+        alert_days:Number($('#dueAlert').value || 7) }, { okMsg:'تم الحفظ', after: () => openSO(id) });
+      break; }
     case 'so-stage': openSOStage(id); break;
-    case 'so-stage-set': { try { await api('updateSupplierOrder', { so_id:id, stage:el.dataset.stage });
-        closeSheet(); openSO(id); } catch(x){ toast(x.message, true); } break; }
+    case 'so-stage-set': {
+      bgRun('updateSupplierOrder', { so_id:id, stage:el.dataset.stage }, { after: () => openSO(id) });
+      break; }
     case 'brokers': openBrokers(); break;
     case 'brk-new': openNewBroker(); break;
-    case 'brk-save': { setBtnBusy(el, true);
-      try { await api('createBroker', { name:$('#brName').value.trim(), phone:$('#brPhone').value.trim() });
-        closeSheet(); toast('تمت إضافة الوسيط'); await loadSuppliers(); openBrokers();
-      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'brk-save': {
+      bgRun('createBroker', { name:$('#brName').value.trim(), phone:$('#brPhone').value.trim() },
+        { okMsg:'تمت إضافة الوسيط', refresh:false,
+          after: () => loadSuppliers().then(() => { if (S.view === 'suppliers') openBrokers(); }) });
+      break; }
     case 'fx-buy': openBuyUsd(); break;
-    case 'fx-save': { setBtnBusy(el, true);
+    case 'fx-save': {
       const sh2 = el.closest('.sheet');
-      try { const r = await api('buyUsd', { box_id:sh2.dataset.box, broker_id:sh2.dataset.broker,
-          usd_amount:Number($('#fxUsd').value || 0), rate:Number($('#fxRate').value || 0) });
-        closeSheet(); toast('تم شراء الدولار');
-        (r.warnings||[]).forEach(w => toast(w, true));
-        await loadSuppliers(); refresh(true);
-      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+      bgRun('buyUsd', { box_id:sh2.dataset.box, broker_id:sh2.dataset.broker,
+        usd_amount:Number($('#fxUsd').value || 0), rate:Number($('#fxRate').value || 0) },
+        { okMsg:'تم شراء الدولار', after: r => { (r && r.warnings || []).forEach(w => toast(w, true)); loadSuppliers(); } });
+      break; }
     case 'link-so': openLinkSO(id); break;
-    case 'ls-set': { try { await api('linkOrderToSupplier', { order_id:id, so_id:el.dataset.so });
-        closeSheet(); toast(el.dataset.so ? 'رُبطت السيارة بالحاوية' : 'أُلغي الربط'); openOrder(id);
-      } catch(x){ toast(x.message, true); } break; }
+    case 'ls-set': {
+      bgRun('linkOrderToSupplier', { order_id:id, so_id:el.dataset.so },
+        { okMsg: el.dataset.so ? 'رُبطت السيارة بالحاوية' : 'أُلغي الربط', after: () => openOrder(id) });
+      break; }
     case 'ava-open': openAvatarSheet(id, ''); break;
     case 'ava-pick': closeSheet(); pickAvatar(id); break;
     case 'ava-del': removeAvatar(id); break;
