@@ -402,6 +402,28 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 body{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 input,textarea,.num,.amt{user-select:text;-webkit-user-select:text}
 
+.decoy{min-height:100dvh;background:var(--paper)}
+.dc-head{background:var(--asphalt);color:#fff;padding:calc(16px + var(--safe-t)) 18px 18px}
+.dc-brand{display:flex;align-items:center;gap:12px;user-select:none}
+.dc-brand img{width:46px;height:46px;border-radius:50%;background:#fff;padding:3px}
+.dc-brand b{display:block;font-size:17px;font-weight:600}
+.dc-brand small{color:#9AA7B3;font-size:12.5px}
+.dc-body{padding:16px 14px calc(24px + var(--safe-b))}
+.dc-note{display:flex;align-items:center;gap:8px;background:var(--amber-tint);color:var(--amber-ink);
+  padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:14px}
+.dc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dc-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;text-align:start}
+.dc-img{display:grid;place-items:center;height:92px;background:linear-gradient(140deg,#E8EDF1,#D8E0E7);color:#7B8896}
+.dc-img svg.i{width:38px;height:38px}
+.dc-info{display:block;padding:10px 12px 12px}
+.dc-info b{display:block;font-size:14px;font-weight:600}
+.dc-info small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+.dc-price{display:block;margin-top:6px;font-weight:600;color:var(--petrol);font-variant-numeric:tabular-nums}
+.dc-hero{display:grid;place-items:center;height:150px;border-radius:16px;
+  background:linear-gradient(140deg,#E8EDF1,#D8E0E7);color:#7B8896}
+.dc-hero svg.i{width:60px;height:60px}
+.dc-foot{text-align:center;color:var(--faint);font-size:12px;margin-top:18px}
+
 /* Toast */
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + var(--safe-b));z-index:60;display:flex;justify-content:center;pointer-events:none}
 .toast{max-width:480px;background:var(--asphalt);color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.2);display:flex;gap:10px;align-items:center;animation:reveal .2s}
@@ -641,7 +663,12 @@ const DICT = {
   'بدون اتصال · تعمل على آخر نسخة محفوظة':'Offline · showing the last saved data',
 
   // رمز الدخول
-  'رمز الدخول':'Access code','اختر رمز الدخول':'Choose your access code','تغيير رمز الدخول':'Change access code',
+  'رمز الطوارئ':'Emergency code','مفعّل · يفتح واجهة مموّهة':'On · opens a decoy screen','غير مفعّل':'Off',
+  'اكتب رمز دخولك الحقيقي أولاً':'Enter your real access code first','اكتب رمز الطوارئ':'Enter the emergency code',
+  'أعد كتابة رمز الطوارئ':'Repeat the emergency code','تم حفظ رمز الطوارئ':'Emergency code saved',
+  'أُلغي رمز الطوارئ':'Emergency code removed','إلغاء رمز الطوارئ':'Remove the emergency code',
+  'لا يصلح: هذا رمز دخولك الحقيقي':'Not allowed: that is your real code','رمز الدخول غير صحيح':'Wrong access code',
+  'فعّل رمز الدخول أولاً':'Turn on the access code first','رمز الدخول':'Access code','اختر رمز الدخول':'Choose your access code','تغيير رمز الدخول':'Change access code',
   'تغيير الأرقام الأربعة':'Change the four digits','غير مفعّل، فعّله لحماية الجهاز':'Off. Turn it on to protect this device',
   'اكتب أربعة أرقام تتذكرها':'Enter four digits you will remember','اكتب رمز الدخول':'Enter your access code',
   'أعد كتابة الرمز للتأكيد':'Repeat the code to confirm','أعد كتابة الرمز الجديد':'Repeat the new code',
@@ -1077,7 +1104,7 @@ const TRANSIENT = ['NETWORK', 'BUSY', 'TIMEOUT', 'SERVER_ERROR', 'BAD_RESPONSE']
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function syncOutbox(manual){
-  if (_syncing || !isOnline() || !S.token || S.demo) return;
+  if (_syncing || S.decoy || !isOnline() || !S.token || S.demo) return;
 
   // الضغط على «مزامنة الآن» يعيد المحاولة حتى للعمليات التي رُفضت سابقاً
   if (manual) outboxSet_(outbox().map(o => Object.assign({}, o, { status:'PENDING', error:'' })));
@@ -1333,6 +1360,7 @@ function bgRun(action, payload, opts){
 
 /* ---------------- API ---------------- */
 async function api(action, payload={}){
+  if (S.decoy) throw Object.assign(new Error('غير متاح'), { code:'DECOY' });
   if (S.demo) return Mock.handle(action, payload, S.token);
 
   // كتابة بدون اتصال: تُحفظ على الجهاز وتُرسل عند عودة الشبكة
@@ -1498,7 +1526,7 @@ const PULSE_MS = 45000;
 let _pulseTimer = null;
 
 async function pulse(force){
-  if (!S.token || S.locked || S.busy || document.hidden) return;
+  if (S.decoy || !S.token || S.locked || S.busy || document.hidden) return;
   try {
     const p = await api('getPulse');
     if (S.sig === null || S.sig === undefined){ S.sig = p.sig; return; }
@@ -1926,6 +1954,7 @@ function viewAccount(){
       ${!pinSupported() ? '' : hasPin() ? `<button class="row" data-act="pin-change"><span class="row-ic">${ic('shield')}</span><span class="row-main"><span class="row-title">رمز الدخول</span><span class="row-sub">تغيير الأرقام الأربعة</span></span>${ic('chev')}</button>`
       : `<button class="row" data-act="pin-new"><span class="row-ic">${ic('shield')}</span><span class="row-main"><span class="row-title">رمز الدخول</span><span class="row-sub">غير مفعّل، فعّله لحماية الجهاز</span></span>${ic('chev')}</button>`}
       <button class="row" data-act="sync-open"><span class="row-ic">${ic('cloudOff')}</span><span class="row-main"><span class="row-title">المزامنة</span><span class="row-sub">${outboxCount() ? outboxCount() + ' عملية على الجهاز' : (isOnline() ? 'كل شيء متزامن' : 'بدون اتصال')}</span></span>${ic('chev')}</button>
+      ${hasPin() ? `<button class="row" data-act="decoy"><span class="row-ic">${ic('shield')}</span><span class="row-main"><span class="row-title">رمز الطوارئ</span><span class="row-sub">${decoyExists() ? 'مفعّل · يفتح واجهة مموّهة' : 'غير مفعّل'}</span></span>${ic('chev')}</button>` : ''}
       <button class="row" data-act="lang"><span class="row-ic">${ic('globe')}</span><span class="row-main"><span class="row-title">اللغة</span><span class="row-sub" data-noi18n>${S.lang === 'en' ? 'English' : 'العربية'}</span></span>${ic('chev')}</button>
       ${S.demo ? `<div class="row"><span class="row-ic">${ic('server')}</span><span class="row-main"><span class="row-title">الخادم</span><span class="row-sub">وضع التجربة</span></span></div>` : ''}
     </div>
@@ -2001,12 +2030,53 @@ async function pinOpen_(pin){
     d.tries = 0; localStorage.setItem(PIN_KEY, JSON.stringify(d));
     return new TextDecoder().decode(buf);
   } catch(e){
+    // رمز الإكراه: لا يفكّ الجلسة ولا يُحتسب محاولة خاطئة، بل يفتح واجهة مموّهة
+    if (await decoyMatches_(pin, d)) return { decoy: true };
     d.tries = (d.tries || 0) + 1;
     if (d.tries >= PIN_MAX_TRIES){ pinForget_(); return { wiped: true }; }
     localStorage.setItem(PIN_KEY, JSON.stringify(d));
     return { left: PIN_MAX_TRIES - d.tries };
   }
 }
+
+/* ================= رمز الإكراه والواجهة المموّهة =================
+   رقم ثانٍ يفتح «معرض سيارات» بدل التطبيق. يُستعمل إذا أُجبر صاحب الهاتف على فتحه.
+   لا يفكّ الجلسة المشفّرة، فلا سبيل للوصول إلى أي بيان حقيقي من هذا الوضع،
+   ولا يُسجَّل كمحاولة خاطئة حتى لا يبدو مريباً. */
+/** تحقق من الرمز دون أن يُحتسب محاولة خاطئة (للاستعمال داخل الإعدادات). */
+async function pinCheck_(pin){
+  const d = lockData(); if (!d) return false;
+  try {
+    const key = await pinKey_(pin, b64.dec(d.salt));
+    await crypto.subtle.decrypt({ name:'AES-GCM', iv: b64.dec(d.iv) }, key, b64.dec(d.ct));
+    return true;
+  } catch(e){ return false; }
+}
+
+async function pinHash_(pin, salt){
+  const bytes = new TextEncoder().encode(salt + '|' + pin);
+  const buf = await crypto.subtle.digest('SHA-256', bytes);
+  return b64.enc(buf);
+}
+async function decoyMatches_(pin, d){
+  try {
+    if (!d || !d.decoy || !d.decoy.salt) return false;
+    return (await pinHash_(pin, d.decoy.salt)) === d.decoy.hash;
+  } catch(e){ return false; }
+}
+async function decoySet_(pin){
+  const d = lockData(); if (!d) throw new Error('فعّل رمز الدخول أولاً');
+  const salt = Utilities_uuid();
+  d.decoy = { salt: salt, hash: await pinHash_(pin, salt) };
+  d.tries = 0;
+  localStorage.setItem(PIN_KEY, JSON.stringify(d));
+}
+function decoyClear_(){
+  const d = lockData(); if (!d) return;
+  delete d.decoy; localStorage.setItem(PIN_KEY, JSON.stringify(d));
+}
+function decoyExists(){ const d = lockData(); return !!(d && d.decoy && d.decoy.hash); }
+const Utilities_uuid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2));
 function pinForget_(){ localStorage.removeItem(PIN_KEY); localStorage.removeItem(LS.token); }
 
 /* ---------- لوحة الأرقام المشتركة ---------- */
@@ -2039,6 +2109,88 @@ function pinBind(root, id, onFull){
   };
   st.say = text => { msg.textContent = text || ''; msg.className = 'pin-msg'; };
   return st;
+}
+
+/* ---------- الواجهة المموّهة: معرض سيارات ----------
+   بيانات ثابتة من داخل التطبيق، لا علاقة لها بأي معلومة حقيقية.
+   الخروج منها بالضغط المطوّل على العنوان ثلاث ثوانٍ، ثم كتابة الرمز الحقيقي. */
+const DECOY_CARS = [
+  { m:'Geely Coolray', y:2024, km:'0 كلم', p:'4,150,000', c:'أبيض لؤلؤي', f:'بنزين · أوتوماتيك' },
+  { m:'MG 5', y:2024, km:'0 كلم', p:'3,290,000', c:'أسود', f:'بنزين · أوتوماتيك' },
+  { m:'Hyundai Accent', y:2023, km:'18,400 كلم', p:'3,750,000', c:'رمادي', f:'بنزين · عادي' },
+  { m:'Volkswagen T-Cross', y:2024, km:'0 كلم', p:'5,480,000', c:'أزرق', f:'بنزين · أوتوماتيك' },
+  { m:'Kia Picanto', y:2022, km:'42,000 كلم', p:'2,180,000', c:'أحمر', f:'بنزين · عادي' },
+  { m:'Renault Clio', y:2023, km:'26,500 كلم', p:'2,950,000', c:'أبيض', f:'ديزل · عادي' },
+  { m:'Toyota Corolla', y:2021, km:'75,000 كلم', p:'3,980,000', c:'فضي', f:'بنزين · أوتوماتيك' },
+  { m:'Fiat Doblo', y:2024, km:'0 كلم', p:'2,640,000', c:'أبيض', f:'ديزل · عادي' }
+];
+
+function openDecoy(){
+  S.decoy = true;
+  closeSheet(true);
+  document.body.style.overflow = '';
+  renderDecoy();
+}
+
+function renderDecoy(q){
+  const list = DECOY_CARS.filter(c => !q || (c.m + ' ' + c.y).toLowerCase().includes(String(q).toLowerCase()));
+  $('#root').innerHTML = `
+  <div class="decoy">
+    <header class="dc-head">
+      <div class="dc-brand" id="dcExit"><img src="${LOGO}" alt=""><div>
+        <b>معرض سند للسيارات</b><small>بيع وشراء · تسهيلات في الدفع</small></div></div>
+    </header>
+    <div class="dc-body">
+      <div class="search" style="margin-bottom:14px"><span>${ic('search')}</span>
+        <input class="input" id="dcQ" placeholder="ابحث عن سيارة" value="${esc(q || '')}"></div>
+      <div class="dc-note">${ic('phone')}<span>للاستفسار: 0770 00 00 00</span></div>
+      <div class="dc-grid">
+        ${list.map((c, i) => `<button class="dc-card" data-dc="${i}">
+          <span class="dc-img">${ic('car')}</span>
+          <span class="dc-info"><b>${esc(c.m)}</b><small>${c.y} · ${esc(c.km)}</small>
+            <span class="dc-price">${c.p} دج</span></span></button>`).join('')}
+      </div>
+      ${!list.length ? `<div class="card empty">${ic('car')}<b>لا توجد سيارة بهذا الاسم</b></div>` : ''}
+      <p class="dc-foot">معرض سند · الطريق الوطني رقم 5 · مفتوح من 9:00 إلى 18:00</p>
+    </div>
+  </div>`;
+  hideSplash();
+
+  const qEl = $('#dcQ');
+  if (qEl) qEl.addEventListener('input', e => {
+    const v = e.target.value;
+    renderDecoy(v);
+    const el = $('#dcQ'); if (el){ el.focus(); el.setSelectionRange(v.length, v.length); }
+  });
+
+  // الخروج: ضغط مطوّل على اسم المعرض
+  const brand = $('#dcExit');
+  let timer = null;
+  const start = () => { timer = setTimeout(() => { S.decoy = false; renderPinUnlock(); }, 3000); };
+  const stop = () => { clearTimeout(timer); };
+  ['mousedown','touchstart'].forEach(ev => brand.addEventListener(ev, start, { passive:true }));
+  ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev => brand.addEventListener(ev, stop, { passive:true }));
+
+  document.addEventListener('click', decoyTap);
+}
+
+function decoyTap(e){
+  if (!S.decoy) return;
+  const card = e.target.closest('[data-dc]');
+  if (!card) return;
+  const c = DECOY_CARS[Number(card.dataset.dc)];
+  openSheet(`${sheetHead(esc(c.m))}<div class="sheet-body">
+      <div class="dc-hero">${ic('car')}</div>
+      <dl class="dl" style="margin-top:14px">
+        <div><dt>السنة</dt><dd>${c.y}</dd></div>
+        <div><dt>الممشى</dt><dd>${esc(c.km)}</dd></div>
+        <div><dt>اللون</dt><dd>${esc(c.c)}</dd></div>
+        <div><dt>الوقود وناقل الحركة</dt><dd>${esc(c.f)}</dd></div>
+        <div><dt>السعر</dt><dd>${c.p} دج</dd></div>
+      </dl>
+      <p class="hint" style="margin-top:14px">السعر قابل للتفاوض. إمكانية الدفع على دفعات بعد الاتفاق.</p>
+    </div>
+    <div class="sheet-foot"><a class="btn btn-primary btn-block" href="tel:0770000000">${ic('phone')}اتصل بالمعرض</a></div>`);
 }
 
 /* ---------- شاشة إنشاء الرمز ---------- */
@@ -2095,12 +2247,43 @@ function renderPinUnlock(){
     if (typeof r === 'string'){
       S.token = r; S.locked = false; sessSave_(r); loadApp(); return;
     }
+    if (r && r.decoy){ return openDecoy(); }
     if (r && r.wiped){ toast('محاولات كثيرة خاطئة. سجّل الدخول بكلمة المرور', true); return signOutLocal(); }
     s.shake(`رمز خاطئ، بقيت لك ${r.left} محاولات`);
   });
 }
 
 /* ---------- تغيير الرمز من الحساب ---------- */
+/* ضبط رمز الإكراه: يتطلب الرمز الحقيقي أولاً، ويمنع أن يكون مطابقاً له. */
+function openDecoySetup(){
+  if (!hasPin()) return toast('فعّل رمز الدخول أولاً', true);
+  openSheet(`${sheetHead('رمز الطوارئ')}<div class="sheet-body pin-sheet">
+    <p class="lead" style="text-align:start">رقم ثانٍ يفتح واجهة معرض سيارات بدل بياناتك.
+      استعمله إن أُجبرت على فتح التطبيق: يبدو أنك تعاونت، ولا يصل أحد إلى شيء.</p>
+    <p class="hint" style="text-align:start;margin-bottom:14px">اختر رقماً سهلاً يتوقعه غيرك، مثل 1234.
+      ${decoyExists() ? 'يوجد رمز طوارئ مفعّل حالياً.' : ''}</p>
+    ${pinPad('dk')}</div>
+    ${decoyExists() ? `<div class="sheet-foot"><button class="btn btn-ghost btn-block" data-act="decoy-off">إلغاء رمز الطوارئ</button></div>` : ''}`,
+  { onMount: sh => {
+    let stage = 'real', first4 = null;
+    const st = pinBind(sh, 'dk', async (val, s2) => {
+      if (stage === 'real'){
+        if (!(await pinCheck_(val))) return s2.shake('رمز الدخول غير صحيح');
+        stage = 'new'; s2.reset(); s2.say('اكتب رمز الطوارئ'); return;
+      }
+      if (stage === 'new'){
+        if (await pinCheck_(val)) return s2.shake('لا يصلح: هذا رمز دخولك الحقيقي');
+        first4 = val; stage = 'confirm'; s2.reset(); s2.say('أعد كتابة رمز الطوارئ'); return;
+      }
+      if (val !== first4){ stage = 'new'; first4 = null; return s2.shake('الرمزان غير متطابقين'); }
+      await decoySet_(val);
+      closeSheet(); toast('تم حفظ رمز الطوارئ');
+      renderShell(false);
+    });
+    st.say('اكتب رمز دخولك الحقيقي أولاً');
+  } });
+}
+
 function openPinChange(){
   openSheet(`${sheetHead('تغيير رمز الدخول')}<div class="sheet-body pin-sheet">
     <p class="lead">اكتب رمزك الحالي أولاً.</p>${pinPad('pc')}</div>`, { onMount: sh => {
@@ -3595,6 +3778,8 @@ document.addEventListener('click', async e => {
     case 't-cancel-go': transferAction('cancelTransfer', { transfer_id:id, note:$('#cn').value.trim() }, el, 'أُلغي التحويل'); break;
     case 'account': break;
     case 'pin-lock': lockNow(); break;
+    case 'decoy': openDecoySetup(); break;
+    case 'decoy-off': decoyClear_(); closeSheet(); renderShell(false); toast('أُلغي رمز الطوارئ'); break;
     case 'pin-change': openPinChange(); break;
     case 'pin-new': renderPinSetup(); break;
     case 'pin-forgot': openPinForgot(); break;
