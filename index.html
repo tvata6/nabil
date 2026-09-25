@@ -499,6 +499,8 @@ const S = {
   hist: { filter: 'all', items: [], total: 0, loaded: false, boxId: null },
   trf: { tab: 'wait', items: [], loaded: false },
   cust: { items: [], loaded: false, q: '' },
+  sup: { items: [], brokers: [], loaded: false },
+  so: null,
   wiz: null,
   order: null,
   cats: null, targets: null, odo: {},
@@ -750,6 +752,15 @@ const RULES = [
   [/^عن طريق (.+)$/, 'via $1'],
   [/^(\d+) زبون$/, (_, n) => n === '1' ? '1 customer' : n + ' customers'],
   [/^(\d+) سيارة$/, (_, n) => n === '1' ? '1 car' : n + ' cars'],
+  [/^(\d+) مورد$/, (_, n) => n === '1' ? '1 supplier' : n + ' suppliers'],
+  [/^(\d+) طلبية$/, (_, n) => n === '1' ? '1 order' : n + ' orders'],
+  [/^(\d+) وسيط$/, (_, n) => n === '1' ? '1 broker' : n + ' brokers'],
+  [/^(\d+) استحقاق قريب$/, (_, n) => n + ' due soon'],
+  [/^الباقي (.+)$/, 'Remaining $1'],
+  [/^موعد الدفع (.+)$/, 'Due $1'],
+  [/^شراء (.+) \$ بـ (.+)$/, 'Buy $1 $ for $2'],
+  [/^دفع (.+)$/, 'Pay $1'],
+  [/^تنبيه قبله بـ (\d+) يوم$/, (_, n) => 'reminder ' + n + ' days before'],
   [/^(\d+) عملية$/, (_, n) => n === '1' ? '1 operation' : n + ' operations'],
   [/^فائض للزبون (.+)$/, 'Refund due to the customer: $1'],
   [/^نقص يزيدنا إياه (.+)$/, 'Shortfall the customer owes: $1'],
@@ -757,6 +768,15 @@ const RULES = [
   [/^فائض (.+)$/, 'Surplus $1'],
   [/^متأخر (\d+) يوم$/, (_, n) => n === '1' ? '1 day late' : n + ' days late'],
   [/^(\d+) سيارة$/, (_, n) => n === '1' ? '1 car' : n + ' cars'],
+  [/^(\d+) مورد$/, (_, n) => n === '1' ? '1 supplier' : n + ' suppliers'],
+  [/^(\d+) طلبية$/, (_, n) => n === '1' ? '1 order' : n + ' orders'],
+  [/^(\d+) وسيط$/, (_, n) => n === '1' ? '1 broker' : n + ' brokers'],
+  [/^(\d+) استحقاق قريب$/, (_, n) => n + ' due soon'],
+  [/^الباقي (.+)$/, 'Remaining $1'],
+  [/^موعد الدفع (.+)$/, 'Due $1'],
+  [/^شراء (.+) \$ بـ (.+)$/, 'Buy $1 $ for $2'],
+  [/^دفع (.+)$/, 'Pay $1'],
+  [/^تنبيه قبله بـ (\d+) يوم$/, (_, n) => 'reminder ' + n + ' days before'],
   [/^بعد (\d+) يوم$/, (_, n) => 'in ' + n + (n === '1' ? ' day' : ' days')],
   [/^باقٍ عليه (.+)$/, 'Still owes $1'],
   [/^الشحن (.+)$/, 'Shipping $1'],
@@ -1489,6 +1509,7 @@ function renderShell(loading){
 }
 function renderView(){
   if (!S.ov) return skeleton();
+  if (S.view === 'suppliers') return viewSuppliers();
   if (S.view === 'customers') return viewCustomers();
   if (S.view === 'history') return viewHistory();
   if (S.view === 'transfers') return viewTransfers();
@@ -1507,6 +1528,7 @@ function afterRender(){
   animateOdo();
   if (S.view === 'history' && !S.hist.loaded) loadHistory();
   if (S.view === 'customers' && !S.cust.loaded) loadCustomers();
+  if (S.view === 'suppliers' && !S.sup.loaded) loadSuppliers();
   const cq = $('#custQ');
   if (cq) cq.addEventListener('input', e => { S.cust.q = e.target.value; const v = e.target.value;
     clearTimeout(S._cq); S._cq = setTimeout(() => { rerender(); const el = $('#custQ'); if (el){ el.focus(); el.setSelectionRange(v.length, v.length); } }, 250); });
@@ -1642,6 +1664,7 @@ function followUpItems(incoming, watching, otherIncoming){
   const ship = S.ov.shipping_alerts || [];
   const queued = outboxCount();
   const failed = outbox().filter(o => o.status === 'FAILED').length;
+  const supAlerts = (S.ov.supplier_alerts || []);
   const tech = [];
   if (failed) tech.push({ k:'sync-bad', icon:'x', cls:'out', act:'sync-open',
     text:`${failed} عملية لم تُقبل، راجعها`, n:failed });
@@ -1650,8 +1673,8 @@ function followUpItems(incoming, watching, otherIncoming){
   if (otherIncoming) tech.push({ k:'other', icon:'swap', cls:'tr', act:'tab', v:'transfers',
     text:`${otherIncoming} تحويل ينتظر تأكيدك في صناديق أخرى`, n:otherIncoming });
 
-  const n = incoming.length + ship.length + watching.length + tech.reduce((a,b)=>a+b.n,0);
-  return { incoming, ship, watching, tech, n };
+  const n = incoming.length + ship.length + watching.length + supAlerts.length + tech.reduce((a,b)=>a+b.n,0);
+  return { incoming, ship, watching, supAlerts, tech, n };
 }
 
 /* صفحة «تحتاج متابعتك»
@@ -1700,6 +1723,17 @@ function openFollowUp(){
         <span class="fu-label ${g.key === 'late' ? 'hot' : ''}">${ic('car')}${g.title}
           <span class="fu-n">${g.items.length}</span></span>
         ${g.items.map(shipCard).join('')}</div>`).join('')}
+
+      ${f.supAlerts.length ? `<div class="fu-tier"><span class="fu-label hot">${ic('box')}دفعات للموردين
+        <span class="fu-n">${f.supAlerts.length}</span></span>
+        ${f.supAlerts.map(a => `<article class="tcard" style="border-inline-start-color:var(--out)">
+          <div class="t-route"><b>${esc(a.supplier_name)}</b><span>${esc(a.label)}</span>
+            <span style="margin-inline-start:auto" class="tag ${a.days_to_due < 0 ? 'red' : 'amber'}">
+              ${a.days_to_due < 0 ? `متأخر ${Math.abs(a.days_to_due)} يوم` : daysWord(a.days_to_due)}</span></div>
+          <div class="t-amt" style="font-size:18px">الباقي ${fmt(a.remaining_usd)} $</div>
+          <div class="t-meta"><span>موعد الدفع ${dayLabel(a.due_date)}</span></div>
+          <div class="t-actions"><button class="btn btn-primary btn-sm" style="flex:1" data-act="so" data-id="${a.so_id}">فتح الطلبية</button></div>
+        </article>`).join('')}</div>` : ''}
 
       ${watching.length ? `<div class="fu-tier"><span class="fu-label">${ic('clock')}بانتظار تأكيد غيرك</span>
         ${watching.map(transferCard).join('')}</div>` : ''}
@@ -1851,6 +1885,7 @@ function viewAccount(){
       <span><b>${esc(u.full_name)}</b><span class="hint" style="margin:0">${ROLE[u.role]}</span></span></button>
     <div class="list menu" style="margin-top:14px">
       <button class="row" data-act="switch-box"><span class="row-ic">${ic('box')}</span><span class="row-main"><span class="row-title">الصندوق الافتراضي</span><span class="row-sub">${box?esc(box.name):'غير محدد'}</span></span>${ic('chev')}</button>
+      ${S.me.user.role !== 'KEEPER' ? `<button class="row" data-act="tab" data-v="suppliers"><span class="row-ic">${ic('box')}</span><span class="row-main"><span class="row-title">الموردون والوسطاء</span><span class="row-sub">الطلبيات ورصيد الدولار</span></span>${ic('chev')}</button>` : ''}
       <button class="row" data-act="tab" data-v="history"><span class="row-ic">${ic('list')}</span><span class="row-main"><span class="row-title">سجل العمليات</span><span class="row-sub">كل حركات صندوقك</span></span>${ic('chev')}</button>
       <button class="row" data-act="password"><span class="row-ic">${ic('lock')}</span><span class="row-main"><span class="row-title">تغيير كلمة المرور</span></span>${ic('chev')}</button>
       ${!hasPin() ? '' : `<button class="row" data-act="pin-lock"><span class="row-ic">${ic('lockClosed')}</span><span class="row-main"><span class="row-title">قفل التطبيق الآن</span><span class="row-sub">يطلب الرمز فوراً</span></span>${ic('chev')}</button>`}
@@ -2221,6 +2256,11 @@ function renderOrderSheet(o){
       </div>
       ${staff ? `<button class="btn-text" style="width:100%;margin-top:6px" data-act="customs" data-id="${o.order_id}">${o.customs_known?'تعديل تكلفة الديوانة':'إدخال تكلفة الديوانة من الفاتورة'}</button>` : ''}
     </div>
+
+    ${S.me.user.role !== 'KEEPER' ? `<button class="row ship-row" data-act="link-so" data-id="${o.order_id}">
+      <span class="row-ic ${o.so_id ? 'in' : 'tr'}">${ic('box')}</span>
+      <span class="row-main"><span class="row-title">حاوية المورد</span>
+        <span class="row-sub">${o.so_id ? '<span>مربوطة</span>' : '<span>غير مربوطة</span>'}</span></span>${ic('chev')}</button>` : ''}
 
     <button class="row ship-row" data-act="ship-date" data-id="${o.order_id}">
       <span class="row-ic ${o.ship_date && o.days_to_ship <= 2 ? 'out' : 'tr'}">${ic('clock')}</span>
@@ -2673,6 +2713,336 @@ async function openPayFlowCars(customerId){
       (r.items.length ? `<div class="list">${r.items.map(orderRow).join('')}</div>`
         : `<div class="card empty">${ic('car')}<b>لا توجد سيارة لهذا الزبون</b>
            <button class="btn btn-soft btn-sm" style="margin-top:10px" data-act="order-new" data-id="${customerId}">إضافة سيارة</button></div>`);
+  } catch(x){ closeSheet(); toast(x.message, true); }
+}
+
+/* ================= الموردون والوسطاء =================
+   الوجه المقابل للزبائن: هنا ندفع بالدولار بدل أن نُحصّل بالدينار.
+   الشاشة للمدير والمحاسب فقط، لأن الشراء والتحويل الخارجي ليسا من عمل صاحب الصندوق. */
+
+const SO_STAGE_EN = { ORDERED:'Ordered', DEPOSIT_PAID:'Deposit paid', PAID:'Fully paid',
+  SHIPPED:'Shipped', ARRIVED:'Arrived' };
+const soStage = o => (isEN() && SO_STAGE_EN[o.stage]) || o.stage_label || o.stage;
+const usd = v => `<span class="num">${fmt(v)}</span> $`;
+
+function viewSuppliers(){
+  const list = S.sup.items;
+  const owed = list.reduce((s, x) => s + (x.remaining_usd || 0), 0);
+  const brokersUsd = (S.sup.brokers || []).reduce((s, b) => s + (b.usd_balance || 0), 0);
+
+  return `<div class="page-head"><h1>الموردون</h1>
+      <button class="icon-btn" data-act="refresh" aria-label="تحديث">${ic('refresh')}</button></div>
+  <div class="page" style="padding-top:8px">
+    ${!S.sup.loaded ? '<div class="sk" style="height:240px;border-radius:14px"></div>' : `
+      <div class="today">
+        <div class="card"><small>${ic('out')}علينا للموردين</small><span class="amt out">${fmt(owed)} $</span></div>
+        <div class="card"><small>${ic('swap')}رصيد الوسطاء</small><span class="amt move">${fmt(brokersUsd)} $</span></div>
+      </div>
+
+      <button class="row card" style="margin-top:12px" data-act="brokers">
+        <span class="row-ic tr">${ic('swap')}</span>
+        <span class="row-main"><span class="row-title">الوسطاء وشراء الدولار</span>
+          <span class="row-sub">${(S.sup.brokers||[]).length} وسيط</span></span>${ic('chev')}</button>
+
+      <div class="sec">
+        <div class="sec-h"><h2>${list.length} مورد</h2>
+          <button class="link" data-act="sup-new">+ مورد جديد</button></div>
+        ${list.length ? `<div class="list">${list.map(supplierRow).join('')}</div>`
+          : `<div class="card empty">${ic('box')}<b>لا يوجد مورد بعد</b>أضف أول مورد لتسجيل طلبياته.</div>`}
+      </div>`}
+  </div>`;
+}
+
+function supplierRow(s){
+  return `<button class="row" data-act="sup" data-id="${s.supplier_id}">
+    <span class="row-ic ${s.remaining_usd > 0 ? 'out' : 'in'}">${ic('box')}</span>
+    <span class="row-main"><span class="row-title">${esc(s.name)}</span>
+      <span class="row-sub"><span>${s.orders_count} طلبية</span>${s.country?`<span>${esc(s.country)}</span>`:''}
+        ${s.due_soon?`<span class="tag amber">${s.due_soon} استحقاق قريب</span>`:''}</span></span>
+    <span class="row-end">${s.remaining_usd > 0
+      ? `<span class="amt out">${fmt(s.remaining_usd)} $</span><span class="row-bal">علينا له</span>`
+      : `<span class="tag green">خالص</span>`}</span></button>`;
+}
+
+async function loadSuppliers(){
+  try {
+    const [items, brokers] = await Promise.all([api('listSuppliers', {}), api('listBrokers', {})]);
+    S.sup.items = items; S.sup.brokers = brokers; S.sup.loaded = true;
+    if (S.view === 'suppliers') rerender();
+  } catch(x){ S.sup.loaded = true; toast(x.message, true); }
+}
+
+/* ---------- بطاقة المورد ---------- */
+async function openSupplier(id){
+  const sup = S.sup.items.find(x => x.supplier_id === id) || {};
+  openSheet(`${sheetHead(esc(sup.name || 'المورد'))}
+    <div class="sheet-body" id="supBody"><div class="sk" style="height:220px;border-radius:14px"></div></div>`, { full:true });
+  try {
+    const r = await api('listSupplierOrders', { supplier_id: id });
+    if (!$('#supBody')) return;
+    $('#supBody').innerHTML = `
+      <div class="today">
+        <div class="card"><small>علينا له</small><span class="amt ${sup.remaining_usd?'out':'in'}">${fmt(sup.remaining_usd||0)} $</span></div>
+        <div class="card"><small>طلبياته</small><span class="amt move">${r.items.length}</span></div>
+      </div>
+      <div class="sec">
+        <div class="sec-h"><h2>الطلبيات</h2><button class="link" data-act="so-new" data-id="${id}">+ طلبية</button></div>
+        ${r.items.length ? `<div class="list">${r.items.map(soRow).join('')}</div>`
+          : `<div class="card empty">${ic('box')}<b>لا توجد طلبية بعد</b></div>`}
+      </div>`;
+  } catch(x){ closeSheet(); toast(x.message, true); }
+}
+
+function soRow(o){
+  const due = o.due_date ? (o.days_to_due < 0 ? `متأخر ${Math.abs(o.days_to_due)} يوم` : daysWord(o.days_to_due)) : '';
+  return `<button class="row" data-act="so" data-id="${o.so_id}">
+    <span class="row-ic ${o.remaining_usd > 0 ? (o.due_soon ? 'out' : 'tr') : 'in'}">${ic('box')}</span>
+    <span class="row-main"><span class="row-title">${esc(o.label)}</span>
+      <span class="row-sub"><span>${esc(soStage(o))}</span>${due?`<span class="${o.due_soon?'late':''}">${due}</span>`:''}</span></span>
+    <span class="row-end">${o.remaining_usd > 0
+      ? `<span class="amt out">${fmt(o.remaining_usd)} $</span><span class="row-bal">باقٍ</span>`
+      : `<span class="amt in">${fmt(o.total_usd)} $</span><span class="row-bal">خالص</span>`}</span></button>`;
+}
+
+/* ---------- بطاقة الطلبية ---------- */
+async function openSO(soId){
+  openSheet(`${sheetHead('طلبية مورد')}<div class="sheet-body" id="soBody"><div class="sk" style="height:300px;border-radius:14px"></div></div>`, { full:true });
+  try {
+    const o = await api('getSupplierOrder', { so_id: soId });
+    if (!$('#soBody')) return;
+    S.so = o;
+    renderSOSheet(o);
+  } catch(x){ closeSheet(); toast(x.message, true); }
+}
+
+function renderSOSheet(o){
+  const pct = o.total_usd ? Math.min(100, Math.round(o.paid_usd / o.total_usd * 100)) : 0;
+  const late = o.days_to_due != null && o.days_to_due < 0;
+  $('.sheet .sheet-head h3').textContent = o.label;
+  $('#soBody').innerHTML = `
+    <div class="ord-top">
+      <div><b>${esc(o.supplier_name)}</b><span class="row-sub"><span>${esc(o.label)}</span></span></div>
+      <button class="chip" data-act="so-stage" data-id="${o.so_id}">${esc(soStage(o))} ${ic('down')}</button>
+    </div>
+
+    <div class="card money-card">
+      <div class="mc-head"><span>مبلغ الطلبية</span><b class="num">${fmt(o.total_usd)} $</b></div>
+      <div class="prog"><span style="width:${pct}%"></span></div>
+      <div class="mc-foot"><span>مدفوع <b class="num">${fmt(o.paid_usd)}</b></span>
+        <span class="${o.remaining_usd>0?'due':'ok'}">${o.remaining_usd>0?`الباقي <b class="num">${fmt(o.remaining_usd)}</b>`:'خالص'}</span></div>
+      ${o.remaining_usd > 0 ? `<button class="btn btn-primary btn-block btn-sm" style="margin-top:12px" data-act="so-pay" data-id="${o.so_id}">دفع للمورد</button>` : ''}
+    </div>
+
+    <button class="row ship-row" data-act="so-due" data-id="${o.so_id}">
+      <span class="row-ic ${o.due_soon ? 'out' : 'tr'}">${ic('clock')}</span>
+      <span class="row-main"><span class="row-title">موعد دفع الباقي</span>
+        <span class="row-sub">${o.due_date
+          ? `<span>${dayLabel(o.due_date)}</span><span>${late ? `متأخر ${Math.abs(o.days_to_due)} يوم` : daysWord(o.days_to_due)}</span><span>تنبيه قبله بـ ${o.alert_days} يوم</span>`
+          : '<span>لم يُحدَّد</span>'}</span></span>${ic('chev')}</button>
+
+    <div class="sec">
+      <div class="sec-h"><h2>الدفعات</h2></div>
+      ${o.payments.length ? `<div class="list">${o.payments.map(pm => `<div class="row">
+        <span class="row-ic out">${ic('out')}</span>
+        <span class="row-main"><span class="row-title">${esc(pm.description || 'دفعة')}</span>
+          <span class="row-sub"><span>${esc(pm.broker_name)}</span><span>${dayLabel(pm.entry_date)}</span></span></span>
+        <span class="row-end"><span class="amt out">${fmt(pm.usd_amount)} $</span></span></div>`).join('')}</div>`
+        : `<div class="card empty">${ic('list')}<b>لا توجد دفعات بعد</b></div>`}
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h2>سيارات هذه الحاوية</h2><span class="hint" style="margin:0">${o.cars.length} من 4</span></div>
+      ${o.cars.length ? `<div class="list">${o.cars.map(c => `<button class="row" data-act="order" data-id="${c.order_id}">
+        <span class="row-ic tr">${ic('car')}</span>
+        <span class="row-main"><span class="row-title">${esc(c.car_label)}</span>
+          <span class="row-sub"><span>${esc(c.customer_name)}</span></span></span>${ic('chev')}</button>`).join('')}</div>`
+        : `<div class="card empty">${ic('car')}<b>لم تُربط سيارات بعد</b>افتح بطاقة السيارة واربطها بهذه الحاوية.</div>`}
+    </div>`;
+}
+
+/* ---------- النماذج ---------- */
+function openNewSupplier(){
+  openSheet(`${sheetHead('مورد جديد')}<div class="sheet-body">
+    <div class="field"><label class="field-l" for="spName">اسم المورد</label>
+      <input class="input" id="spName" placeholder="اسم المورد" autocomplete="off"></div>
+    <div class="field"><label class="field-l" for="spCountry">البلد <small>(اختياري)</small></label>
+      <input class="input" id="spCountry" placeholder="البلد"></div>
+    <div class="field"><label class="field-l" for="spContact">جهة الاتصال <small>(اختياري)</small></label>
+      <input class="input" id="spContact" placeholder="الاسم أو الرقم"></div></div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="sup-save">إضافة المورد</button></div>`);
+}
+
+function openNewSO(supplierId){
+  const brokers = S.sup.brokers || [];
+  const st = { total:'', dep:'', broker: brokers[0] ? brokers[0].broker_id : '' };
+  openSheet(`${sheetHead('طلبية جديدة')}<div class="sheet-body">
+    <div class="field"><label class="field-l" for="soLabel">اسم الطلبية <small>(اختياري)</small></label>
+      <input class="input" id="soLabel" placeholder="رقم الحاوية أو وصفها"></div>
+    <div class="field"><label class="field-l" for="soTotal">المبلغ الإجمالي بالدولار</label>
+      <input class="input num" id="soTotal" inputmode="decimal" placeholder="المبلغ بالدولار"></div>
+    <div class="field"><label class="field-l" for="soDue">موعد دفع الباقي</label>
+      <div class="date-row"><span>${ic('clock')}</span><input type="date" id="soDue" style="flex:1"></div></div>
+    <div class="field"><label class="field-l" for="soAlert">نبّهني قبله بـ</label>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input class="input num" id="soAlert" inputmode="numeric" value="7" style="width:90px;text-align:center">
+        <span class="hint" style="margin:0">يوم</span></div></div>
+    <div class="field"><label class="field-l" for="soDep">العربون المدفوع الآن <small>(اختياري)</small></label>
+      <input class="input num" id="soDep" inputmode="decimal" placeholder="المبلغ بالدولار"></div>
+    <div class="field" id="soBrokerWrap"><span class="field-l">من أي وسيط؟</span>
+      <div class="chips">${brokers.map((b,i) => `<button type="button" class="chip" data-sbroker="${b.broker_id}"
+        aria-pressed="${i===0}">${esc(b.name)} · ${fmt(b.usd_balance)} $</button>`).join('')}</div></div>
+  </div>
+  <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="so-save" data-id="${supplierId}">إضافة الطلبية</button></div>`,
+  { full:true, onMount: sh => {
+    sh.dataset.broker = st.broker;
+    sh.addEventListener('click', e => {
+      const b = e.target.closest('[data-sbroker]');
+      if (b){ sh.dataset.broker = b.dataset.sbroker; sh.querySelectorAll('[data-sbroker]').forEach(x => x.setAttribute('aria-pressed', x===b)); }
+    });
+  } });
+}
+
+function openPaySupplier(soId){
+  const o = S.so;
+  const brokers = S.sup.brokers || [];
+  const kp = { value:'', currency:'USD' };
+  openSheet(`${sheetHead('دفع للمورد')}<div class="sheet-body">
+      <div class="hint" style="margin:0 0 14px">${esc(o.supplier_name)} — ${esc(o.label)}
+        <b style="color:var(--ink)"> الباقي ${fmt(o.remaining_usd)} $</b></div>
+      <div class="field"><span class="field-l">من أي وسيط؟</span>
+        <div class="chips">${brokers.map((b,i) => `<button type="button" class="chip" data-pbroker="${b.broker_id}"
+          aria-pressed="${i===0}">${esc(b.name)} · ${fmt(b.usd_balance)} $</button>`).join('')}</div></div>
+      <span class="field-l">المبلغ بالدولار</span>${amountBlock()}
+      <div class="hint warn" id="spWarn"></div>
+      <div class="field" style="margin-top:16px"><label class="field-l" for="spDesc">ملاحظة <small>(اختياري)</small></label>
+        <input class="input" id="spDesc" placeholder="ملاحظة"></div>
+    </div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" id="spBtn" disabled>أكمل البيانات</button></div>`,
+    { full:true, onMount: sh => {
+      sh.dataset.broker = brokers[0] ? brokers[0].broker_id : '';
+      sh.addEventListener('click', e => {
+        const b = e.target.closest('[data-pbroker]');
+        if (b){ sh.dataset.broker = b.dataset.pbroker; sh.querySelectorAll('[data-pbroker]').forEach(x => x.setAttribute('aria-pressed', x===b)); }
+      });
+      bindKeypad(sh, kp, () => {
+        const v = Number(kp.value) || 0;
+        const btn = $('#spBtn');
+        btn.disabled = !(v > 0);
+        btn.textContent = v > 0 ? `دفع ${fmt(v)} $` : 'أكمل البيانات';
+        const br = brokers.find(b => b.broker_id === sh.dataset.broker) || {};
+        $('#spWarn').textContent = v > o.remaining_usd ? `أكبر من الباقي للمورد (${fmt(o.remaining_usd)} $)`
+          : (v > (br.usd_balance || 0) ? `رصيد ${br.name || 'الوسيط'} سيصبح بالسالب` : '');
+      });
+      $('#spBtn').addEventListener('click', async () => {
+        const btn = $('#spBtn'); setBtnBusy(btn, true);
+        const key = 'sopay:' + soId + ':' + kp.value;
+        try {
+          const r = await api('paySupplier', { so_id: soId, broker_id: sh.dataset.broker,
+            usd_amount: Number(kp.value), description: $('#spDesc').value.trim(), client_ref: refFor(key) });
+          clearRef(key); closeSheet(); toast('تم تسجيل الدفعة');
+          S.so = r.so; openSO(soId); loadSuppliers(); refresh(true);
+        } catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
+      });
+    } });
+}
+
+function openSODue(soId){
+  const o = S.so;
+  openSheet(`${sheetHead('موعد دفع الباقي')}<div class="sheet-body">
+    <p class="lead">يذكّرك النظام قبل الموعد بعدد الأيام الذي تحدده.</p>
+    <div class="field"><div class="date-row"><span>موعد الدفع</span>
+      <input type="date" id="dueVal" value="${esc(o.due_date || '')}"></div></div>
+    <div class="field"><label class="field-l" for="dueAlert">نبّهني قبله بـ</label>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input class="input num" id="dueAlert" inputmode="numeric" value="${o.alert_days}" style="width:90px;text-align:center">
+        <span class="hint" style="margin:0">يوم</span></div></div></div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="so-due-save" data-id="${soId}">حفظ</button></div>`);
+}
+
+function openSOStage(soId){
+  const o = S.so;
+  const stages = { ORDERED:'طلبية', DEPOSIT_PAID:'عربون مدفوع', PAID:'مدفوعة بالكامل', SHIPPED:'مشحونة', ARRIVED:'وصلت' };
+  openSheet(`${sheetHead('مرحلة الطلبية')}<div class="sheet-body">
+    ${Object.keys(stages).map(k => `<button class="pick" data-act="so-stage-set" data-id="${soId}" data-stage="${k}" aria-pressed="${o.stage===k}">
+      <span class="radio"></span><span class="row-main"><b>${esc(stages[k])}</b></span></button>`).join('')}</div>`);
+}
+
+/* ---------- الوسطاء وشراء الدولار ---------- */
+function openBrokers(){
+  const list = S.sup.brokers || [];
+  openSheet(`${sheetHead('الوسطاء')}<div class="sheet-body">
+    ${list.length ? `<div class="list">${list.map(b => `<div class="row">
+        <span class="row-ic tr">${ic('swap')}</span>
+        <span class="row-main"><span class="row-title">${esc(b.name)}</span>
+          ${b.phone?`<span class="row-sub"><span class="num">${esc(normPhone(b.phone))}</span></span>`:''}</span>
+        <span class="row-end"><span class="amt ${b.usd_balance < 0 ? 'out' : 'in'}">${fmt(b.usd_balance)} $</span>
+          <span class="row-bal">رصيد الدولار</span></span></div>`).join('')}</div>`
+      : `<div class="card empty">${ic('swap')}<b>لا يوجد وسيط بعد</b></div>`}
+    <button class="btn btn-soft btn-block" style="margin-top:14px" data-act="fx-buy">${ic('in')}شراء دولار</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" data-act="brk-new">+ وسيط جديد</button>
+  </div>`, { full:true });
+}
+
+function openNewBroker(){
+  openSheet(`${sheetHead('وسيط جديد')}<div class="sheet-body">
+    <div class="field"><label class="field-l" for="brName">اسم الوسيط</label>
+      <input class="input" id="brName" placeholder="اسم الوسيط" autocomplete="off"></div>
+    <div class="field"><label class="field-l" for="brPhone">رقم الهاتف <small>(اختياري)</small></label>
+      <input class="input" id="brPhone" type="tel" dir="ltr" placeholder="رقم الهاتف"></div></div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="brk-save">إضافة الوسيط</button></div>`);
+}
+
+function openBuyUsd(){
+  const brokers = S.sup.brokers || [];
+  const boxes = (S.ov.boxes || []).filter(b => b.type !== 'SYSTEM');
+  openSheet(`${sheetHead('شراء دولار')}<div class="sheet-body">
+    <div class="field"><span class="field-l">لأي وسيط؟</span>
+      <div class="chips">${brokers.map((b,i) => `<button type="button" class="chip" data-fbroker="${b.broker_id}"
+        aria-pressed="${i===0}">${esc(b.name)}</button>`).join('')}</div></div>
+    <div class="field"><span class="field-l">من أي صندوق؟</span>
+      <div class="chips">${boxes.map((b,i) => `<button type="button" class="chip" data-fbox="${b.box_id}"
+        aria-pressed="${b.box_id===S.boxId || (i===0 && !boxes.some(x=>x.box_id===S.boxId))}">${esc(b.name)}</button>`).join('')}</div></div>
+    <div class="field"><label class="field-l" for="fxUsd">مبلغ الدولار</label>
+      <input class="input num" id="fxUsd" inputmode="decimal" placeholder="المبلغ بالدولار"></div>
+    <div class="field"><label class="field-l" for="fxRate">سعر الصرف</label>
+      <input class="input num" id="fxRate" inputmode="decimal" placeholder="سعر الدينار للدولار"></div>
+    <div class="card" style="padding:14px"><div class="mc-head"><span>يخرج من الصندوق</span>
+      <b class="num" id="fxDzd">0</b></div></div>
+  </div>
+  <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="fx-save" disabled>أكمل البيانات</button></div>`,
+  { full:true, onMount: sh => {
+    sh.dataset.broker = brokers[0] ? brokers[0].broker_id : '';
+    sh.dataset.box = S.boxId || (boxes[0] || {}).box_id || '';
+    const calc = () => {
+      const u = Number($('#fxUsd').value || 0), r = Number($('#fxRate').value || 0);
+      const dzd = Math.round(u * r);
+      $('#fxDzd').textContent = fmt(dzd) + ' دج';
+      const btn = $('.sheet-foot .btn');
+      btn.disabled = !(u > 0 && r > 0 && sh.dataset.broker && sh.dataset.box);
+      btn.textContent = btn.disabled ? 'أكمل البيانات' : `شراء ${fmt(u)} $ بـ ${fmt(dzd)} دج`;
+    };
+    sh.addEventListener('input', calc);
+    sh.addEventListener('click', e => {
+      const br = e.target.closest('[data-fbroker]');
+      if (br){ sh.dataset.broker = br.dataset.fbroker; sh.querySelectorAll('[data-fbroker]').forEach(x => x.setAttribute('aria-pressed', x===br)); calc(); }
+      const bx = e.target.closest('[data-fbox]');
+      if (bx){ sh.dataset.box = bx.dataset.fbox; sh.querySelectorAll('[data-fbox]').forEach(x => x.setAttribute('aria-pressed', x===bx)); calc(); }
+    });
+    calc();
+  } });
+}
+
+/* ---------- ربط سيارة زبون بحاوية مورد ---------- */
+async function openLinkSO(orderId){
+  openSheet(`${sheetHead('ربط السيارة بحاوية')}<div class="sheet-body" id="lsBody"><div class="sk" style="height:200px;border-radius:14px"></div></div>`, { full:true });
+  try {
+    const r = await api('listSupplierOrders', {});
+    if (!$('#lsBody')) return;
+    const cur = (S.order || {}).so_id || '';
+    $('#lsBody').innerHTML = `<p class="lead">اختر الحاوية التي جاءت فيها هذه السيارة.</p>
+      ${r.items.map(o => `<button class="pick" data-act="ls-set" data-id="${orderId}" data-so="${o.so_id}" aria-pressed="${cur===o.so_id}">
+        <span class="radio"></span><span class="row-main"><b>${esc(o.label)}</b><small>${esc(o.supplier_name)} · ${esc(soStage(o))}</small></span></button>`).join('')}
+      ${cur ? `<button class="btn btn-ghost btn-block" style="margin-top:10px" data-act="ls-set" data-id="${orderId}" data-so="">إلغاء الربط</button>` : ''}`;
   } catch(x){ closeSheet(); toast(x.message, true); }
 }
 
@@ -3225,6 +3595,52 @@ document.addEventListener('click', async e => {
     case 'pay-flow': openPayFlow(); break;
     case 'pf-cust': openPayFlowCars(id); break;
     case 'followup': openFollowUp(); break;
+    case 'sup': openSupplier(id); break;
+    case 'sup-new': openNewSupplier(); break;
+    case 'sup-save': { setBtnBusy(el, true);
+      try { await api('createSupplier', { name:$('#spName').value.trim(), country:$('#spCountry').value.trim(),
+          contact:$('#spContact').value.trim() });
+        closeSheet(); toast('تمت إضافة المورد'); await loadSuppliers(); rerender();
+      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'so': openSO(id); break;
+    case 'so-new': openNewSO(id); break;
+    case 'so-save': { setBtnBusy(el, true);
+      const sh = el.closest('.sheet');
+      try { const o = await api('createSupplierOrder', { supplier_id:id, label:$('#soLabel').value.trim(),
+          total_usd:Number($('#soTotal').value || 0), due_date:$('#soDue').value || '',
+          alert_days:Number($('#soAlert').value || 7),
+          deposit_usd: $('#soDep').value ? Number($('#soDep').value) : '', broker_id: sh.dataset.broker });
+        closeSheet(); toast('تمت إضافة الطلبية'); await loadSuppliers(); openSO(o.so_id); refresh(true);
+      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'so-pay': openPaySupplier(id); break;
+    case 'so-due': openSODue(id); break;
+    case 'so-due-save': { setBtnBusy(el, true);
+      try { await api('updateSupplierOrder', { so_id:id, due_date:$('#dueVal').value || '',
+          alert_days:Number($('#dueAlert').value || 7) });
+        closeSheet(); toast('تم الحفظ'); openSO(id); refresh(true);
+      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'so-stage': openSOStage(id); break;
+    case 'so-stage-set': { try { await api('updateSupplierOrder', { so_id:id, stage:el.dataset.stage });
+        closeSheet(); openSO(id); } catch(x){ toast(x.message, true); } break; }
+    case 'brokers': openBrokers(); break;
+    case 'brk-new': openNewBroker(); break;
+    case 'brk-save': { setBtnBusy(el, true);
+      try { await api('createBroker', { name:$('#brName').value.trim(), phone:$('#brPhone').value.trim() });
+        closeSheet(); toast('تمت إضافة الوسيط'); await loadSuppliers(); openBrokers();
+      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'fx-buy': openBuyUsd(); break;
+    case 'fx-save': { setBtnBusy(el, true);
+      const sh2 = el.closest('.sheet');
+      try { const r = await api('buyUsd', { box_id:sh2.dataset.box, broker_id:sh2.dataset.broker,
+          usd_amount:Number($('#fxUsd').value || 0), rate:Number($('#fxRate').value || 0) });
+        closeSheet(); toast('تم شراء الدولار');
+        (r.warnings||[]).forEach(w => toast(w, true));
+        await loadSuppliers(); refresh(true);
+      } catch(x){ setBtnBusy(el,false); toast(x.message, true); } break; }
+    case 'link-so': openLinkSO(id); break;
+    case 'ls-set': { try { await api('linkOrderToSupplier', { order_id:id, so_id:el.dataset.so });
+        closeSheet(); toast(el.dataset.so ? 'رُبطت السيارة بالحاوية' : 'أُلغي الربط'); openOrder(id);
+      } catch(x){ toast(x.message, true); } break; }
     case 'ava-open': openAvatarSheet(id, ''); break;
     case 'ava-pick': closeSheet(); pickAvatar(id); break;
     case 'ava-del': removeAvatar(id); break;
@@ -3830,6 +4246,27 @@ const Mock = (() => {
         kind, price_remaining:t.price_remaining, agreed_price:t.agreed_price, done: kind==='NOTIFY' && !!o.notified_at }; })
     .filter(a => !a.done).sort((a,b) => a.days_to_ship - b.days_to_ship);
 
+  const SUP = [{ supplier_id:'SUP1', name:'Guangzhou Castle', country:'الصين', contact:'', notes:'', status:'ACTIVE' }];
+  const BRK = [{ broker_id:'BRK1', name:'الياس', phone:'0770112233' }, { broker_id:'BRK2', name:'بشير الفرسان', phone:'' }];
+  const FXL = [
+    { broker_id:'BRK1', direction:'IN', usd_amount:120000, rate:251, so_id:'', entry_date:'', description:'شراء دولار' },
+    { broker_id:'BRK1', direction:'OUT', usd_amount:10000, so_id:'SO1', entry_date:'', description:'عربون' }
+  ];
+  const SO = [{ so_id:'SO1', supplier_id:'SUP1', label:'حاوية 12', total_usd:40000,
+    due_date:localDate(new Date(Date.now()+4*86400000)), alert_days:7, stage:'DEPOSIT_PAID',
+    status:'ACTIVE', notes:'', created_at:'' }];
+  const brkBal = id => FXL.filter(f => f.broker_id === id).reduce((s,f) => s + (f.direction==='IN' ? f.usd_amount : -f.usd_amount), 0);
+  const soPaid = o => FXL.filter(f => f.so_id === o.so_id).reduce((s,f) => s + (f.direction==='OUT' ? f.usd_amount : -f.usd_amount), 0);
+  const soRem = o => Number(o.total_usd) - soPaid(o);
+  const soDue = o => o.due_date ? dUntil(o.due_date) : null;
+  const soDueSoon = o => !!(o.due_date && soRem(o) > 0 && soDue(o) <= Number(o.alert_days || 7));
+  const soView = o => ({ so_id:o.so_id, supplier_id:o.supplier_id,
+    supplier_name:(SUP.find(x=>x.supplier_id===o.supplier_id)||{}).name || '', label:o.label,
+    total_usd:Number(o.total_usd), paid_usd:soPaid(o), remaining_usd:soRem(o), is_paid:soRem(o)<=0,
+    due_date:o.due_date, alert_days:Number(o.alert_days||7), days_to_due:soDue(o), due_soon:soDueSoon(o),
+    stage:o.stage, stage_label:{ORDERED:'طلبية',DEPOSIT_PAID:'عربون مدفوع',PAID:'مدفوعة بالكامل',SHIPPED:'مشحونة',ARRIVED:'وصلت'}[o.stage],
+    status:o.status, notes:o.notes, created_at:o.created_at });
+
   const ordView = o => Object.assign({
     order_id:o.order_id, customer_id:o.customer_id,
     customer_name:(CUS.find(c => c.customer_id === o.customer_id)||{}).full_name || '',
@@ -3887,6 +4324,7 @@ const Mock = (() => {
         pending_transfers: T.filter(t=>t.status==='PENDING'&&(staff()||keeps(box(t.to_box_id))||keeps(box(t.from_box_id)))).map(desc),
         pulse_sig: L.length + '|' + T.filter(t=>t.status==='PENDING').map(t=>t.transfer_id).sort().join(','),
         shipping_alerts: shipAlerts(),
+        supplier_alerts: staff() ? SO.filter(soDueSoon).map(soView) : [],
         recent_entries: sorted().filter(e=>v.some(b=>b.box_id===e.box_id)).reverse().slice(0,15).map(enrich),
         today, alerts:[]
       };
@@ -3980,6 +4418,48 @@ const Mock = (() => {
       return p && p.stamp === stamp ? { unchanged:true, stamp } : { stamp, items }; },
     setMyAvatar: p => { if (p.data) AVA_DEMO[cur] = p.data; else delete AVA_DEMO[cur]; return { ok:true }; },
     setUserAvatar: p => { if (p.data) AVA_DEMO[p.user_id] = p.data; else delete AVA_DEMO[p.user_id]; return { ok:true }; },
+    // ---- الموردون والوسطاء ----
+    listSuppliers: () => SUP.map(x => {
+      const mine = SO.filter(o => o.supplier_id === x.supplier_id);
+      const rem = mine.reduce((s,o) => s + Math.max(0, soRem(o)), 0);
+      return Object.assign({}, x, { orders_count: mine.length, remaining_usd: rem,
+        due_soon: mine.filter(o => soDueSoon(o)).length });
+    }),
+    createSupplier: p => { const x = { supplier_id:'SUP'+(SUP.length+1), name:p.name, country:p.country||'',
+      contact:p.contact||'', notes:'', status:'ACTIVE' }; SUP.push(x); return x; },
+    listBrokers: () => BRK.map(b => Object.assign({}, b, { usd_balance: brkBal(b.broker_id) })),
+    createBroker: p => { const b = { broker_id:'BRK'+(BRK.length+1), name:p.name, phone:p.phone||'' }; BRK.push(b); return b; },
+    buyUsd: p => { FXL.push({ broker_id:p.broker_id, direction:'IN', usd_amount:Number(p.usd_amount),
+        rate:Number(p.rate), so_id:'', entry_date:localDate(new Date()), description:'شراء دولار', broker_name:'' });
+      add({ box_id:p.box_id, entry_date:localDate(new Date()), created_at:now(), direction:'OUT',
+        amount: Math.round(Number(p.usd_amount)*Number(p.rate)), entry_type:'FX_BUY',
+        counterparty:(BRK.find(b=>b.broker_id===p.broker_id)||{}).name, description:'شراء دولار' });
+      return { broker_usd: brkBal(p.broker_id), box_balance: bal(p.box_id), warnings: [] }; },
+    listSupplierOrders: p => ({ items: SO.filter(o => !p.supplier_id || o.supplier_id === p.supplier_id).map(soView) }),
+    getSupplierOrder: p => { const o = SO.find(x => x.so_id === p.so_id);
+      return Object.assign(soView(o), {
+        payments: FXL.filter(f => f.so_id === o.so_id).map(f => ({ fx_entry_id:'FX', entry_date:f.entry_date,
+          usd_amount:f.usd_amount, broker_name:(BRK.find(b=>b.broker_id===f.broker_id)||{}).name||'', description:f.description })),
+        cars: ORD.filter(c => c.so_id === o.so_id).map(c => ({ order_id:c.order_id,
+          car_label:[c.car_model, c.color].filter(Boolean).join(' '),
+          customer_name:(CUS.find(x=>x.customer_id===c.customer_id)||{}).full_name || '' })) }); },
+    createSupplierOrder: p => { const o = { so_id:'SO'+(SO.length+1), supplier_id:p.supplier_id,
+        label:p.label || ('حاوية ' + (SO.length+1)), total_usd:Number(p.total_usd), due_date:p.due_date||'',
+        alert_days:Number(p.alert_days||7), stage:'ORDERED', status:'ACTIVE', notes:'', created_at:now() };
+      SO.push(o);
+      if (p.deposit_usd){ FXL.push({ broker_id:p.broker_id, direction:'OUT', usd_amount:Number(p.deposit_usd),
+        so_id:o.so_id, entry_date:localDate(new Date()), description:'عربون' }); o.stage='DEPOSIT_PAID'; }
+      return soView(o); },
+    updateSupplierOrder: p => { const o = SO.find(x => x.so_id === p.so_id); Object.assign(o, p); return soView(o); },
+    paySupplier: p => { const o = SO.find(x => x.so_id === p.so_id);
+      FXL.push({ broker_id:p.broker_id, direction:'OUT', usd_amount:Number(p.usd_amount), so_id:o.so_id,
+        entry_date:localDate(new Date()), description:p.description||'' });
+      if (soRem(o) <= 0) o.stage = 'PAID';
+      return { so: soView(o), broker_usd: brkBal(p.broker_id), warnings: [] }; },
+    linkOrderToSupplier: p => { const c = ORD.find(x => x.order_id === p.order_id); c.so_id = p.so_id || ''; return ordView(c); },
+    getSupplierAlerts: () => SO.filter(soDueSoon).map(soView),
+    getSupplierSummary: () => ({ owed_usd: SO.reduce((s,o)=>s+Math.max(0,soRem(o)),0), brokers_usd: BRK.reduce((s,b)=>s+brkBal(b.broker_id),0) }),
+
     getPulse: () => ({ sig: L.length + '|' + T.filter(t=>t.status==='PENDING').map(t=>t.transfer_id).sort().join(','), at: now() }),
     ping: () => ({ pong:true }),
 
