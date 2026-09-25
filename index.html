@@ -1343,6 +1343,7 @@ function renderLoginErr(m){
 }
 
 function signOutLocal(){
+  NAV.length = 0;
   S.token = null; S.me = null; S.ov = null; S.locked = false; S.pinAsked = null;
   localStorage.removeItem(LS.token); localStorage.removeItem(PIN_KEY); sessClear_();
   S.hist = { filter:'all', items:[], total:0, loaded:false }; S.trf = { tab:'wait', items:[], loaded:false };
@@ -2602,7 +2603,9 @@ async function openPayFlowCars(customerId){
 
 /* ---------------- Sheets ---------------- */
 function openSheet(html, { full=false, onMount, sticky=false }={}){
-  closeSheet(true);
+  const wasOpen = !!$('.sheet');
+  _navReplacing = true; closeSheetDom(true); _navReplacing = false;
+  if (!wasOpen) navPush('sheet');
   $('#sheets').innerHTML = `<div class="scrim" ${sticky?'':'data-act="close-sheet"'}></div>
     <div class="sheet ${full?'full':''}" role="dialog" aria-modal="true">${full?'':'<div class="sheet-grip"></div>'}${html}</div>`;
   const sh = $('.sheet'), sc = $('.scrim');
@@ -2611,9 +2614,18 @@ function openSheet(html, { full=false, onMount, sticky=false }={}){
   document.body.style.overflow = 'hidden';
 }
 function closeSheet(instant){
+  if (!$('.sheet')) return;
+  if (_navPopping || instant) return closeSheetDom(instant);
+  const lvl = NAV[NAV.length - 1];
+  if (lvl && lvl.kind === 'sheet') return navBack();   // يُغلق عبر popstate
+  closeSheetDom();
+}
+
+function closeSheetDom(instant){
   const sh = $('.sheet'), sc = $('.scrim');
   document.body.style.overflow = '';
   if (!sh) return;
+  if (!_navPopping && !_navReplacing && NAV.length && NAV[NAV.length - 1].kind === 'sheet') NAV.pop();
   if (instant){ $('#sheets').innerHTML = ''; return; }
   sh.classList.remove('show'); sc.classList.remove('show');
   setTimeout(()=>{ if (!$('.sheet.show')) $('#sheets').innerHTML=''; }, 280);
@@ -2995,7 +3007,11 @@ document.addEventListener('click', async e => {
   switch (a){
     case 'tab': {
       if (S.view === el.dataset.v && !$('.sheet')) break;
-      S.view = el.dataset.v; closeSheet(true); renderShell(false); window.scrollTo(0,0);
+      closeSheet(true);
+      const from = S.view;
+      S.view = el.dataset.v;
+      if (S.view !== 'home' && from !== S.view) navPush('view', S.view);
+      renderShell(false); window.scrollTo(0,0);
       const v = $('#view'); if (v){ v.classList.add('slide-in'); }
       tap(); break; }
     case 'refresh': refresh(); break;
@@ -3866,15 +3882,38 @@ const Mock = (() => {
 })();
 
 
-/* زر الرجوع في الهاتف: يغلق الورقة المفتوحة، ثم يعود للرئيسية، ثم يخرج.
-   نحتفظ بحالة وهمية واحدة في سجل المتصفح ونعيد دفعها بعد كل استعمال. */
-function armBack(){ try { history.pushState({ app:true }, ''); } catch(e){} }
+/* زر الرجوع في الهاتف:
+   نحتفظ بسجل مستويات حقيقي. كل ورقة تُفتح أو تبويب يُفتح يضيف مستوى،
+   وكل ضغطة رجوع تُنزل مستوى واحداً. عند فراغ السجل فقط يخرج من التطبيق. */
+const NAV = [];
+let _navPopping = false, _navReplacing = false;
+
+function navPush(kind, data){
+  NAV.push({ kind, data });
+  try { history.pushState({ sc: NAV.length }, ''); } catch(e){}
+}
+
+function navBack(){                       // إغلاق بزر داخل التطبيق
+  if (NAV.length) history.back();          // يمر عبر popstate فيتم الإغلاق مرة واحدة
+  else closeSheetDom();
+}
+
 window.addEventListener('popstate', () => {
-  if ($('.sheet')){ closeSheet(); armBack(); return; }
-  if (S.token && S.view && S.view !== 'home'){ S.view = 'home'; renderShell(false); window.scrollTo(0,0); armBack(); return; }
-  // لا شيء لإغلاقه: نترك المتصفح يخرج
+  while (NAV.length){
+    const level = NAV.pop();
+    if (level.kind === 'sheet'){
+      if (!$('.sheet')) continue;          // مستوى قديم لورقة أُغلقت بالفعل: نتجاوزه
+      _navPopping = true; closeSheetDom(); _navPopping = false;
+      return;
+    }
+    if (level.kind === 'view'){
+      const prev = [...NAV].reverse().find(x => x.kind === 'view');
+      S.view = prev ? prev.data : 'home';
+      renderShell(false); window.scrollTo(0, 0);
+      return;
+    }
+  }
 });
-armBack();
 
 boot();
 
