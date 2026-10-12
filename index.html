@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<meta name="theme-color" content="#19222D">
+<meta name="theme-color" content="#19222D" id="themeColor">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SANAD CARS">
@@ -28,6 +28,23 @@
   --r-sheet:22px; --r-card:14px; --r-ctl:12px;
   --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
   --font:"Readex Pro",system-ui,"Segoe UI",Tahoma,Arial,sans-serif;
+  --on-dark:#FFFFFF; --hero-1:#2B3A4A; --hero-2:#1E2835; --hero-3:#151D26;
+  --sheet-scrim:rgba(15,22,30,.45); --row-press:#F8FAFB; --skel-1:#E6EAEE; --skel-2:#F1F3F5;
+  --img-1:#E8EDF1; --img-2:#D8E0E7; --img-ink:#7B8896;
+}
+
+/* ===== الوضع الليلي: داكن جداً، والنصوص تبقى مريحة لا بيضاء ناصعة ===== */
+:root[data-theme="dark"]{
+  --asphalt:#000000; --asphalt-2:#0E1319; --asphalt-line:#1C242D;
+  --paper:#000000; --surface:#0C1116; --line:#1F2831; --line-2:#141A21;
+  --ink:#E8EDF2; --muted:#92A0AE; --faint:#6B7987;
+  --petrol:#2E9BBE; --petrol-press:#2585A5; --petrol-tint:#0E2831;
+  --amber:#E9A20C; --amber-ink:#F0B840; --amber-tint:#2A2008;
+  --in:#3FBE74; --in-tint:#0D2418; --out:#FF7A6B; --out-tint:#2A1210;
+  --on-dark:#E8EDF2; --hero-1:#0E1319; --hero-2:#070A0D; --hero-3:#000000;
+  --sheet-scrim:rgba(0,0,0,.7); --row-press:#121820; --skel-1:#131A21; --skel-2:#1A222B;
+  --img-1:#131A21; --img-2:#0C1116; --img-ink:#5B6977;
+  color-scheme:dark;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5}
@@ -69,8 +86,8 @@ svg.i{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .bal-label{margin:22px 0 8px;color:#9AA7B3;font-size:13px}
 .odo-wrap{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
 .odo{display:flex;direction:ltr;gap:3px;align-items:flex-end}
-.odo-d{width:30px;height:46px;border-radius:6px;background:linear-gradient(#0F161E,#1D2834 48%,#141C25 52%,#0F161E);
-  box-shadow:inset 0 0 0 1px #2E3B48;overflow:hidden;position:relative}
+.odo-d{width:30px;height:46px;border-radius:6px;background:linear-gradient(#090D12,#161E27 48%,#0D1319 52%,#090D12);
+  box-shadow:inset 0 0 0 1px var(--asphalt-line);overflow:hidden;position:relative}
 .odo-reel{display:flex;flex-direction:column;transition:transform .9s cubic-bezier(.2,.8,.2,1)}
 .odo-reel span{height:46px;display:grid;place-items:center;font-size:27px;font-weight:600;font-variant-numeric:tabular-nums;color:#F4F7F9}
 .odo-sep{width:7px;height:46px;display:grid;align-items:end;justify-items:center;color:#6F7D8A;font-size:22px;padding-bottom:4px}
@@ -110,7 +127,7 @@ main.slide-in{animation:viewIn .2s cubic-bezier(.32,.72,0,1)}
 .list{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden}
 .row{display:flex;align-items:center;gap:12px;padding:12px 14px;width:100%;text-align:start;border-bottom:1px solid var(--line-2)}
 .row:last-child{border-bottom:0}
-.row:active{background:#F7F9FA}
+.row:active{background:var(--row-press)}
 .row-ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex:none}
 .row-ic svg.i{width:19px;height:19px}
 .row-ic.in{background:var(--in-tint);color:var(--in)}.row-ic.out{background:var(--out-tint);color:var(--out)}
@@ -174,13 +191,13 @@ main.slide-in{animation:viewIn .2s cubic-bezier(.32,.72,0,1)}
 .empty{padding:28px 20px;text-align:center;color:var(--muted)}
 .empty svg.i{width:34px;height:34px;color:var(--faint);margin-bottom:6px}
 .empty b{display:block;color:var(--ink);font-weight:500;margin-bottom:2px}
-.sk{background:linear-gradient(90deg,#E6EAEE,#F1F3F5,#E6EAEE);background-size:200% 100%;animation:sk 1.2s infinite;border-radius:10px}
+.sk{background:linear-gradient(90deg,var(--skel-1),var(--skel-2),var(--skel-1));background-size:200% 100%;animation:sk 1.2s infinite;border-radius:10px}
 .hero .sk{background:linear-gradient(90deg,#243140,#2E3B48,#243140);background-size:200% 100%}
 @keyframes sk{to{background-position:-200% 0}}
 .date-h{margin:18px 4px 8px;color:var(--muted);font-size:13px;font-weight:500}
 
 /* ---------- Sheets ---------- */
-.scrim{position:fixed;inset:0;background:rgba(15,22,30,.45);z-index:40;opacity:0;transition:opacity .2s}
+.scrim{position:fixed;inset:0;background:var(--sheet-scrim);z-index:40;opacity:0;transition:opacity .2s}
 .scrim.show{opacity:1}
 .sheet{position:fixed;inset-inline:0;bottom:0;margin:0 auto;max-width:520px;background:var(--surface);border-radius:var(--r-sheet) var(--r-sheet) 0 0;
   z-index:41;max-height:92dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
@@ -390,7 +407,7 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 .fu-tier .row-title{font-weight:400;color:var(--muted);font-size:13.5px}
 
 #splash{position:fixed;inset:0;z-index:99;display:grid;place-items:center;gap:22px;align-content:center;
-  background:radial-gradient(130% 70% at 50% 35%, #2B3A4A 0%, #1E2835 45%, #151D26 100%);
+  background:radial-gradient(130% 70% at 50% 35%, var(--hero-1) 0%, var(--hero-2) 45%, var(--hero-3) 100%);
   transition:opacity .35s ease, visibility .35s}
 #splash.gone{opacity:0;visibility:hidden}
 #splash img{width:128px;height:128px;border-radius:50%;background:#fff;padding:9px;
@@ -413,14 +430,14 @@ input,textarea,.num,.amt{user-select:text;-webkit-user-select:text}
   padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:14px}
 .dc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .dc-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;text-align:start}
-.dc-img{display:grid;place-items:center;height:92px;background:linear-gradient(140deg,#E8EDF1,#D8E0E7);color:#7B8896}
+.dc-img{display:grid;place-items:center;height:92px;background:linear-gradient(140deg,var(--img-1),var(--img-2));color:var(--img-ink)}
 .dc-img svg.i{width:38px;height:38px}
 .dc-info{display:block;padding:10px 12px 12px}
 .dc-info b{display:block;font-size:14px;font-weight:600}
 .dc-info small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
 .dc-price{display:block;margin-top:6px;font-weight:600;color:var(--petrol);font-variant-numeric:tabular-nums}
 .dc-hero{display:grid;place-items:center;height:150px;border-radius:16px;
-  background:linear-gradient(140deg,#E8EDF1,#D8E0E7);color:#7B8896}
+  background:linear-gradient(140deg,var(--img-1),var(--img-2));color:var(--img-ink)}
 .dc-hero svg.i{width:60px;height:60px}
 .dc-foot{text-align:center;color:var(--faint);font-size:12px;margin-top:18px}
 
@@ -430,8 +447,8 @@ input,textarea,.num,.amt{user-select:text;-webkit-user-select:text}
 .toast.err{background:#7A1A12}
 
 /* Login */
-.login{min-height:100dvh;display:flex;flex-direction:column;color:#fff;position:relative;isolation:isolate;
-  background:radial-gradient(130% 70% at 50% 8%, #2B3A4A 0%, #1E2835 45%, #151D26 100%)}
+.login{min-height:100dvh;display:flex;flex-direction:column;color:var(--on-dark);position:relative;isolation:isolate;
+  background:radial-gradient(130% 70% at 50% 8%, var(--hero-1) 0%, var(--hero-2) 45%, var(--hero-3) 100%)}
 .login::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
   background:radial-gradient(38% 22% at 50% 15%, rgba(233,162,12,.20), transparent 70%)}
 .login::after{content:"";position:absolute;inset-inline:0;top:0;height:2px;z-index:-1;
@@ -868,6 +885,32 @@ function setLang(lang){
   localStorage.setItem(LANG_KEY, lang);
   location.reload();
 }
+/* ===== المظهر ===== */
+const THEME_KEY = 'sc.theme';
+function themePref(){ return localStorage.getItem(THEME_KEY) || 'auto'; }
+function themeEffective(){
+  const t = themePref();
+  if (t !== 'auto') return t;
+  return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+}
+function applyTheme(){
+  const dark = themeEffective() === 'dark';
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  const meta = document.getElementById('themeColor');
+  if (meta) meta.setAttribute('content', dark ? '#000000' : '#19222D');
+}
+function setTheme(t){
+  localStorage.setItem(THEME_KEY, t);
+  applyTheme();
+  if (typeof renderShell === 'function' && S.me) renderShell(false);
+  closeSheet();
+  toast(t === 'dark' ? 'الوضع الليلي' : t === 'light' ? 'الوضع الفاتح' : 'حسب إعداد الهاتف');
+}
+applyTheme();
+if (window.matchMedia){
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (themePref() === 'auto') applyTheme(); });
+}
+
 function initLang(){
   document.documentElement.lang = S.lang;
   document.documentElement.dir = isEN() ? 'ltr' : 'rtl';
@@ -914,6 +957,7 @@ const I = {
   phone:'<path d="M6 3h3l2 5-2.5 1.5a12 12 0 0 0 5 5L15 12l5 2v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4 5.2 2 2 0 0 1 6 3z"/>',
   camera:'<path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/>',
   cloudOff:'<path d="M3 3l18 18M7.5 8A5 5 0 0 0 7 18h10a4 4 0 0 0 2.4-7.2M9.5 5.6A5 5 0 0 1 17 9.5a4 4 0 0 1 2 .8"/>',
+  moon:'<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>',
   globe:'<circle cx="12" cy="12" r="9"/><path d="M3.5 9h17M3.5 15h17M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>'
 };
 const ic = (n, cls='') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
@@ -1588,6 +1632,7 @@ function rerender(){
 }
 function afterRender(){
   animateOdo();
+  runNumberAnimations();
   if (S.view === 'history' && !S.hist.loaded) loadHistory();
   if (S.view === 'customers' && !S.cust.loaded) loadCustomers();
   if (S.view === 'suppliers' && !S.sup.loaded) loadSuppliers();
@@ -1602,6 +1647,35 @@ function skeleton(){
     <div class="sk" style="width:90px;height:14px;margin:24px 0 10px"></div><div class="sk" style="width:260px;height:46px"></div>
     <div class="quick">${'<div class="sk" style="height:74px;border-radius:14px"></div>'.repeat(3)}</div></section>
     <div class="page"><div class="sk" style="height:120px;border-radius:14px"></div><div class="sk" style="height:220px;border-radius:14px;margin-top:16px"></div></div>`;
+}
+
+/* ===== الأرقام تتحرك إلى قيمتها الجديدة بدل أن تقفز =====
+   تُستعمل للمبالغ المجمَّعة (اليوم، مجاميع الزبائن والموردين).
+   عدّاد الرصيد له حركته الخاصة بالأسطوانات. */
+const ANIM = {};
+function animNum(key, value, cls){
+  const from = ANIM[key];
+  ANIM[key] = value;
+  return `<span class="num ${cls || ''}" data-anim="${esc(key)}" data-to="${value}" data-from="${from === undefined ? value : from}">${fmt(from === undefined ? value : from)}</span>`;
+}
+
+function runNumberAnimations(){
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('[data-anim]').forEach(el => el.textContent = fmt(Number(el.dataset.to)));
+    return;
+  }
+  document.querySelectorAll('[data-anim]').forEach(el => {
+    const to = Number(el.dataset.to), from = Number(el.dataset.from);
+    if (!isFinite(to) || !isFinite(from) || to === from){ el.textContent = fmt(to); return; }
+    const t0 = performance.now(), dur = 520;
+    const step = now => {
+      const k = Math.min(1, (now - t0) / dur);
+      const e = 1 - Math.pow(1 - k, 3);                 // تباطؤ في النهاية
+      el.textContent = fmt(Math.round(from + (to - from) * e));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
 }
 
 /* ---------------- Odometer ---------------- */
@@ -1670,8 +1744,8 @@ function viewHome(){
     <section class="sec">
       <div class="sec-h"><h2>اليوم</h2><span class="hint" style="margin:0">${t.count} عملية</span></div>
       <div class="today">
-        <div class="card"><small><span class="tag green">${ic('in')}</span>دخل</small><span class="amt in">${fmt(t.in.DZD||0)}</span></div>
-        <div class="card"><small><span class="tag red">${ic('out')}</span>مصروف</small><span class="amt out">${fmt(t.out.DZD||0)}</span></div>
+        <div class="card"><small><span class="tag green">${ic('in')}</span>دخل</small><span class="amt in">${animNum('today-in', t.in.DZD||0)}</span></div>
+        <div class="card"><small><span class="tag red">${ic('out')}</span>مصروف</small><span class="amt out">${animNum('today-out', t.out.DZD||0)}</span></div>
       </div>
     </section>
     <section class="sec">
@@ -1955,6 +2029,7 @@ function viewAccount(){
       : `<button class="row" data-act="pin-new"><span class="row-ic">${ic('shield')}</span><span class="row-main"><span class="row-title">رمز الدخول</span><span class="row-sub">غير مفعّل، فعّله لحماية الجهاز</span></span>${ic('chev')}</button>`}
       <button class="row" data-act="sync-open"><span class="row-ic">${ic('cloudOff')}</span><span class="row-main"><span class="row-title">المزامنة</span><span class="row-sub">${outboxCount() ? outboxCount() + ' عملية على الجهاز' : (isOnline() ? 'كل شيء متزامن' : 'بدون اتصال')}</span></span>${ic('chev')}</button>
       ${hasPin() ? `<button class="row" data-act="decoy"><span class="row-ic">${ic('shield')}</span><span class="row-main"><span class="row-title">رمز الطوارئ</span><span class="row-sub">${decoyExists() ? 'مفعّل · يفتح واجهة مموّهة' : 'غير مفعّل'}</span></span>${ic('chev')}</button>` : ''}
+      <button class="row" data-act="theme"><span class="row-ic">${ic('moon')}</span><span class="row-main"><span class="row-title">المظهر</span><span class="row-sub">${themePref()==='dark'?'ليلي':themePref()==='light'?'فاتح':'حسب الهاتف'}</span></span>${ic('chev')}</button>
       <button class="row" data-act="lang"><span class="row-ic">${ic('globe')}</span><span class="row-main"><span class="row-title">اللغة</span><span class="row-sub" data-noi18n>${S.lang === 'en' ? 'English' : 'العربية'}</span></span>${ic('chev')}</button>
       ${S.demo ? `<div class="row"><span class="row-ic">${ic('server')}</span><span class="row-main"><span class="row-title">الخادم</span><span class="row-sub">وضع التجربة</span></span></div>` : ''}
     </div>
@@ -2349,8 +2424,8 @@ function viewCustomers(){
 
     ${!S.cust.loaded ? '<div class="sk" style="height:240px;border-radius:14px;margin-top:14px"></div>' : `
       <div class="today" style="margin-top:14px">
-        <div class="card"><small>${ic('clock')}الباقي على الزبائن</small><span class="amt out">${fmt(totalDue)}</span></div>
-        <div class="card"><small>${ic('in')}فوائض للإرجاع</small><span class="amt move">${fmt(refunds)}</span></div>
+        <div class="card"><small>${ic('clock')}الباقي على الزبائن</small><span class="amt out">${animNum('cust-due', totalDue)}</span></div>
+        <div class="card"><small>${ic('in')}فوائض للإرجاع</small><span class="amt move">${animNum('cust-ref', refunds)}</span></div>
       </div>
       <div class="sec">
         <div class="sec-h"><h2>${shown.length} زبون</h2>
@@ -2953,8 +3028,8 @@ function viewSuppliers(){
   <div class="page" style="padding-top:8px">
     ${!S.sup.loaded ? '<div class="sk" style="height:240px;border-radius:14px"></div>' : `
       <div class="today">
-        <div class="card"><small>${ic('out')}علينا للموردين</small><span class="amt out">${fmt(owed)} $</span></div>
-        <div class="card"><small>${ic('swap')}رصيد الوسطاء</small><span class="amt move">${fmt(brokersUsd)} $</span></div>
+        <div class="card"><small>${ic('out')}علينا للموردين</small><span class="amt out">${animNum('sup-owed', owed)} $</span></div>
+        <div class="card"><small>${ic('swap')}رصيد الوسطاء</small><span class="amt move">${animNum('sup-brk', brokersUsd)} $</span></div>
       </div>
 
       <button class="row card" style="margin-top:12px" data-act="brokers">
@@ -3721,6 +3796,17 @@ async function submitOpOld(op, box){
   } catch(x){ setBtnBusy(btn, false); toast(x.message, true); }
 }
 
+function openTheme(){
+  const cur = themePref();
+  const opt = (k, title, sub) => `<button class="pick" data-act="theme-set" data-t="${k}" aria-pressed="${cur===k}">
+    <span class="radio"></span><span class="row-main"><b>${title}</b><small>${sub}</small></span></button>`;
+  openSheet(`${sheetHead('المظهر')}<div class="sheet-body">
+    ${opt('light','فاتح','خلفية بيضاء')}
+    ${opt('dark','ليلي','أسود داكن، مريح في الظلام')}
+    ${opt('auto','حسب الهاتف','يتبع إعداد نظامك تلقائياً')}
+  </div>`);
+}
+
 function openLang(){
   const opt = (code, native, sub) => `<button class="pick" data-act="lang-set" data-l="${code}" aria-pressed="${S.lang===code}">
     <span class="radio"></span><span class="row-main"><b data-noi18n>${native}</b><small data-noi18n>${sub}</small></span></button>`;
@@ -3881,6 +3967,8 @@ document.addEventListener('click', async e => {
     case 'sync-now': setBtnBusy(el, true); await syncOutbox(true); closeSheet(); break;
     case 'sync-retry': outboxRetry(id); closeSheet(); break;
     case 'sync-drop': outboxDrop(id); closeSheet(); break;
+    case 'theme': openTheme(); break;
+    case 'theme-set': setTheme(el.dataset.t); break;
     case 'lang': openLang(); break;
     case 'lang-set': if (el.dataset.l !== S.lang) setLang(el.dataset.l); else closeSheet(); break;
     case 'password': openPassword(); break;
