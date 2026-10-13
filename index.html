@@ -120,7 +120,7 @@ main.slide-in{animation:viewIn .2s cubic-bezier(.32,.72,0,1)}
 .sec{margin-top:22px}
 .sec:first-child{margin-top:4px}
 .sec-h{display:flex;align-items:baseline;justify-content:space-between;margin:0 2px 10px}
-.sec-h h2{margin:0;font-size:16px;font-weight:600}
+.sec-h h2{margin:0;font-size:13.5px;font-weight:500;color:var(--muted);letter-spacing:.01em}
 .link{color:var(--petrol);font-size:13.5px;font-weight:500}
 
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card)}
@@ -128,18 +128,18 @@ main.slide-in{animation:viewIn .2s cubic-bezier(.32,.72,0,1)}
 .row{display:flex;align-items:center;gap:12px;padding:12px 14px;width:100%;text-align:start;border-bottom:1px solid var(--line-2)}
 .row:last-child{border-bottom:0}
 .row:active{background:var(--row-press)}
-.row-ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex:none}
-.row-ic svg.i{width:19px;height:19px}
+.row-ic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none}
+.row-ic svg.i{width:17px;height:17px;stroke-width:2}
 .row-ic.in{background:var(--in-tint);color:var(--in)}.row-ic.out{background:var(--out-tint);color:var(--out)}
 .row-ic.tr{background:var(--petrol-tint);color:var(--petrol)}.row-ic.void{background:var(--line-2);color:var(--faint)}
 .row-main{flex:1;min-width:0}
-.row-title{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row-sub{display:flex;gap:10px;color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden}
+.row-title{display:block;font-weight:500;font-size:15.5px;letter-spacing:-.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-sub{display:flex;gap:9px;color:var(--faint);font-size:12px;white-space:nowrap;overflow:hidden;margin-top:1px}
 .row-end{text-align:end;flex:none}
-.amt{font-weight:600;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate;white-space:nowrap}
+.amt{font-weight:600;font-size:15.5px;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate;white-space:nowrap;letter-spacing:-.01em}
 .amt.in{color:var(--in)}.amt.out{color:var(--out)}.amt.move{color:var(--ink)}.amt.muted{color:var(--faint)}
 .amt.voided{color:var(--faint);text-decoration:line-through}
-.row-bal{display:block;color:var(--faint);font-size:12px;font-variant-numeric:tabular-nums}
+.row-bal{display:block;color:var(--faint);font-size:11.5px;font-variant-numeric:tabular-nums;margin-top:1px}
 .tag{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:500;padding:1px 8px;border-radius:999px;white-space:nowrap}
 .tag.amber{background:var(--amber-tint);color:var(--amber-ink)}.tag.green{background:var(--in-tint);color:var(--in)}
 .tag.red{background:var(--out-tint);color:var(--out)}.tag.grey{background:var(--line-2);color:var(--muted)}
@@ -191,6 +191,8 @@ main.slide-in{animation:viewIn .2s cubic-bezier(.32,.72,0,1)}
 .empty{padding:28px 20px;text-align:center;color:var(--muted)}
 .empty svg.i{width:34px;height:34px;color:var(--faint);margin-bottom:6px}
 .empty b{display:block;color:var(--ink);font-weight:500;margin-bottom:2px}
+.empty-acts{display:flex;gap:8px;justify-content:center;margin-top:14px}
+.empty-acts .btn-sm{height:40px;padding:0 16px;border-radius:12px}
 .sk{background:linear-gradient(90deg,var(--skel-1),var(--skel-2),var(--skel-1));background-size:200% 100%;animation:sk 1.2s infinite;border-radius:10px}
 .hero .sk{background:linear-gradient(90deg,#243140,#2E3B48,#243140);background-size:200% 100%}
 @keyframes sk{to{background-position:-200% 0}}
@@ -939,6 +941,7 @@ const I = {
   check:'<path d="M5 12.5 10 17.5 19 7"/>',
   box:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
   back:'<path d="m9 6 6 6-6 6"/>',
+  backArrow:'<path d="M5 12h14M12 5l-7 7 7 7"/>',
   eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   eyeOff:'<path d="M3 3l18 18M10.6 6.2A9.9 9.9 0 0 1 12 6c6.5 0 10 6 10 6a17 17 0 0 1-3.3 3.9M6.3 7.9C3.7 9.5 2 12 2 12s3.5 6 10 6c1.7 0 3.2-.4 4.5-1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
   lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
@@ -1751,7 +1754,9 @@ function viewHome(){
     <section class="sec">
       <div class="sec-h"><h2>آخر العمليات</h2>${entries.length?'<button class="link" data-act="tab" data-v="history">السجل كاملاً</button>':''}</div>
       ${entries.length ? `<div class="list">${entries.map(entryRow).join('')}</div>`
-        : `<div class="card empty">${ic('list')}<b>لا توجد عمليات بعد</b>سجّل أول استلام أو مصروف من الأزرار في الأعلى.</div>`}
+        : `<div class="card empty">${ic('list')}<b>لا توجد عمليات بعد</b>ابدأ بتسجيل أول حركة في هذا الصندوق.
+            <span class="empty-acts"><button class="btn btn-primary btn-sm" data-act="op" data-type="income">${ic('in')}استلام مبلغ</button>
+            <button class="btn btn-ghost btn-sm" data-act="op" data-type="expense">${ic('out')}مصروف</button></span></div>`}
     </section>
   </div>`;
 }
@@ -1804,7 +1809,7 @@ function followUpItems(incoming, watching, otherIncoming){
   const tech = [];
   if (failed) tech.push({ k:'sync-bad', icon:'x', cls:'out', act:'sync-open',
     text:`${failed} عملية لم تُقبل، راجعها`, n:failed });
-  else if (queued) tech.push({ k:'sync', icon:'cloudOff', cls:'tr', act:'sync-open',
+  else if (queued && !isOnline()) tech.push({ k:'sync', icon:'cloudOff', cls:'tr', act:'sync-open',
     text:`${queued} عملية بانتظار المزامنة`, n:queued });
   if (otherIncoming) tech.push({ k:'other', icon:'swap', cls:'tr', act:'tab', v:'transfers',
     text:`${otherIncoming} تحويل ينتظر تأكيدك في صناديق أخرى`, n:otherIncoming });
@@ -1843,7 +1848,7 @@ function openFollowUp(){
 
   openSheet(`<div class="sheet-head"><h3>تحتاج متابعتك</h3>
       <span class="fu-count">${f.n}</span>
-      <button class="icon-btn" data-act="close-sheet" aria-label="إغلاق">${ic('x')}</button></div>
+      <button class="icon-btn sheet-close" data-act="close-sheet" aria-label="رجوع">${ic('backArrow')}</button></div>
 
     ${(toCollect || toConfirm) ? `<div class="fu-sum">
       ${toCollect ? `<div><small>للتحصيل قبل الشحن</small><b class="num">${fmt(toCollect)}</b></div>` : ''}
@@ -1909,10 +1914,10 @@ function amtClass(e){
 
 function entryRow(e){
   const m = entryMeta(e);
-  if (e.queued) return `<div class="row queued">
-    <span class="row-ic tr">${ic('clock')}</span>
+  if (e.queued) return `<div class="row ${isOnline() ? '' : 'queued'}">
+    <span class="row-ic ${isOnline() ? (e.direction === 'IN' ? 'in' : 'out') : 'tr'}">${ic(isOnline() ? (e.direction === 'IN' ? 'in' : 'out') : 'clock')}</span>
     <span class="row-main"><span class="row-title">${esc(e.counterparty || e.entry_type_label)}</span>
-      <span class="row-sub"><span>${esc(e.entry_type_label)}</span><span class="tag amber">بانتظار المزامنة</span></span></span>
+      <span class="row-sub"><span>${esc(e.entry_type_label)}</span>${isOnline()?'':'<span class="tag amber">بانتظار المزامنة</span>'}</span></span>
     <span class="row-end"><span class="amt ${e.direction==='IN'?'in':'out'}">${e.direction==='IN'?'+':'−'} ${fmt(e.amount)}</span></span>
   </div>`;
   const sign = e.direction === 'IN' ? '+' : '−';
@@ -1920,7 +1925,7 @@ function entryRow(e){
     <span class="row-ic ${m.cls}">${ic(m.icon)}</span>
     <span class="row-main"><span class="row-title">${esc(m.title)}</span>
       <span class="row-sub"><span>${esc(e.entry_type==='EXPENSE'?e.category_name:typeLabel(e))}</span><span>${timeOf(e.created_at)}</span>
-      ${e.queued?'<span class="tag amber">بانتظار المزامنة</span>':!e.verified?'<span class="tag amber">غير مؤكد</span>':''}${e.status==='VOIDED'?'<span class="tag grey">ملغى</span>':''}</span></span>
+      ${e.queued ? (isOnline() ? '' : '<span class="tag amber">بانتظار المزامنة</span>') : (!e.verified?'<span class="tag amber">غير مؤكد</span>':'')}${e.status==='VOIDED'?'<span class="tag grey">ملغى</span>':''}</span></span>
     <span class="row-end"><span class="amt ${amtClass(e)}">${sign} ${fmt(e.amount)}${e.currency!=='DZD'?' '+(CUR[e.currency]||e.currency):''}</span>
       ${e.balance_after!=null?`<span class="row-bal num">${fmt(e.balance_after)}</span>`:''}</span>
   </button>`;
@@ -2001,7 +2006,8 @@ function viewTransfers(){
     <div style="margin-top:14px">
     ${!S.trf.loaded ? '<div class="sk" style="height:160px;border-radius:14px"></div>'
       : list.length ? list.map(transferCard).join('')
-      : `<div class="card empty">${ic('swap')}<b>${S.trf.tab==='wait'?'لا شيء ينتظر تأكيدك':'لا توجد تحويلات'}</b>${S.trf.tab==='wait'?'عندما يرسل لك أحد مبلغاً سيظهر هنا.':''}</div>`}
+      : `<div class="card empty">${ic('swap')}<b>${S.trf.tab==='wait'?'لا شيء ينتظر تأكيدك':'لا توجد تحويلات'}</b>${S.trf.tab==='wait'?'عندما يرسل لك أحد مبلغاً سيظهر هنا.':'ابدأ بتحويل من صندوقك إلى صندوق آخر.'}
+          ${S.trf.tab!=='wait'?`<span class="empty-acts"><button class="btn btn-primary btn-sm" data-act="op" data-type="transfer">${ic('swap')}تحويل جديد</button></span>`:''}</div>`}
     </div>
     <button class="btn btn-soft btn-block" style="margin-top:6px" data-act="op" data-type="transfer">${ic('swap')}تحويل جديد</button>
   </div>`;
@@ -2431,7 +2437,8 @@ function viewCustomers(){
         <div class="sec-h"><h2>${shown.length} زبون</h2>
           <button class="link" data-act="cust-new">+ زبون جديد</button></div>
         ${shown.length ? `<div class="list">${shown.map(customerRow).join('')}</div>`
-          : `<div class="card empty">${ic('user')}<b>لا يوجد زبون بهذا الاسم</b>جرّب اسماً آخر أو أضف زبوناً جديداً.</div>`}
+          : `<div class="card empty">${ic('user')}<b>لا يوجد زبون بهذا الاسم</b>${S.cust.q ? 'جرّب اسماً آخر، أو سجّله الآن.' : 'ابدأ بتسجيل أول زبون.'}
+              <span class="empty-acts"><button class="btn btn-primary btn-sm" data-act="cust-new">${ic('plus')}زبون جديد</button></span></div>`}
       </div>`}
   </div>`;
 }
@@ -2488,7 +2495,8 @@ function renderCustomerSheet(c, orders){
     <div class="sec">
       <div class="sec-h"><h2>سياراته</h2><button class="link" data-act="order-new" data-id="${c.customer_id}">+ سيارة</button></div>
       ${orders.length ? `<div class="list">${orders.map(orderRow).join('')}</div>`
-        : `<div class="card empty">${ic('car')}<b>لا توجد سيارة بعد</b>أضف أول سيارة لهذا الزبون.</div>`}
+        : `<div class="card empty">${ic('car')}<b>لا توجد سيارة بعد</b>أضف أول سيارة لهذا الزبون.
+            <span class="empty-acts"><button class="btn btn-primary btn-sm" data-act="order-new" data-id="${c.customer_id}">${ic('plus')}سيارة جديدة</button></span></div>`}
     </div>
     <button class="btn btn-ghost btn-block" style="margin-top:14px" data-act="cust-edit" data-id="${c.customer_id}">تعديل بيانات الزبون</button>`;
 }
@@ -2811,7 +2819,7 @@ function renderWizard(){
   openSheet(`<div class="sheet-head">
       <h3>${w.step === 1 ? 'بيانات الزبون' : w.step === 2 ? 'بيانات السيارة' : 'الدفعة الأولى'}</h3>
       <span class="wiz-count">${shown} من ${total}</span>
-      <button class="icon-btn" data-act="wiz-close" aria-label="إغلاق">${ic('x')}</button></div>
+      <button class="icon-btn sheet-close" data-act="wiz-close" aria-label="رجوع">${ic('backArrow')}</button></div>
     <div class="wiz-bar">${[1,2,3].slice(w.customer_id ? 1 : 0).map(i =>
       `<span class="${i <= w.step ? 'on' : ''}"></span>`).join('')}</div>
     <div class="sheet-body" id="wizBody">${body}</div>
@@ -3041,7 +3049,8 @@ function viewSuppliers(){
         <div class="sec-h"><h2>${list.length} مورد</h2>
           <button class="link" data-act="sup-new">+ مورد جديد</button></div>
         ${list.length ? `<div class="list">${list.map(supplierRow).join('')}</div>`
-          : `<div class="card empty">${ic('box')}<b>لا يوجد مورد بعد</b>أضف أول مورد لتسجيل طلبياته.</div>`}
+          : `<div class="card empty">${ic('box')}<b>لا يوجد مورد بعد</b>أضف أول مورد لتسجيل طلبياته.
+              <span class="empty-acts"><button class="btn btn-primary btn-sm" data-act="sup-new">${ic('plus')}مورد جديد</button></span></div>`}
       </div>`}
   </div>`;
 }
@@ -3081,7 +3090,8 @@ async function openSupplier(id){
       <div class="sec">
         <div class="sec-h"><h2>الطلبيات</h2><button class="link" data-act="so-new" data-id="${id}">+ طلبية</button></div>
         ${r.items.length ? `<div class="list">${r.items.map(soRow).join('')}</div>`
-          : `<div class="card empty">${ic('box')}<b>لا توجد طلبية بعد</b></div>`}
+          : `<div class="card empty">${ic('box')}<b>لا توجد طلبية بعد</b>سجّل أول حاوية لهذا المورد.
+            <span class="empty-acts"><button class="btn btn-primary btn-sm" data-act="so-new" data-id="${id}">${ic('plus')}طلبية جديدة</button></span></div>`}
       </div>`;
   } catch(x){ closeSheet(); toast(x.message, true); }
 }
@@ -3345,6 +3355,8 @@ function openSheet(html, { full=false, onMount, sticky=false }={}){
   const wasOpen = !!$('.sheet');
   _navReplacing = true; closeSheetDom(true); _navReplacing = false;
   if (!wasOpen) navPush('sheet');
+  if (full) html = html.replace(/<button class="icon-btn sheet-close"([^>]*)aria-label="رجوع">[\s\S]*?<\/button>/,
+    `<button class="icon-btn sheet-close"$1aria-label="رجوع">${ic('backArrow')}</button>`);
   $('#sheets').innerHTML = `<div class="scrim" ${sticky?'':'data-act="close-sheet"'}></div>
     <div class="sheet ${full?'full':''}" role="dialog" aria-modal="true">${full?'':'<div class="sheet-grip"></div>'}${html}</div>`;
   const sh = $('.sheet'), sc = $('.scrim');
@@ -3396,7 +3408,9 @@ function closeSheetDom(instant){
   sh.classList.remove('show'); sc.classList.remove('show');
   setTimeout(()=>{ if (!$('.sheet.show')) $('#sheets').innerHTML=''; }, 280);
 }
-const sheetHead = (title, back) => `<div class="sheet-head"><h3>${title}</h3><button class="icon-btn" data-act="${back||'close-sheet'}" aria-label="إغلاق">${ic('x')}</button></div>`;
+/* الشاشات الكاملة تأخذ سهم رجوع (أعود خطوة)، والأوراق القصيرة علامة إغلاق (أُنهي). */
+const sheetHead = (title, back) => `<div class="sheet-head"><h3>${title}</h3>
+  <button class="icon-btn sheet-close" data-act="${back||'close-sheet'}" aria-label="رجوع">${ic('x')}</button></div>`;
 
 function setBtnBusy(btn, busy, label){
   if (!btn) return;
