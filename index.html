@@ -346,6 +346,9 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 .wiz-bar{display:flex;gap:6px;padding:0 18px 12px}
 .wiz-bar span{flex:1;height:4px;border-radius:2px;background:var(--line-2)}
 .wiz-bar span.on{background:var(--petrol)}
+.car-tabs{margin-bottom:14px}
+.car-actions{margin-top:18px;padding-top:16px;border-top:1px solid var(--line-2)}
+.car-pay{max-width:130px}
 .dep-amount{font-weight:600;font-variant-numeric:tabular-nums}
 .ship-row{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);margin-bottom:12px}
 .prog{height:8px;border-radius:99px;background:var(--line-2);overflow:hidden;margin-top:10px}
@@ -443,6 +446,18 @@ input,textarea,.num,.amt{user-select:text;-webkit-user-select:text}
 .dc-hero svg.i{width:60px;height:60px}
 .dc-foot{text-align:center;color:var(--faint);font-size:12px;margin-top:18px}
 
+/* شريط تقدّم علوي: يظهر أثناء العمليات التي تنتظر رقماً من الخادم،
+   فيبقى المستخدم في مكانه ويعرف أن عليه الانتظار لحظة. */
+#progress{position:fixed;top:0;inset-inline:0;height:3px;z-index:120;background:transparent;pointer-events:none}
+#progress span{display:block;height:100%;width:0;background:var(--amber);
+  box-shadow:0 0 10px var(--amber);transition:width .3s ease}
+#progress.on span{width:92%;transition:width 2.4s cubic-bezier(.2,.8,.2,1)}
+#progress.done span{width:100%;transition:width .18s linear}
+.busy-note{position:fixed;top:calc(10px + var(--safe-t));inset-inline:0;z-index:119;display:flex;justify-content:center;pointer-events:none}
+.busy-note span{background:var(--asphalt);color:#fff;font-size:13px;font-weight:500;padding:8px 16px;border-radius:999px;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;align-items:center;gap:9px}
+.busy-note .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+
 /* Toast */
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + var(--safe-b));z-index:60;display:flex;justify-content:center;pointer-events:none}
 .toast{max-width:480px;background:var(--asphalt);color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.2);display:flex;gap:10px;align-items:center;animation:reveal .2s}
@@ -522,6 +537,8 @@ svg.i.sm{width:18px;height:18px}
 <div id="splash"><img src="" alt="" id="splashLogo"><span class="spl-dot"></span></div>
 <div id="root"></div>
 <div id="sheets"></div>
+<div id="progress"><span></span></div>
+<div id="busy"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -1028,6 +1045,21 @@ const statusLabel = t => (isEN() && STATUS_EN[t.status]) || t.status_label || t.
 function tap(kind){
   if (!navigator.vibrate) return;
   navigator.vibrate(kind === 'ok' ? 12 : kind === 'err' ? [30, 50, 30] : 8);
+}
+
+/* يُظهر الشريط والرسالة أثناء انتظار الخادم */
+function busyStart(msg){
+  const p = document.getElementById('progress');
+  if (p){ p.classList.remove('done'); void p.offsetWidth; p.classList.add('on'); }
+  const b = document.getElementById('busy');
+  if (b) b.innerHTML = `<div class="busy-note"><span><i class="spinner"></i>${esc(msg || 'جارٍ الحفظ…')}</span></div>`;
+}
+function busyEnd(){
+  const p = document.getElementById('progress');
+  if (p){ p.classList.remove('on'); p.classList.add('done');
+    setTimeout(() => { p.classList.remove('done'); }, 240); }
+  const b = document.getElementById('busy');
+  if (b) b.innerHTML = '';
 }
 
 function toast(msg, err=false){
@@ -2792,6 +2824,9 @@ function startWizard(customerId){
     customer_id: customerId || '',
     customer: { full_name:'', phone:'', wilaya:'', type:'INDIVIDUAL' },
     car: { car_model:'', color:'', agreed_price:'', customs_expected:'', ship_date:'' },
+    cars: [],                 // سيارات إضافية للتاجر
+    carIdx: 0,                // السيارة المعروضة حالياً
+    payMode: 'ALL',           // ALL = نسبة موحّدة على الكل، EACH = لكل سيارة
     pay: { mode:'PERCENT', percent:30, box_id: S.boxId || ((S.me.boxes||[])[0]||{}).box_id || '' },
     step: customerId ? 2 : 1
   };
@@ -2843,10 +2878,27 @@ function wizStep1(){
     <p class="hint">لن يُحفظ شيء حتى نهاية الخطوات.</p>`;
 }
 
+/* سيارات المعالج: الأولى في w.car وبقيتها في w.cars، ونعاملها كقائمة واحدة */
+function wizCars(){ const w = S.wiz; return [w.car].concat(w.cars); }
+function wizCarAt(i){ const w = S.wiz; return i === 0 ? w.car : w.cars[i - 1]; }
+function wizIsDealer(cust){
+  const w = S.wiz;
+  return w.customer_id ? (cust && cust.type === 'DEALER') : w.customer.type === 'DEALER';
+}
+function wizCarValid(c){ return c && String(c.car_model||'').trim().length >= 2 && Number(c.agreed_price) > 0; }
+function emptyCar(){ return { car_model:'', color:'', agreed_price:'', customs_expected:'', ship_date:'' }; }
+
 function wizStep2(cust){
-  const w = S.wiz, car = w.car;
+  const w = S.wiz;
+  const dealer = wizIsDealer(cust);
+  const list = wizCars();
+  const car = wizCarAt(w.carIdx) || w.car;
   const who = cust ? cust.full_name : (w.customer.full_name || 'الزبون الجديد');
-  return `<div class="hint" style="margin:0 0 14px">${ic('user')} ${esc(who)}</div>
+  return `<div class="hint" style="margin:0 0 14px">${ic('user')} ${esc(who)}${dealer ? ' · تاجر' : ''}</div>
+
+    ${dealer && list.length > 1 ? `<div class="chips car-tabs">${list.map((c, i) => `
+      <button type="button" class="chip" data-carpick="${i}" aria-pressed="${i===w.carIdx}">
+        ${esc(c.car_model || 'سيارة ' + (i+1))}${wizCarValid(c) ? '' : ' •'}</button>`).join('')}</div>` : ''}
     <div class="field"><label class="field-l" for="wModel">الموديل</label>
       <input class="input" id="wModel" value="${esc(car.car_model)}" placeholder="موديل السيارة" autocomplete="off"></div>
     <div class="field"><label class="field-l" for="wColor">اللون <small>(اختياري)</small></label>
@@ -2858,11 +2910,20 @@ function wizStep2(cust){
       <div class="date-row"><span>${ic('clock')}</span><input type="date" id="wShip" style="flex:1" value="${esc(car.ship_date)}"></div>
       <div class="hint">يذكّرك النظام قبله بيومين.</div></div>
     <div class="field"><label class="field-l" for="wCustoms">الديوانة المتوقعة <small>(اختياري)</small></label>
-      <input class="input num" id="wCustoms" inputmode="numeric" value="${esc(car.customs_expected)}" placeholder="المبلغ بالدينار"></div>`;
+      <input class="input num" id="wCustoms" inputmode="numeric" value="${esc(car.customs_expected)}" placeholder="المبلغ بالدينار"></div>
+
+    ${dealer ? `<div class="car-actions">
+      <button type="button" class="btn btn-soft btn-block btn-sm" data-act="wiz-car-add">${ic('plus')}إضافة سيارة أخرى</button>
+      ${list.length > 1 ? `<button type="button" class="btn-text" style="width:100%;color:var(--out)" data-act="wiz-car-del" data-i="${w.carIdx}">حذف هذه السيارة</button>` : ''}
+      <div class="hint" style="text-align:center;margin-top:6px">${list.length} سيارة · المجموع ${fmt(list.reduce((t,c)=>t+(Number(c.agreed_price)||0),0))} دج</div>
+    </div>` : ''}`;
 }
 
 function wizStep3(cust){
-  const w = S.wiz, price = Number(w.car.agreed_price || 0);
+  const w = S.wiz;
+  const list = wizCars().filter(wizCarValid);
+  if (list.length > 1) return wizStep3Multi(cust, list);
+  const price = Number(w.car.agreed_price || 0);
   const who = cust ? cust.full_name : w.customer.full_name;
   const boxes = S.me.boxes || [];
   const dep = w.pay.mode === 'FULL' ? price : w.pay.mode === 'PERCENT' ? Math.round(price * w.pay.percent / 100) : 0;
@@ -2884,25 +2945,85 @@ function wizStep3(cust){
     <div id="wBoxWrap" style="margin-top:14px"></div>`;
 }
 
+/* دفعة التاجر: إما نسبة موحّدة على المجموع، أو مبلغ لكل سيارة */
+function wizStep3Multi(cust, list){
+  const w = S.wiz;
+  const who = cust ? cust.full_name : w.customer.full_name;
+  const total = list.reduce((t,c) => t + Number(c.agreed_price || 0), 0);
+  const boxes = S.me.boxes || [];
+  const pct = w.pay.mode === 'FULL' ? 100 : w.pay.mode === 'NONE' ? 0 : w.pay.percent;
+
+  return `<div class="card" style="padding:14px;margin-bottom:16px">
+      <div class="mc-head"><span>${esc(who)}</span><b>${list.length} سيارة</b></div>
+      <div class="mc-foot"><span>مجموع الأثمان</span><b class="num">${fmt(total)}</b></div>
+    </div>
+
+    <span class="field-l">كم دفع الآن؟</span>
+    <div class="seg" id="wPayHow">
+      <button type="button" data-payhow="ALL" aria-pressed="${w.payMode==='ALL'}">نسبة على الكل</button>
+      <button type="button" data-payhow="EACH" aria-pressed="${w.payMode==='EACH'}">لكل سيارة</button>
+    </div>
+
+    ${w.payMode === 'ALL' ? `
+      <div class="seg" style="margin-top:12px">
+        <button type="button" data-wmode="PERCENT" aria-pressed="${w.pay.mode==='PERCENT'}">عربون بنسبة</button>
+        <button type="button" data-wmode="FULL" aria-pressed="${w.pay.mode==='FULL'}">المبلغ كامل</button>
+        <button type="button" data-wmode="NONE" aria-pressed="${w.pay.mode==='NONE'}">لم يدفع بعد</button>
+      </div>
+      <div id="wPctRow" style="display:${w.pay.mode==='PERCENT'?'flex':'none'};align-items:center;gap:10px;margin-top:12px">
+        <input class="input num" id="wPct" inputmode="numeric" value="${w.pay.percent}" style="width:90px;text-align:center">
+        <span class="hint" style="margin:0">%</span><span class="dep-amount" id="wDep"></span>
+      </div>
+      ${pct ? `<div class="list" style="margin-top:12px">${list.map(c => `<div class="row">
+        <span class="row-main"><span class="row-title">${esc(c.car_model)}${c.color?' '+esc(c.color):''}</span>
+          <span class="row-sub"><span class="num">${fmt(Number(c.agreed_price))}</span></span></span>
+        <span class="row-end"><span class="amt in num">${fmt(Math.round(Number(c.agreed_price) * pct / 100))}</span>
+          <span class="row-bal">يدفع الآن</span></span></div>`).join('')}</div>` : ''}
+    ` : `
+      <div class="list" style="margin-top:12px">${list.map((c, i) => `<div class="row">
+        <span class="row-main"><span class="row-title">${esc(c.car_model)}${c.color?' '+esc(c.color):''}</span>
+          <span class="row-sub"><span>الثمن <b class="num">${fmt(Number(c.agreed_price))}</b></span></span></span>
+        <span class="row-end" style="width:130px">
+          <input class="input num car-pay" data-carpay="${i}" inputmode="numeric" placeholder="0"
+            value="${c.deposit_amount || ''}" style="height:40px;text-align:center"></span></div>`).join('')}</div>
+    `}
+
+    <div id="wBoxWrap" style="margin-top:14px"></div>`;
+}
+
 function bindWizard(sh){
   const w = S.wiz;
   const sync = () => {
     if ($('#wName')) { w.customer.full_name = $('#wName').value; w.customer.phone = $('#wPhone').value; w.customer.wilaya = $('#wWilaya').value; }
     if ($('#wModel')) {
-      w.car.car_model = $('#wModel').value; w.car.color = $('#wColor').value;
-      w.car.agreed_price = $('#wPrice').value; w.car.ship_date = $('#wShip').value; w.car.customs_expected = $('#wCustoms').value;
-      const h = $('#wPriceHint'); if (h) h.textContent = millions(w.car.agreed_price);
+      const c = wizCarAt(w.carIdx) || w.car;
+      c.car_model = $('#wModel').value; c.color = $('#wColor').value;
+      c.agreed_price = $('#wPrice').value; c.ship_date = $('#wShip').value; c.customs_expected = $('#wCustoms').value;
+      const h = $('#wPriceHint'); if (h) h.textContent = millions(c.agreed_price);
     }
+    sh.querySelectorAll('[data-carpay]').forEach(inp => {
+      const c = wizCarAt(Number(inp.dataset.carpay));
+      if (c) c.deposit_amount = inp.value;
+    });
     if ($('#wPct')) w.pay.percent = Math.min(100, Math.max(1, Number($('#wPct').value || 0)));
     paint(); draftSave();
   };
   const paint = () => {
     const btn = $('#wizNext');
     if (w.step === 1) btn.disabled = w.customer.full_name.trim().length < 2;
-    else if (w.step === 2) btn.disabled = !(w.car.car_model.trim().length >= 2 && Number(w.car.agreed_price) > 0);
+    else if (w.step === 2){
+      const all = wizCars();
+      btn.disabled = !all.every(wizCarValid);
+      btn.textContent = all.length > 1 ? `التالي · ${all.length} سيارة` : 'التالي';
+    }
     else {
-      const price = Number(w.car.agreed_price || 0);
-      const dep = w.pay.mode === 'FULL' ? price : w.pay.mode === 'PERCENT' ? Math.round(price * w.pay.percent / 100) : 0;
+      const cars = wizCars().filter(wizCarValid);
+      const multi = cars.length > 1;
+      const price = multi ? cars.reduce((t,c) => t + Number(c.agreed_price || 0), 0) : Number(w.car.agreed_price || 0);
+      // في وضع «لكل سيارة» المجموع هو حاصل جمع ما كُتب في الحقول
+      const dep = (multi && w.payMode === 'EACH')
+        ? cars.reduce((t,c) => t + (Number(c.deposit_amount) || 0), 0)
+        : (w.pay.mode === 'FULL' ? price : w.pay.mode === 'PERCENT' ? Math.round(price * w.pay.percent / 100) : 0);
       const d = $('#wDep'); if (d) d.textContent = dep ? fmt(dep) + ' دج' : '';
       const r = $('#wPctRow'); if (r) r.style.display = w.pay.mode === 'PERCENT' ? 'flex' : 'none';
       const boxes = S.me.boxes || [];
@@ -2920,6 +3041,24 @@ function bindWizard(sh){
   sh.addEventListener('click', e => {
     const t = e.target.closest('[data-wtype]');
     if (t){ w.customer.type = t.dataset.wtype; sh.querySelectorAll('[data-wtype]').forEach(x => x.setAttribute('aria-pressed', x===t)); draftSave(); }
+
+    const pick = e.target.closest('[data-carpick]');
+    if (pick){ sync(); w.carIdx = Number(pick.dataset.carpick); renderWizard(); return; }
+
+    if (e.target.closest('[data-act="wiz-car-add"]')){
+      sync();
+      if (!wizCarValid(wizCarAt(w.carIdx))) return toast('أكمل بيانات هذه السيارة أولاً', true);
+      w.cars.push(emptyCar()); w.carIdx = w.cars.length; draftSave(); renderWizard(); return;
+    }
+    const del = e.target.closest('[data-act="wiz-car-del"]');
+    if (del){
+      const i = Number(del.dataset.i);
+      if (i === 0){ w.car = w.cars.shift() || emptyCar(); }
+      else w.cars.splice(i - 1, 1);
+      w.carIdx = 0; draftSave(); renderWizard(); return;
+    }
+    const how = e.target.closest('[data-payhow]');
+    if (how){ sync(); w.payMode = how.dataset.payhow; draftSave(); renderWizard(); return; }
     const m = e.target.closest('[data-wmode]');
     if (m){ w.pay.mode = m.dataset.wmode; sh.querySelectorAll('[data-wmode]').forEach(x => x.setAttribute('aria-pressed', x===m)); paint(); draftSave(); }
     const b = e.target.closest('[data-wbox]');
@@ -2933,6 +3072,32 @@ function bindWizard(sh){
 async function wizardSave(btn){
   const w = S.wiz;
   const key = 'wiz:' + (w.customer_id || w.customer.full_name) + ':' + w.car.car_model + ':' + w.car.agreed_price;
+  const cars = wizCars().filter(wizCarValid);
+  const multi = cars.length > 1;
+
+  if (multi){
+    const payload = {
+      box_id: w.pay.mode === 'NONE' && w.payMode === 'ALL' ? '' : w.pay.box_id,
+      cars: cars.map(c => {
+        const base = { car_model: c.car_model.trim(), color: (c.color||'').trim(),
+          agreed_price: Number(c.agreed_price || 0),
+          customs_expected: c.customs_expected ? Number(c.customs_expected) : '',
+          ship_date: c.ship_date || '' };
+        if (w.payMode === 'EACH'){
+          const amt = Number(c.deposit_amount || 0);
+          return Object.assign(base, amt > 0 ? { deposit_mode:'AMOUNT', deposit_amount: amt } : { deposit_mode:'NONE' });
+        }
+        return Object.assign(base, { deposit_mode: w.pay.mode, deposit_percent: w.pay.percent });
+      }),
+      client_ref: refFor(key)
+    };
+    if (w.payMode === 'EACH' && payload.cars.every(c => c.deposit_mode === 'NONE')) payload.box_id = '';
+    if (w.customer_id) payload.customer_id = w.customer_id;
+    else payload.customer = { full_name: w.customer.full_name.trim(), phone: w.customer.phone.trim(),
+      wilaya: w.customer.wilaya.trim(), type: w.customer.type };
+    return wizSend(payload, true, key, w);
+  }
+
   const payload = {
     car_model: w.car.car_model.trim(), color: w.car.color.trim(),
     agreed_price: Number(w.car.agreed_price || 0),
@@ -2946,19 +3111,32 @@ async function wizardSave(btn){
   else payload.customer = { full_name: w.customer.full_name.trim(), phone: w.customer.phone.trim(),
     wilaya: w.customer.wilaya.trim(), type: w.customer.type };
 
-  // نغلق فوراً ونُكمل الإرسال في الخلفية، ثم نفتح بطاقة السيارة عند وصول رقمها
+  return wizSend(payload, false, key, w);
+}
+
+/* الإرسال المشترك: شريط تقدّم، ثم فتح البطاقة إن لم يتأخر الخادم */
+function wizSend(payload, multi, key, w){
   draftClear(); S.wiz = null;
   tap(); closeSheet();
-  toast(w.customer_id ? 'تمت إضافة السيارة' : 'تم تسجيل الزبون وسيارته');
-  api('createOrder', payload)
-    .then(o => {
+  busyStart(multi ? 'جارٍ تسجيل السيارات…' : 'جارٍ تسجيل الطلبية…');
+  const t0 = Date.now();
+
+  api(multi ? 'createOrdersBatch' : 'createOrder', payload)
+    .then(r => {
       clearRef(key);
+      busyEnd();
       loadCustomers();
       refresh(true);
-      if (o && o.queued) return;
-      if (o && o.order_id) openOrder(o.order_id);
+      if (r && r.queued) return toast('محفوظة على الجهاز، تُرسل عند عودة الاتصال');
+
+      const slow = Date.now() - t0 > 3000;     // تأخّر: قد يكون انتقل لعمل آخر
+      const count = multi ? (r.count || 0) : 1;
+      toast(count > 1 ? `تم تسجيل ${count} سيارات` : (w.customer_id ? 'تمت إضافة السيارة' : 'تم تسجيل الزبون وسيارته'));
+      if (slow) return;
+      if (multi && r.customer_id) openCustomer(r.customer_id);
+      else if (r && r.order_id) openOrder(r.order_id);
     })
-    .catch(x => toast(x.message, true));
+    .catch(x => { busyEnd(); toast(x.message, true); });
   return;
 }
 
@@ -4701,6 +4879,7 @@ const Mock = (() => {
     getOrder: p => { const o = ORD.find(x => x.order_id === p.order_id);
       return Object.assign(ordView(o), { entries: L.filter(e => e.order_id === o.order_id).reverse()
         .map(e => Object.assign(enrich(e), { purpose_label: e.purpose === 'PRICE' ? 'ثمن السيارة' : 'الديوانة' })) }); },
+    _createOrder: p => H.createOrder(p),
     createOrder: p => {
       let cid = p.customer_id;
       if (!cid){
@@ -4718,7 +4897,9 @@ const Mock = (() => {
       ORD.push(o);
       const mode = p.deposit_mode || 'NONE';
       if (mode !== 'NONE'){
-        const amt = mode === 'FULL' ? o.agreed_price : Math.round(o.agreed_price * (Number(p.deposit_percent)||30) / 100);
+        const amt = mode === 'FULL' ? o.agreed_price
+          : mode === 'FULL_AMOUNT' ? Number(p.deposit_amount || 0)
+          : Math.round(o.agreed_price * (Number(p.deposit_percent)||30) / 100);
         add({ box_id:p.box_id, entry_date:localDate(new Date()), created_at:now(), direction:'IN', amount:amt,
           entry_type:'CUSTOMER_PAYMENT', purpose:'PRICE', order_id:o.order_id,
           counterparty:(CUS.find(c => c.customer_id === o.customer_id)||{}).full_name,
@@ -4727,6 +4908,19 @@ const Mock = (() => {
         if (!o.owner_box_id) o.owner_box_id = p.box_id;
       }
       const v = ordView(o); v.just_sold = ordTotals(o).is_sold; return v; },
+    createOrdersBatch: p => {
+      let cid = p.customer_id;
+      if (!cid){
+        const c = { customer_id:'CUS'+(CUS.length+1), full_name:p.customer.full_name, phone:p.customer.phone||'',
+          wilaya:p.customer.wilaya||'', type:p.customer.type||'INDIVIDUAL', status:'ACTIVE' };
+        CUS.push(c); cid = c.customer_id;
+      }
+      const made = p.cars.map(c => H.createOrder(Object.assign({}, c, { customer_id: cid, box_id: p.box_id,
+        deposit_mode: c.deposit_mode === 'AMOUNT' ? 'FULL_AMOUNT' : c.deposit_mode })));
+      return { customer_id: cid, orders: made, count: made.length,
+        total_price: made.reduce((s,o) => s + o.agreed_price, 0),
+        total_paid: made.reduce((s,o) => s + o.price_paid, 0) };
+    },
     markOrderNotified: p => { const o = ORD.find(x => x.order_id === p.order_id); o.notified_at = now(); return ordView(o); },
     getShippingAlerts: () => shipAlerts(),
     updateOrder: p => { const o = ORD.find(x => x.order_id === p.order_id); Object.assign(o, p); return ordView(o); },
