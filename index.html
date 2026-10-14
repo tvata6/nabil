@@ -448,15 +448,17 @@ input,textarea,.num,.amt{user-select:text;-webkit-user-select:text}
 
 /* شريط تقدّم علوي: يظهر أثناء العمليات التي تنتظر رقماً من الخادم،
    فيبقى المستخدم في مكانه ويعرف أن عليه الانتظار لحظة. */
-#progress{position:fixed;top:0;inset-inline:0;height:3px;z-index:120;background:transparent;pointer-events:none}
-#progress span{display:block;height:100%;width:0;background:var(--amber);
-  box-shadow:0 0 10px var(--amber);transition:width .3s ease}
-#progress.on span{width:92%;transition:width 2.4s cubic-bezier(.2,.8,.2,1)}
-#progress.done span{width:100%;transition:width .18s linear}
-.busy-note{position:fixed;top:calc(10px + var(--safe-t));inset-inline:0;z-index:119;display:flex;justify-content:center;pointer-events:none}
-.busy-note span{background:var(--asphalt);color:#fff;font-size:13px;font-weight:500;padding:8px 16px;border-radius:999px;
-  box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;align-items:center;gap:9px}
-.busy-note .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+.busy-wrap{position:fixed;inset:0;z-index:130;display:grid;place-items:center;background:var(--sheet-scrim);
+  backdrop-filter:blur(2px);animation:fadeIn .15s ease-out}
+@keyframes fadeIn{from{opacity:0}}
+.busy-card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:28px 30px;
+  display:flex;flex-direction:column;align-items:center;gap:16px;min-width:230px;max-width:84vw;text-align:center;
+  box-shadow:0 24px 60px rgba(0,0,0,.35);animation:popIn .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes popIn{from{opacity:0;transform:scale(.92)}}
+.busy-ring{width:52px;height:52px;border-radius:50%;border:4px solid var(--line-2);
+  border-top-color:var(--petrol);animation:spin .75s linear infinite}
+.busy-card b{font-size:16.5px;font-weight:600;letter-spacing:-.01em}
+.busy-card small{color:var(--muted);font-size:13px;margin-top:-6px}
 
 /* Toast */
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + var(--safe-b));z-index:60;display:flex;justify-content:center;pointer-events:none}
@@ -537,7 +539,6 @@ svg.i.sm{width:18px;height:18px}
 <div id="splash"><img src="" alt="" id="splashLogo"><span class="spl-dot"></span></div>
 <div id="root"></div>
 <div id="sheets"></div>
-<div id="progress"><span></span></div>
 <div id="busy"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -1048,18 +1049,20 @@ function tap(kind){
 }
 
 /* يُظهر الشريط والرسالة أثناء انتظار الخادم */
-function busyStart(msg){
-  const p = document.getElementById('progress');
-  if (p){ p.classList.remove('done'); void p.offsetWidth; p.classList.add('on'); }
+function busyStart(msg, sub){
   const b = document.getElementById('busy');
-  if (b) b.innerHTML = `<div class="busy-note"><span><i class="spinner"></i>${esc(msg || 'جارٍ الحفظ…')}</span></div>`;
+  if (!b) return;
+  b.innerHTML = `<div class="busy-wrap"><div class="busy-card">
+      <span class="busy-ring"></span>
+      <b>${esc(msg || 'جارٍ الحفظ…')}</b>
+      <small>${esc(sub || 'لحظات من فضلك')}</small>
+    </div></div>`;
+  document.body.style.overflow = 'hidden';
 }
 function busyEnd(){
-  const p = document.getElementById('progress');
-  if (p){ p.classList.remove('on'); p.classList.add('done');
-    setTimeout(() => { p.classList.remove('done'); }, 240); }
   const b = document.getElementById('busy');
   if (b) b.innerHTML = '';
+  document.body.style.overflow = '';
 }
 
 function toast(msg, err=false){
@@ -3118,8 +3121,7 @@ async function wizardSave(btn){
 function wizSend(payload, multi, key, w){
   draftClear(); S.wiz = null;
   tap(); closeSheet();
-  busyStart(multi ? 'جارٍ تسجيل السيارات…' : 'جارٍ تسجيل الطلبية…');
-  const t0 = Date.now();
+  busyStart(multi ? 'جارٍ تسجيل السيارات…' : 'جارٍ تسجيل الطلبية…', 'لا تغلق التطبيق');
 
   api(multi ? 'createOrdersBatch' : 'createOrder', payload)
     .then(r => {
@@ -3129,10 +3131,9 @@ function wizSend(payload, multi, key, w){
       refresh(true);
       if (r && r.queued) return toast('محفوظة على الجهاز، تُرسل عند عودة الاتصال');
 
-      const slow = Date.now() - t0 > 3000;     // تأخّر: قد يكون انتقل لعمل آخر
       const count = multi ? (r.count || 0) : 1;
       toast(count > 1 ? `تم تسجيل ${count} سيارات` : (w.customer_id ? 'تمت إضافة السيارة' : 'تم تسجيل الزبون وسيارته'));
-      if (slow) return;
+      // نفتح التفاصيل دائماً: نافذة الانتظار كانت تمنع المستخدم من الانشغال بشيء آخر
       if (multi && r.customer_id) openCustomer(r.customer_id);
       else if (r && r.order_id) openOrder(r.order_id);
     })
