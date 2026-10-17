@@ -460,6 +460,29 @@ input,textarea,.num,.amt{user-select:text;-webkit-user-select:text}
 .busy-card b{font-size:16.5px;font-weight:600;letter-spacing:-.01em}
 .busy-card small{color:var(--muted);font-size:13px;margin-top:-6px}
 
+.cat-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:15px 16px;margin-bottom:10px;
+  border-inline-start:3px solid var(--in)}
+.cat-card.pending{border-inline-start-color:var(--amber)}
+.cat-card.reserved{border-inline-start-color:var(--out)}
+.cat-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.cat-top b{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.cat-dot{flex:none;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--in-tint);color:var(--in)}
+.cat-dot.pending{background:var(--amber-tint);color:var(--amber-ink)}
+.cat-dot.reserved{background:var(--out-tint);color:var(--out)}
+.cat-dot.big{display:inline-block;font-size:13px;padding:7px 16px}
+.cat-price{display:flex;align-items:baseline;gap:7px;margin-top:10px}
+.cat-price b{font-size:21px;font-weight:600;letter-spacing:-.02em}
+.cat-price small{color:var(--muted);font-size:13px}
+.cat-cent{margin-inline-start:auto;color:var(--faint);font-size:12px}
+.cat-hold{display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 11px;border-radius:11px;
+  background:var(--paper);color:var(--muted);font-size:12.5px}
+.cat-hold small{display:block;color:var(--faint);font-size:11px}
+.cat-hold svg.i{width:15px;height:15px;flex:none}
+.cat-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.cat-acts .btn-sm{flex:1;min-width:104px;height:40px;border-radius:12px;font-size:13.5px}
+.msg-box{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px;
+  font-family:var(--font);font-size:13.5px;line-height:1.7;white-space:pre-wrap;margin:0;color:var(--ink)}
+
 /* Toast */
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + var(--safe-b));z-index:60;display:flex;justify-content:center;pointer-events:none}
 .toast{max-width:480px;background:var(--asphalt);color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.2);display:flex;gap:10px;align-items:center;animation:reveal .2s}
@@ -559,6 +582,7 @@ const S = {
   trf: { tab: 'wait', items: [], loaded: false },
   cust: { items: [], loaded: false, q: '' },
   sup: { items: [], brokers: [], loaded: false },
+  cat: { items: [], counts: {}, loaded: false, q: '', status: '', sig: '' },
   so: null,
   wiz: null,
   order: null,
@@ -978,6 +1002,7 @@ const I = {
   phone:'<path d="M6 3h3l2 5-2.5 1.5a12 12 0 0 0 5 5L15 12l5 2v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4 5.2 2 2 0 0 1 6 3z"/>',
   camera:'<path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/>',
   cloudOff:'<path d="M3 3l18 18M7.5 8A5 5 0 0 0 7 18h10a4 4 0 0 0 2.4-7.2M9.5 5.6A5 5 0 0 1 17 9.5a4 4 0 0 1 2 .8"/>',
+  share:'<path d="M12 3v12M8 7l4-4 4 4M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>',
   moon:'<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>',
   globe:'<circle cx="12" cy="12" r="9"/><path d="M3.5 9h17M3.5 15h17M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>'
 };
@@ -1653,6 +1678,7 @@ function renderShell(loading){
 }
 function renderView(){
   if (!S.ov) return skeleton();
+  if (S.view === 'catalog') return viewCatalog();
   if (S.view === 'suppliers') return viewSuppliers();
   if (S.view === 'customers') return viewCustomers();
   if (S.view === 'history') return viewHistory();
@@ -1674,6 +1700,16 @@ function afterRender(){
   if (S.view === 'history' && !S.hist.loaded) loadHistory();
   if (S.view === 'customers' && !S.cust.loaded) loadCustomers();
   if (S.view === 'suppliers' && !S.sup.loaded) loadSuppliers();
+  if (S.view === 'catalog'){
+    if (!S.cat.loaded) loadCatalog();
+    catalogWatch(true);
+    const cq = $('#catQ');
+    if (cq) cq.addEventListener('input', e => {
+      S.cat.q = e.target.value;
+      clearTimeout(S._catQ);
+      S._catQ = setTimeout(() => { loadCatalog(true); const el = $('#catQ'); if (el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 350);
+    });
+  } else catalogWatch(false);
   const cq = $('#custQ');
   if (cq) cq.addEventListener('input', e => { S.cust.q = e.target.value; const v = e.target.value;
     clearTimeout(S._cq); S._cq = setTimeout(() => { rerender(); const el = $('#custQ'); if (el){ el.focus(); el.setSelectionRange(v.length, v.length); } }, 250); });
@@ -2062,6 +2098,7 @@ function viewAccount(){
       <span><b>${esc(u.full_name)}</b><span class="hint" style="margin:0">${ROLE[u.role]}</span></span></button>
     <div class="list menu" style="margin-top:14px">
       <button class="row" data-act="switch-box"><span class="row-ic">${ic('box')}</span><span class="row-main"><span class="row-title">الصندوق الافتراضي</span><span class="row-sub">${box?esc(box.name):'غير محدد'}</span></span>${ic('chev')}</button>
+      <button class="row" data-act="tab" data-v="catalog"><span class="row-ic">${ic('car')}</span><span class="row-main"><span class="row-title">كتالوج السيارات</span><span class="row-sub">السيارات المتاحة وحجوزات المكاتب</span></span>${ic('chev')}</button>
       ${S.me.user.role !== 'KEEPER' ? `<button class="row" data-act="tab" data-v="suppliers"><span class="row-ic">${ic('box')}</span><span class="row-main"><span class="row-title">الموردون والوسطاء</span><span class="row-sub">الطلبيات ورصيد الدولار</span></span>${ic('chev')}</button>` : ''}
       <button class="row" data-act="tab" data-v="history"><span class="row-ic">${ic('list')}</span><span class="row-main"><span class="row-title">سجل العمليات</span><span class="row-sub">كل حركات صندوقك</span></span>${ic('chev')}</button>
       <button class="row" data-act="password"><span class="row-ic">${ic('lock')}</span><span class="row-main"><span class="row-title">تغيير كلمة المرور</span></span>${ic('chev')}</button>
@@ -3042,6 +3079,8 @@ function bindWizard(sh){
   };
   sh.addEventListener('input', sync);
   sh.addEventListener('click', e => {
+    const cs = e.target.closest('[data-catstatus]');
+    if (cs){ S.cat.status = cs.dataset.catstatus; loadCatalog(true); return; }
     const t = e.target.closest('[data-wtype]');
     if (t){ w.customer.type = t.dataset.wtype; sh.querySelectorAll('[data-wtype]').forEach(x => x.setAttribute('aria-pressed', x===t)); draftSave(); }
 
@@ -3529,6 +3568,206 @@ async function openLinkSO(orderId){
   } catch(x){ closeSheet(); toast(x.message, true); }
 }
 
+/* ================= كتالوج السيارات المشترك =================
+   كل المكاتب ترى نفس القائمة. الحجز يُحسم في الخادم داخل قفل،
+   فمن يصل ثانياً يُرفض طلبه برسالة تقول من حجزها ومن أي مكتب.
+   التحديث: نسأل الخادم عن بصمة خفيفة كل 10 ثوانٍ ما دامت الشاشة مفتوحة. */
+
+const CAT_STATUS_EN = { AVAILABLE:'Available', PENDING:'On hold', RESERVED:'Reserved' };
+const catStatus = c => (isEN() && CAT_STATUS_EN[c.status]) || c.status_label;
+/* السعر يُدخَل بالدينار ويُعرض بالصيغتين، فالناس يتكلمون بالسنتيم */
+const centimes = dzd => fmt(Math.round(Number(dzd || 0) / 10000)) + ' مليون سنتيم';
+
+function viewCatalog(){
+  const st = S.cat;
+  const counts = st.counts || {};
+  const tabs = [['','الكل', counts.all||0], ['AVAILABLE','متاحة', counts.AVAILABLE||0],
+                ['PENDING','قيد الحجز', counts.PENDING||0], ['RESERVED','محجوزة', counts.RESERVED||0]];
+  return `<div class="page-head"><h1>الكتالوج</h1>
+      <button class="icon-btn" data-act="cat-refresh" aria-label="تحديث">${ic('refresh')}</button></div>
+  <div class="page" style="padding-top:8px">
+    <div class="search"><span>${ic('search')}</span>
+      <input class="input" id="catQ" placeholder="ابحث عن سيارة" value="${esc(st.q)}" autocomplete="off"></div>
+
+    <div class="chips" style="margin:12px 0 4px">${tabs.map(t => `
+      <button class="chip" data-catstatus="${t[0]}" aria-pressed="${st.status===t[0]}">${t[1]} ${t[2]?`<b>${t[2]}</b>`:''}</button>`).join('')}</div>
+
+    ${!st.loaded ? '<div class="sk" style="height:260px;border-radius:14px;margin-top:12px"></div>' : `
+      <div class="sec">
+        <div class="sec-h"><h2>${st.items.length} سيارة</h2>
+          ${S.me.user.role === 'ADMIN' ? `<button class="link" data-act="cat-new">+ سيارة</button>` : ''}</div>
+        ${st.items.length ? st.items.map(catalogCard).join('')
+          : `<div class="card empty">${ic('car')}<b>لا توجد سيارة</b>${st.q ? 'جرّب اسماً آخر.' : 'سيضيف المدير السيارات هنا.'}
+             ${S.me.user.role === 'ADMIN' ? `<span class="empty-acts"><button class="btn btn-primary btn-sm" data-act="cat-new">${ic('plus')}سيارة جديدة</button></span>` : ''}</div>`}
+      </div>`}
+  </div>`;
+}
+
+function catalogCard(c){
+  const mine = c.held_by_user === S.me.user.user_id;
+  const admin = S.me.user.role === 'ADMIN';
+  const canAct = mine || admin;
+  return `<article class="cat-card ${c.status.toLowerCase()}">
+    <div class="cat-top">
+      <div><b>${esc(c.title)}</b>
+        <span class="row-sub">${[c.color, c.gearbox_label, c.specs].filter(Boolean).map(x => `<span>${esc(x)}</span>`).join('')}</span></div>
+      <span class="cat-dot ${c.status.toLowerCase()}">${catStatus(c)}</span>
+    </div>
+
+    <div class="cat-price"><b class="num">${fmt(c.price_dzd)}</b> <small>دج</small>
+      <span class="cat-cent">${centimes(c.price_dzd)}</span></div>
+
+    ${c.status !== 'AVAILABLE' ? `<div class="cat-hold">
+      ${ic(c.status === 'RESERVED' ? 'check' : 'clock')}
+      <span>${esc(c.held_by_box_name || '')}${c.held_by_name ? ' · ' + esc(c.held_by_name) : ''}
+        ${c.held_at ? `<small>${dayLabel(String(c.held_at).slice(0,10))} ${String(c.held_at).slice(11,16)}</small>` : ''}</span>
+    </div>` : ''}
+
+    <div class="cat-acts">
+      <button class="btn btn-soft btn-sm" data-act="cat-send" data-id="${c.car_id}">${ic('share')}إرسال للزبون</button>
+      ${c.status === 'AVAILABLE'
+        ? `<button class="btn btn-primary btn-sm" data-act="cat-hold" data-id="${c.car_id}">قيد الحجز</button>`
+        : c.status === 'PENDING' && canAct
+          ? `<button class="btn btn-primary btn-sm" data-act="cat-confirm" data-id="${c.car_id}">${ic('check')}تأكيد الحجز</button>
+             <button class="btn btn-ghost btn-sm" data-act="cat-release" data-id="${c.car_id}">إلغاء</button>`
+          : c.status === 'RESERVED' && canAct
+            ? `<button class="btn btn-ghost btn-sm" data-act="cat-release" data-id="${c.car_id}">إلغاء الحجز</button>`
+            : ''}
+      <button class="btn btn-ghost btn-sm" data-act="cat-open" data-id="${c.car_id}">التفاصيل</button>
+    </div>
+  </article>`;
+}
+
+async function loadCatalog(silent){
+  try {
+    const r = await api('catalogList', { q: S.cat.q, status: S.cat.status });
+    S.cat.items = r.items; S.cat.counts = r.counts; S.cat.sig = r.sig; S.cat.loaded = true;
+    if (S.view === 'catalog') rerender();
+  } catch(x){ S.cat.loaded = true; if (!silent) toast(x.message, true); }
+}
+
+/* نبضة الكتالوج: بصمة خفيفة كل 10 ثوانٍ ما دامت الشاشة مفتوحة */
+let _catTimer = null;
+function catalogWatch(on){
+  clearInterval(_catTimer);
+  if (!on) return;
+  _catTimer = setInterval(async () => {
+    if (S.view !== 'catalog' || document.hidden || !S.token || S.decoy) return;
+    try {
+      const r = await api('catalogPulse', {});
+      if (r && r.sig && r.sig !== S.cat.sig) loadCatalog(true);
+    } catch(e){}
+  }, 10000);
+}
+
+/* ---------- بطاقة التفاصيل ---------- */
+async function openCatalogCar(id){
+  const c = S.cat.items.find(x => x.car_id === id);
+  if (!c) return;
+  const admin = S.me.user.role === 'ADMIN';
+  openSheet(`${sheetHead(esc(c.title))}<div class="sheet-body">
+    <div class="cat-dot big ${c.status.toLowerCase()}">${catStatus(c)}</div>
+    <dl class="dl" style="margin-top:14px">
+      <div><dt>الشركة</dt><dd>${esc(c.brand || '—')}</dd></div>
+      <div><dt>السيارة</dt><dd>${esc(c.name || '—')}</dd></div>
+      <div><dt>الموديل</dt><dd>${esc(String(c.model_year || '—'))}</dd></div>
+      <div><dt>اللون</dt><dd>${esc(c.color || '—')}</dd></div>
+      <div><dt>ناقل الحركة</dt><dd>${esc(c.gearbox_label || '—')}</dd></div>
+      ${c.specs ? `<div><dt>المواصفات</dt><dd>${esc(c.specs)}</dd></div>` : ''}
+      <div><dt>السعر</dt><dd>${fmt(c.price_dzd)} دج<br><small style="color:var(--muted)">${centimes(c.price_dzd)}</small></dd></div>
+    </dl>
+    ${c.link ? `<a class="btn btn-soft btn-block" style="margin-top:14px" href="${esc(c.link)}" target="_blank" rel="noopener">${ic('globe')}فتح رابط المورد</a>` : ''}
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" data-act="cat-hist" data-id="${c.car_id}">${ic('list')}سجل الحجوزات</button>
+    ${admin ? `<div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-ghost btn-sm" style="flex:1" data-act="cat-edit" data-id="${c.car_id}">تعديل</button>
+      <button class="btn btn-ghost btn-sm" style="flex:1;color:var(--out)" data-act="cat-del" data-id="${c.car_id}">حذف</button></div>` : ''}
+  </div>
+  <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="cat-send" data-id="${c.car_id}">${ic('share')}إرسال للزبون</button></div>`,
+  { full:true });
+}
+
+async function openCatalogHistory(id){
+  openSheet(`${sheetHead('سجل الحجوزات')}<div class="sheet-body" id="chBody"><div class="sk" style="height:180px;border-radius:14px"></div></div>`);
+  try {
+    const rows = await api('catalogHistory', { car_id: id });
+    if (!$('#chBody')) return;
+    const LBL = { CREATE:'أُضيفت', UPDATE:'تعديل', HOLD:'وضعها قيد الحجز', CONFIRM:'أكّد الحجز',
+                  RELEASE:'ألغى الحجز', DELETE:'حُذفت' };
+    $('#chBody').innerHTML = rows.length ? `<div class="list">${rows.map(r => `<div class="row">
+        <span class="row-ic ${r.action==='RELEASE'?'out':r.action==='CONFIRM'?'in':'tr'}">${ic(r.action==='CONFIRM'?'check':'clock')}</span>
+        <span class="row-main"><span class="row-title">${esc(LBL[r.action] || r.action)}</span>
+          <span class="row-sub"><span>${esc(r.user_name || '')}</span><span>${esc(r.box_name || '')}</span>
+            <span>${dayLabel(String(r.at).slice(0,10))} ${String(r.at).slice(11,16)}</span></span></span>
+      </div>`).join('')}</div>` : `<div class="card empty">${ic('list')}<b>لا توجد عمليات بعد</b></div>`;
+  } catch(x){ closeSheet(); toast(x.message, true); }
+}
+
+/* ---------- الإرسال للزبون ---------- */
+function carMessage(c){
+  return `🚗 تفاصيل السيارة\n`
+    + `الشركة: ${c.brand || '—'}\n`
+    + `السيارة: ${c.name || '—'}\n`
+    + `الموديل: ${c.model_year || '—'}\n`
+    + `اللون: ${c.color || '—'}\n`
+    + `ناقل الحركة: ${c.gearbox_label || '—'}\n`
+    + `السعر: ${centimes(c.price_dzd)}\n`
+    + (c.specs ? `المواصفات: ${c.specs}\n` : '')
+    + (c.link ? `\n🔗 رابط السيارة:\n${c.link}` : '');
+}
+
+function openCatalogSend(id){
+  const c = S.cat.items.find(x => x.car_id === id);
+  if (!c) return;
+  const msg = carMessage(c);
+  openSheet(`${sheetHead('إرسال إلى الزبون')}<div class="sheet-body">
+    <p class="hint" style="margin:0 0 12px">الرسالة جاهزة ببيانات السيارة ورابط المورد. الإرسال لا يغيّر حالة السيارة.</p>
+    <pre class="msg-box">${esc(msg)}</pre>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <a class="btn btn-primary" style="flex:1" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">واتساب</a>
+      <button class="btn btn-soft" style="flex:1" data-act="cat-wechat" data-id="${c.car_id}">ويشات</button>
+    </div>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" data-act="cat-copy" data-id="${c.car_id}">${ic('copy')}نسخ الرسالة</button>
+    <p class="hint" style="margin-top:10px">ويشات لا يسمح بتعبئة الرسالة مسبقاً، فننسخها لك ثم تلصقها في المحادثة.</p>
+  </div>`, { full:true });
+}
+
+/* ---------- نماذج المدير ---------- */
+function openCatalogForm(id){
+  const c = id ? (S.cat.items.find(x => x.car_id === id) || {}) : {};
+  const g = c.gearbox || 'AUTO';
+  openSheet(`${sheetHead(id ? 'تعديل السيارة' : 'سيارة جديدة')}<div class="sheet-body">
+    <div class="field"><label class="field-l" for="cfBrand">الشركة المصنعة</label>
+      <input class="input" id="cfBrand" value="${esc(c.brand||'')}" placeholder="الشركة" autocomplete="off"></div>
+    <div class="field"><label class="field-l" for="cfName">اسم السيارة</label>
+      <input class="input" id="cfName" value="${esc(c.name||'')}" placeholder="اسم السيارة"></div>
+    <div class="field"><label class="field-l" for="cfYear">سنة الصنع</label>
+      <input class="input num" id="cfYear" inputmode="numeric" value="${esc(String(c.model_year||''))}" placeholder="السنة"></div>
+    <div class="field"><label class="field-l" for="cfColor">اللون</label>
+      <input class="input" id="cfColor" value="${esc(c.color||'')}" placeholder="اللون"></div>
+    <div class="field"><span class="field-l">ناقل الحركة</span>
+      <div class="chips"><button type="button" class="chip" data-gear="AUTO" aria-pressed="${g==='AUTO'}">أوتوماتيك</button>
+        <button type="button" class="chip" data-gear="MANUAL" aria-pressed="${g==='MANUAL'}">عادي</button></div></div>
+    <div class="field"><label class="field-l" for="cfSpecs">المواصفات <small>(اختياري)</small></label>
+      <input class="input" id="cfSpecs" value="${esc(c.specs||'')}" placeholder="المواصفات"></div>
+    <div class="field"><label class="field-l" for="cfPrice">السعر بالدينار</label>
+      <input class="input num" id="cfPrice" inputmode="numeric" value="${esc(String(c.price_dzd||''))}" placeholder="المبلغ بالدينار">
+      <div class="hint" id="cfCent">${c.price_dzd ? centimes(c.price_dzd) : ''}</div></div>
+    <div class="field"><label class="field-l" for="cfLink">رابط المورد</label>
+      <input class="input" id="cfLink" dir="ltr" value="${esc(c.link||'')}" placeholder="https://"></div>
+  </div>
+  <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="cat-save" data-id="${id||''}">${id?'حفظ التعديلات':'إضافة السيارة'}</button></div>`,
+  { full:true, onMount: sh => {
+    sh.dataset.gear = g;
+    sh.addEventListener('click', e => {
+      const b = e.target.closest('[data-gear]');
+      if (b){ sh.dataset.gear = b.dataset.gear; sh.querySelectorAll('[data-gear]').forEach(x => x.setAttribute('aria-pressed', x===b)); }
+    });
+    $('#cfPrice', sh).addEventListener('input', e => {
+      $('#cfCent').textContent = e.target.value ? centimes(e.target.value) : '';
+    });
+  } });
+}
+
 /* ---------------- Sheets ---------------- */
 function openSheet(html, { full=false, onMount, sticky=false }={}){
   const wasOpen = !!$('.sheet');
@@ -3766,6 +4005,7 @@ function openChooser(){
     <button class="opt" data-act="op" data-type="income"><span class="row-ic in">${ic('in')}</span><span><b>استلام مبلغ</b><small>دخل إلى صندوقك من أي جهة</small></span></button>
     <button class="opt" data-act="op" data-type="expense"><span class="row-ic out">${ic('out')}</span><span><b>مصروف</b><small>نقل، أكل، فليكسي، شهريات…</small></span></button>
     <button class="opt" data-act="op" data-type="transfer"><span class="row-ic tr">${ic('swap')}</span><span><b>تحويل لصندوق آخر</b><small>يصل بعد تأكيد المستلم</small></span></button>
+    <button class="opt" data-act="tab" data-v="catalog"><span class="row-ic tr">${ic('car')}</span><span><b>كتالوج السيارات</b><small>اعرض سيارة على زبون أو احجزها</small></span></button>
     <button class="opt" data-act="pay-flow"><span class="row-ic tr">${ic('car')}</span><span><b>دفعة زبون على سيارة</b><small>ثمن السيارة أو الديوانة</small></span></button>
   </div>`);
 }
@@ -4106,6 +4346,42 @@ document.addEventListener('click', async e => {
     case 'pay-flow': openPayFlow(); break;
     case 'pf-cust': openPayFlowCars(id); break;
     case 'followup': openFollowUp(); break;
+    case 'cat-refresh': loadCatalog(); break;
+    case 'cat-open': openCatalogCar(id); break;
+    case 'cat-hist': openCatalogHistory(id); break;
+    case 'cat-send': openCatalogSend(id); break;
+    case 'cat-copy': { const cc = S.cat.items.find(x => x.car_id === id);
+      if (cc) copyText(carMessage(cc), 'نُسخت الرسالة'); break; }
+    case 'cat-wechat': { const cw = S.cat.items.find(x => x.car_id === id);
+      if (cw){ copyText(carMessage(cw), 'نُسخت الرسالة، الصقها في ويشات');
+        setTimeout(() => { location.href = 'weixin://'; }, 400); } break; }
+    case 'cat-hold': case 'cat-confirm': case 'cat-release': {
+      const map = { 'cat-hold':['catalogHold','وُضعت قيد الحجز'],
+                    'cat-confirm':['catalogConfirm','تم تأكيد الحجز'],
+                    'cat-release':['catalogRelease','عادت متاحة'] };
+      const pair = map[a];
+      setBtnBusy(el, true);
+      try { await api(pair[0], { car_id:id }); toast(pair[1]); await loadCatalog(true); }
+      catch(x){ setBtnBusy(el,false); toast(x.message, true); await loadCatalog(true); }
+      break; }
+    case 'cat-new': openCatalogForm(''); break;
+    case 'cat-edit': openCatalogForm(id); break;
+    case 'cat-save': {
+      const shc = el.closest('.sheet');
+      const payload = { brand:$('#cfBrand').value.trim(), name:$('#cfName').value.trim(),
+        model_year:$('#cfYear').value.trim(), color:$('#cfColor').value.trim(), gearbox:shc.dataset.gear,
+        specs:$('#cfSpecs').value.trim(), price_dzd:Number($('#cfPrice').value || 0), link:$('#cfLink').value.trim() };
+      if (id) payload.car_id = id;
+      bgRun(id ? 'catalogUpdate' : 'catalogCreate', payload,
+        { okMsg: id ? 'تم الحفظ' : 'أُضيفت السيارة', refresh:false, after: () => loadCatalog(true) });
+      break; }
+    case 'cat-del': {
+      const cd = S.cat.items.find(x => x.car_id === id) || {};
+      openSheet(`${sheetHead('حذف السيارة')}<div class="sheet-body">
+        <p class="lead">سيختفي <b>${esc(cd.title||'')}</b> من الكتالوج عند كل المكاتب. سجل حجوزاتها يبقى محفوظاً.</p></div>
+        <div class="sheet-foot"><button class="btn btn-danger btn-block" data-act="cat-del-go" data-id="${id}">نعم، احذفها</button></div>`);
+      break; }
+    case 'cat-del-go': bgRun('catalogDelete', { car_id:id }, { okMsg:'حُذفت السيارة', refresh:false, after: () => loadCatalog(true) }); break;
     case 'sup': openSupplier(id); break;
     case 'sup-new': openNewSupplier(); break;
     case 'sup-save': {
@@ -4760,6 +5036,32 @@ const Mock = (() => {
         kind, price_remaining:t.price_remaining, agreed_price:t.agreed_price, done: kind==='NOTIFY' && !!o.notified_at }; })
     .filter(a => !a.done).sort((a,b) => a.days_to_ship - b.days_to_ship);
 
+  const CAT = [
+    { car_id:'CAR1', brand:'Geely', name:'Coolray', model_year:2026, color:'أبيض', gearbox:'AUTO',
+      specs:'فل أوبسيون', price_dzd:4050000, link:'https://supplier.example/coolray',
+      status:'AVAILABLE', held_by_user:'', held_by_name:'', held_box_name:'', held_at:'', created_at:'' },
+    { car_id:'CAR2', brand:'MG', name:'MG5', model_year:2025, color:'أسود', gearbox:'AUTO',
+      specs:'', price_dzd:3290000, link:'https://supplier.example/mg5',
+      status:'PENDING', held_by_user:'U3', held_by_name:'أنور بابا طاهر', held_box_name:'مكتب ورقلة',
+      held_at:'2026-10-20 11:20:00', created_at:'' },
+    { car_id:'CAR3', brand:'Volkswagen', name:'T-Cross', model_year:2026, color:'أزرق', gearbox:'AUTO',
+      specs:'', price_dzd:5480000, link:'https://supplier.example/tcross',
+      status:'RESERVED', held_by_user:'U2', held_by_name:'نبيل', held_box_name:'منزل نبيل',
+      held_at:'2026-10-19 16:05:00', created_at:'' }
+  ];
+  const CATLOG = [];
+  const CATSIG = { v: '1' };
+  const catBump = (action, c) => {
+    CATSIG.v = String(Date.now());
+    CATLOG.push({ car_id:c.car_id, action, user_name:me().full_name,
+      box_name:(box(S.boxId)||{}).name || '', at: now() });
+  };
+  const catView = c => Object.assign({}, c, {
+    title:[c.brand, c.name, c.model_year].filter(Boolean).join(' '),
+    gearbox_label: c.gearbox === 'AUTO' ? 'أوتوماتيك' : 'عادي',
+    status_label: { AVAILABLE:'متاحة', PENDING:'قيد الحجز', RESERVED:'تم الحجز' }[c.status],
+    held_by_box_name: c.held_box_name });
+
   const SUP = [{ supplier_id:'SUP1', name:'Guangzhou Castle', country:'الصين', contact:'', notes:'', status:'ACTIVE' }];
   const BRK = [{ broker_id:'BRK1', name:'الياس', phone:'0770112233' }, { broker_id:'BRK2', name:'بشير الفرسان', phone:'' }];
   const FXL = [
@@ -4909,6 +5211,37 @@ const Mock = (() => {
         if (!o.owner_box_id) o.owner_box_id = p.box_id;
       }
       const v = ordView(o); v.just_sold = ordTotals(o).is_sold; return v; },
+    catalogList: p => {
+      let items = CAT.filter(c => c.status !== 'DELETED').map(catView);
+      if (p.status) items = items.filter(c => c.status === p.status);
+      if (p.q) items = items.filter(c => (c.title + ' ' + c.color).includes(p.q));
+      const all = CAT.filter(c => c.status !== 'DELETED');
+      return { items, sig: CATSIG.v, counts: { all: all.length,
+        AVAILABLE: all.filter(c=>c.status==='AVAILABLE').length,
+        PENDING: all.filter(c=>c.status==='PENDING').length,
+        RESERVED: all.filter(c=>c.status==='RESERVED').length } };
+    },
+    catalogPulse: () => ({ sig: CATSIG.v }),
+    catalogHistory: p => CATLOG.filter(l => l.car_id === p.car_id).reverse(),
+    catalogCreate: p => { if (!staff()) err('هذه العملية للمدير فقط');
+      const c = Object.assign({ car_id:'CAR'+(CAT.length+1), status:'AVAILABLE', held_by_user:'', held_by_name:'',
+        held_box_name:'', held_at:'', created_at:now() }, p); CAT.push(c); catBump('CREATE', c); return catView(c); },
+    catalogUpdate: p => { const c = CAT.find(x => x.car_id === p.car_id); Object.assign(c, p); catBump('UPDATE', c); return catView(c); },
+    catalogDelete: p => { const c = CAT.find(x => x.car_id === p.car_id); c.status = 'DELETED'; catBump('DELETE', c); return { ok:true }; },
+    catalogHold: p => { const c = CAT.find(x => x.car_id === p.car_id);
+      if (c.status !== 'AVAILABLE') err(c.status === 'PENDING'
+        ? 'حجزها ' + c.held_by_name + ' من ' + c.held_box_name + ' قبل لحظات'
+        : 'هذه السيارة محجوزة بالفعل عند ' + c.held_by_name);
+      c.status = 'PENDING'; c.held_by_user = cur; c.held_by_name = me().full_name;
+      c.held_box_name = (box(S.boxId) || {}).name || ''; c.held_at = now(); catBump('HOLD', c); return catView(c); },
+    catalogConfirm: p => { const c = CAT.find(x => x.car_id === p.car_id);
+      if (c.held_by_user !== cur && !staff()) err('هذا الحجز يخص ' + c.held_by_name);
+      c.status = 'RESERVED'; catBump('CONFIRM', c); return catView(c); },
+    catalogRelease: p => { const c = CAT.find(x => x.car_id === p.car_id);
+      if (c.held_by_user !== cur && !staff()) err('هذا الحجز يخص ' + c.held_by_name);
+      c.status = 'AVAILABLE'; c.held_by_user=''; c.held_by_name=''; c.held_box_name=''; c.held_at='';
+      catBump('RELEASE', c); return catView(c); },
+
     createOrdersBatch: p => {
       let cid = p.customer_id;
       if (!cid){
