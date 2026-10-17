@@ -483,6 +483,13 @@ input,textarea,.num,.amt{user-select:text;-webkit-user-select:text}
 .msg-box{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px;
   font-family:var(--font);font-size:13.5px;line-height:1.7;white-space:pre-wrap;margin:0;color:var(--ink)}
 
+.pick-group{margin-bottom:16px}
+.pick-brand{display:block;color:var(--muted);font-size:12.5px;font-weight:500;margin:0 3px 8px}
+.car-field{display:flex;align-items:center;gap:10px;width:100%;height:52px;padding:0 15px;border-radius:14px;
+  border:1px solid var(--line);background:var(--surface);text-align:start;font-size:16px}
+.car-field.empty-val{color:var(--faint)}
+.car-field b{flex:1;font-weight:500;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 /* Toast */
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + var(--safe-b));z-index:60;display:flex;justify-content:center;pointer-events:none}
 .toast{max-width:480px;background:var(--asphalt);color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.2);display:flex;gap:10px;align-items:center;animation:reveal .2s}
@@ -697,7 +704,11 @@ const DICT = {
 
   // نصوص الخانات
   'الاسم واللقب':'Full name','رقم الهاتف':'Phone number','الولاية':'Wilaya','المكان':'Location',
-  'موديل السيارة':'Car model','اللون':'Colour','المبلغ بالدينار':'Amount in dinars','الاسم أو الجهة':'Name or company',
+  'موديل السيارة':'Car model','اختر السيارة':'Choose the car','ابحث عن موديل':'Search for a model',
+  'موديل آخر غير موجود':'Another model, not listed','موديل آخر':'Another model','اعتماد الاسم':'Use this name',
+  'لا يوجد موديل بهذا الاسم':'No model with that name','استعمل «موديل آخر» في الأسفل.':'Use "Another model" below.',
+  'يُستعمل للموديلات غير الموجودة في القائمة. أبلغ المدير ليضيفها لاحقاً.':'For models not in the list. Tell the manager to add it later.',
+  'اكتب اسم السيارة':'Type the car name','السيارة':'Car','اللون':'Colour','المبلغ بالدينار':'Amount in dinars','الاسم أو الجهة':'Name or company',
   'سبب الاستلام':'Reason for the payment','تفاصيل المصروف':'Expense details','سبب التحويل':'Reason for the transfer',
   'نوع المصروف':'Type of expense','اسم الناقل':'Who carried it','نوع الدفعة':'Type of payment',
   'سبب النقص':'Reason for the shortfall','سبب الرفض':'Reason for rejecting','سبب الإلغاء':'Reason for voiding',
@@ -1463,6 +1474,71 @@ function bgRun(action, payload, opts){
       if (opts.refresh !== false) refresh(true);
     })
     .catch(x => toast(x.message, true));
+}
+
+/* ===== الموديلات المعتمدة =====
+   الإدخال صار اختياراً لا كتابة، فتتوحّد الأسماء في كل التطبيق
+   (الزبائن، الكتالوج، التعديل) ولا تتكرر السيارة باسمين مختلفين. */
+const CAR_BRANDS = [
+  { brand:'Geely', models:['Coolray Manuel', 'Coolray Automatique', 'Coolray Power Max',
+                           'Coolray Battle', 'Coolray Full Option'] },
+  { brand:'Livan', models:['Livan Manuel', 'Livan Automatique'] },
+  { brand:'Roewe', models:['Roewe i5 Manuel', 'Roewe i5 Automatique'] },
+  { brand:'Volkswagen', models:['T-Cross 2025', 'T-Roc', 'Golf 8', 'Golf 8.5'] },
+  { brand:'Audi', models:['A3', 'Q3'] }
+];
+
+/** يفصل الماركة عن الموديل من نص محفوظ سابقاً. */
+function splitCarName(full){
+  const t = String(full || '').trim();
+  for (const b of CAR_BRANDS){
+    if (t.indexOf(b.brand + ' ') === 0) return { brand: b.brand, model: t.slice(b.brand.length + 1) };
+    for (const m of b.models) if (t === m) return { brand: b.brand, model: m };
+  }
+  return { brand: '', model: t };
+}
+
+/**
+ * منتقي السيارة: ماركة ثم موديل، مع خيار «أخرى» لما ليس في القائمة.
+ * onPick يستقبل { brand, model, label }.
+ */
+function openCarPicker(onPick, current){
+  const cur = String(current || '');
+  const body = (q) => {
+    const needle = String(q || '').trim().toLowerCase();
+    const groups = CAR_BRANDS.map(b => ({
+      brand: b.brand,
+      models: b.models.filter(m => !needle || (b.brand + ' ' + m).toLowerCase().includes(needle))
+    })).filter(g => g.models.length);
+
+    return groups.length ? groups.map(g => `<div class="pick-group">
+        <span class="pick-brand">${esc(g.brand)}</span>
+        ${g.models.map(m => {
+          const label = g.brand === 'Geely' || g.brand === 'Livan' || g.brand === 'Roewe' ? m : g.brand + ' ' + m;
+          return `<button class="pick" data-act="car-sel" data-pickcar="${esc(g.brand)}|${esc(m)}" aria-pressed="${cur === label || cur === m}">
+            <span class="radio"></span><span class="row-main"><b>${esc(m)}</b></span></button>`;
+        }).join('')}
+      </div>`).join('')
+      : `<div class="card empty">${ic('car')}<b>لا يوجد موديل بهذا الاسم</b>استعمل «موديل آخر» في الأسفل.</div>`;
+  };
+
+  openSheet(`${sheetHead('اختر السيارة')}<div class="sheet-body">
+    <div class="search"><span>${ic('search')}</span>
+      <input class="input" id="pcQ" placeholder="ابحث عن موديل" autocomplete="off"></div>
+    <div id="pcList" style="margin-top:14px">${body('')}</div>
+    <button class="btn btn-ghost btn-block" style="margin-top:14px" data-act="car-other">موديل آخر غير موجود</button>
+  </div>`, { full:true, onMount: sh => {
+    S._carPick = onPick;
+    $('#pcQ', sh).addEventListener('input', e => { $('#pcList').innerHTML = body(e.target.value); });
+  } });
+}
+
+function openCarOther(){
+  openSheet(`${sheetHead('موديل آخر')}<div class="sheet-body">
+    <div class="field"><label class="field-l" for="pcOther">اسم السيارة</label>
+      <input class="input" id="pcOther" placeholder="الماركة والموديل" autocomplete="off"></div>
+    <p class="hint">يُستعمل للموديلات غير الموجودة في القائمة. أبلغ المدير ليضيفها لاحقاً.</p></div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="car-other-ok">اعتماد الاسم</button></div>`);
 }
 
 /* ---------------- API ---------------- */
@@ -2939,8 +3015,9 @@ function wizStep2(cust){
     ${dealer && list.length > 1 ? `<div class="chips car-tabs">${list.map((c, i) => `
       <button type="button" class="chip" data-carpick="${i}" aria-pressed="${i===w.carIdx}">
         ${esc(c.car_model || 'سيارة ' + (i+1))}${wizCarValid(c) ? '' : ' •'}</button>`).join('')}</div>` : ''}
-    <div class="field"><label class="field-l" for="wModel">الموديل</label>
-      <input class="input" id="wModel" value="${esc(car.car_model)}" placeholder="موديل السيارة" autocomplete="off"></div>
+    <div class="field"><span class="field-l">الموديل</span>
+      <button type="button" class="car-field ${car.car_model ? '' : 'empty-val'}" data-act="car-pick">
+        ${ic('car')}<b>${esc(car.car_model || 'اختر السيارة')}</b>${ic('chev')}</button></div>
     <div class="field"><label class="field-l" for="wColor">اللون <small>(اختياري)</small></label>
       <input class="input" id="wColor" value="${esc(car.color)}" placeholder="اللون"></div>
     <div class="field"><label class="field-l" for="wPrice">الثمن المتفق عليه</label>
@@ -3035,9 +3112,9 @@ function bindWizard(sh){
   const w = S.wiz;
   const sync = () => {
     if ($('#wName')) { w.customer.full_name = $('#wName').value; w.customer.phone = $('#wPhone').value; w.customer.wilaya = $('#wWilaya').value; }
-    if ($('#wModel')) {
+    if ($('#wColor')) {
       const c = wizCarAt(w.carIdx) || w.car;
-      c.car_model = $('#wModel').value; c.color = $('#wColor').value;
+      c.color = $('#wColor').value;
       c.agreed_price = $('#wPrice').value; c.ship_date = $('#wShip').value; c.customs_expected = $('#wCustoms').value;
       const h = $('#wPriceHint'); if (h) h.textContent = millions(c.agreed_price);
     }
@@ -3191,10 +3268,18 @@ function openEditCustomer(id){
 }
 
 function openEditOrder(id){
-  const o = S.order;
+  const o = Object.assign({}, S.order);
+  if (S._eoDraft){
+    o.car_model = S._eoDraft.car_model; o.color = S._eoDraft.color;
+    if (S._eoDraft.price) o.agreed_price = S._eoDraft.price;
+    o.notes = S._eoDraft.notes;
+    S._eoDraft = null;
+  }
   const staff = S.me.user.role !== 'KEEPER';
   openSheet(`${sheetHead('تعديل السيارة')}<div class="sheet-body">
-    <div class="field"><label class="field-l" for="eoModel">الموديل</label><input class="input" id="eoModel" value="${esc(o.car_model||'')}"></div>
+    <div class="field"><span class="field-l">الموديل</span>
+      <button type="button" class="car-field" data-act="car-pick-edit">${ic('car')}<b id="eoModelTxt">${esc(o.car_model||'اختر السيارة')}</b>${ic('chev')}</button>
+      <input type="hidden" id="eoModel" value="${esc(o.car_model||'')}"></div>
     <div class="field"><label class="field-l" for="eoColor">اللون</label><input class="input" id="eoColor" value="${esc(o.color||'')}"></div>
     ${staff ? `<div class="field"><label class="field-l" for="eoPrice">الثمن المتفق عليه</label>
       <input class="input num" id="eoPrice" inputmode="numeric" value="${o.agreed_price}">
@@ -3733,13 +3818,19 @@ function openCatalogSend(id){
 
 /* ---------- نماذج المدير ---------- */
 function openCatalogForm(id){
-  const c = id ? (S.cat.items.find(x => x.car_id === id) || {}) : {};
+  let c = id ? Object.assign({}, S.cat.items.find(x => x.car_id === id) || {}) : {};
+  if (S._cfDraft){
+    const d = S._cfDraft; S._cfDraft = null;
+    c = Object.assign(c, { brand:d.brand, name:d.name, model_year:d.year, color:d.color,
+      gearbox:d.gear, specs:d.specs, price_dzd:d.price, link:d.link });
+  }
   const g = c.gearbox || 'AUTO';
   openSheet(`${sheetHead(id ? 'تعديل السيارة' : 'سيارة جديدة')}<div class="sheet-body">
-    <div class="field"><label class="field-l" for="cfBrand">الشركة المصنعة</label>
-      <input class="input" id="cfBrand" value="${esc(c.brand||'')}" placeholder="الشركة" autocomplete="off"></div>
-    <div class="field"><label class="field-l" for="cfName">اسم السيارة</label>
-      <input class="input" id="cfName" value="${esc(c.name||'')}" placeholder="اسم السيارة"></div>
+    <div class="field"><span class="field-l">السيارة</span>
+      <button type="button" class="car-field ${c.name ? '' : 'empty-val'}" data-act="car-pick-cat">
+        ${ic('car')}<b id="cfLabel">${esc([c.brand, c.name].filter(Boolean).join(' ') || 'اختر السيارة')}</b>${ic('chev')}</button>
+      <input type="hidden" id="cfBrand" value="${esc(c.brand||'')}">
+      <input type="hidden" id="cfName" value="${esc(c.name||'')}"></div>
     <div class="field"><label class="field-l" for="cfYear">سنة الصنع</label>
       <input class="input num" id="cfYear" inputmode="numeric" value="${esc(String(c.model_year||''))}" placeholder="السنة"></div>
     <div class="field"><label class="field-l" for="cfColor">اللون</label>
@@ -4346,6 +4437,45 @@ document.addEventListener('click', async e => {
     case 'pay-flow': openPayFlow(); break;
     case 'pf-cust': openPayFlowCars(id); break;
     case 'followup': openFollowUp(); break;
+    case 'car-pick': openCarPicker(sel => {
+        const c = wizCarAt(S.wiz.carIdx) || S.wiz.car;
+        c.car_model = sel.label; draftSave(); renderWizard();
+      }, (wizCarAt(S.wiz.carIdx) || S.wiz.car).car_model); break;
+
+    case 'car-pick-edit': {
+      const oid = S.order ? S.order.order_id : '';
+      S._eoDraft = { car_model:$('#eoModel').value, color:$('#eoColor').value,
+                     price:$('#eoPrice') ? $('#eoPrice').value : '', notes:$('#eoNotes').value };
+      openCarPicker(sel => { S._eoDraft.car_model = sel.label; openEditOrder(oid); }, S._eoDraft.car_model);
+      break; }
+
+    case 'car-pick-cat': {
+      const cid = $('#cfLabel') ? (el.closest('.sheet').querySelector('[data-act="cat-save"]') || {}).dataset : null;
+      S._cfDraft = { brand:$('#cfBrand').value, name:$('#cfName').value, year:$('#cfYear').value,
+                     color:$('#cfColor').value, gear:el.closest('.sheet').dataset.gear,
+                     specs:$('#cfSpecs').value, price:$('#cfPrice').value, link:$('#cfLink').value };
+      const editId = cid && cid.id ? cid.id : '';
+      openCarPicker(sel => {
+        S._cfDraft.brand = sel.brand; S._cfDraft.name = sel.model;
+        openCatalogForm(editId);
+      }, [S._cfDraft.brand, S._cfDraft.name].filter(Boolean).join(' '));
+      break; }
+
+    case 'car-sel': {
+      const [brand, model] = el.dataset.pickcar.split('|');
+      const label = ['Volkswagen','Audi'].indexOf(brand) !== -1 ? brand + ' ' + model : model;
+      const fn = S._carPick; S._carPick = null;
+      if (fn) fn({ brand, model, label });
+      break; }
+    case 'car-other': openCarOther(); break;
+    case 'car-other-ok': {
+      const name = $('#pcOther').value.trim();
+      if (name.length < 2) return toast('اكتب اسم السيارة', true);
+      const picked = splitCarName(name);
+      const fn2 = S._carPick; S._carPick = null;
+      if (fn2) fn2({ brand: picked.brand, model: picked.model || name, label: name });
+      break; }
+
     case 'cat-refresh': loadCatalog(); break;
     case 'cat-open': openCatalogCar(id); break;
     case 'cat-hist': openCatalogHistory(id); break;
