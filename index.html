@@ -485,6 +485,8 @@ input,textarea,.num,.amt{user-select:text;-webkit-user-select:text}
 
 .pick-group{margin-bottom:16px}
 .pick-brand{display:block;color:var(--muted);font-size:12.5px;font-weight:500;margin:0 3px 8px}
+.chips.locked{opacity:.75}
+.chips.locked .chip[disabled]{pointer-events:none}
 .car-field{display:flex;align-items:center;gap:10px;width:100%;height:52px;padding:0 15px;border-radius:14px;
   border:1px solid var(--line);background:var(--surface);text-align:start;font-size:16px}
 .car-field.empty-val{color:var(--faint)}
@@ -1489,6 +1491,14 @@ const CAR_BRANDS = [
 ];
 
 /** يفصل الماركة عن الموديل من نص محفوظ سابقاً. */
+/** ناقل الحركة مفهوم من اسم الموديل نفسه: Manuel → عادي، Automatique → أوتوماتيك. */
+function gearFromName(name){
+  const t = String(name || '').toLowerCase();
+  if (/manuel|manual|\bmt\b/.test(t)) return 'MANUAL';
+  if (/automatique|automatic|\bat\b|auto\b/.test(t)) return 'AUTO';
+  return '';
+}
+
 function splitCarName(full){
   const t = String(full || '').trim();
   for (const b of CAR_BRANDS){
@@ -3824,7 +3834,8 @@ function openCatalogForm(id){
     c = Object.assign(c, { brand:d.brand, name:d.name, model_year:d.year, color:d.color,
       gearbox:d.gear, specs:d.specs, price_dzd:d.price, link:d.link });
   }
-  const g = c.gearbox || 'AUTO';
+  const forced = gearFromName([c.brand, c.name].filter(Boolean).join(' '));
+  const g = forced || c.gearbox || 'AUTO';
   openSheet(`${sheetHead(id ? 'تعديل السيارة' : 'سيارة جديدة')}<div class="sheet-body">
     <div class="field"><span class="field-l">السيارة</span>
       <button type="button" class="car-field ${c.name ? '' : 'empty-val'}" data-act="car-pick-cat">
@@ -3836,8 +3847,10 @@ function openCatalogForm(id){
     <div class="field"><label class="field-l" for="cfColor">اللون</label>
       <input class="input" id="cfColor" value="${esc(c.color||'')}" placeholder="اللون"></div>
     <div class="field"><span class="field-l">ناقل الحركة</span>
-      <div class="chips"><button type="button" class="chip" data-gear="AUTO" aria-pressed="${g==='AUTO'}">أوتوماتيك</button>
-        <button type="button" class="chip" data-gear="MANUAL" aria-pressed="${g==='MANUAL'}">عادي</button></div></div>
+      <div class="chips ${forced ? 'locked' : ''}">
+        <button type="button" class="chip" data-gear="AUTO" aria-pressed="${g==='AUTO'}" ${forced?'disabled':''}>أوتوماتيك</button>
+        <button type="button" class="chip" data-gear="MANUAL" aria-pressed="${g==='MANUAL'}" ${forced?'disabled':''}>عادي</button></div>
+      ${forced ? `<div class="hint">محدَّد من اسم الموديل: ${forced === 'MANUAL' ? 'عادي' : 'أوتوماتيك'}.</div>` : ''}</div>
     <div class="field"><label class="field-l" for="cfSpecs">المواصفات <small>(اختياري)</small></label>
       <input class="input" id="cfSpecs" value="${esc(c.specs||'')}" placeholder="المواصفات"></div>
     <div class="field"><label class="field-l" for="cfPrice">السعر بالدينار</label>
