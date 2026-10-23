@@ -492,6 +492,21 @@ input,textarea,.num,.amt{user-select:text;-webkit-user-select:text}
 .car-field.empty-val{color:var(--faint)}
 .car-field b{flex:1;font-weight:500;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+.gate{min-height:100dvh;display:flex;flex-direction:column;color:var(--on-dark);
+  background:radial-gradient(130% 70% at 50% 8%, var(--hero-1) 0%, var(--hero-2) 45%, var(--hero-3) 100%)}
+.gate-top{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px 24px}
+.gate-top h1{margin:0;font-size:26px;font-weight:700;letter-spacing:-.02em}
+.gate-top p{margin:0;color:#9AA7B3;font-size:14px}
+.gate-card{background:var(--surface);color:var(--ink);border-radius:26px 26px 0 0;padding:26px 20px calc(28px + var(--safe-b));
+  box-shadow:0 -14px 40px rgba(0,0,0,.3)}
+.gate-card h2{margin:0 0 10px;font-size:19px;font-weight:600;letter-spacing:-.02em}
+.gate-lead{margin:0 0 18px;color:var(--muted);font-size:14px;line-height:1.75}
+.gate-steps{margin:0;padding-inline-start:20px;color:var(--ink);font-size:14.5px;line-height:2.1}
+.gate-steps b{font-weight:600}
+.gate-note{display:flex;align-items:flex-start;gap:9px;margin-top:18px;padding:11px 13px;border-radius:12px;
+  background:var(--paper);color:var(--muted);font-size:12.5px;line-height:1.7}
+.gate-note svg.i{width:16px;height:16px;flex:none;margin-top:2px}
+
 /* Toast */
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + var(--safe-b));z-index:60;display:flex;justify-content:center;pointer-events:none}
 .toast{max-width:480px;background:var(--asphalt);color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.2);display:flex;gap:10px;align-items:center;animation:reveal .2s}
@@ -1551,6 +1566,72 @@ function openCarOther(){
     <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="car-other-ok">اعتماد الاسم</button></div>`);
 }
 
+/* ===== بوابة التثبيت =====
+   الرابط يُستعمل للتثبيت فقط. التطبيق نفسه لا يفتح إلا وهو مثبَّت على الشاشة الرئيسية،
+   فلا يتصفح العمال النظام من المتصفح ولا تبقى الجلسة في تبويب مفتوح.
+   ملاحظة: هذه بوابة استعمال لا حماية مطلقة. الحماية الحقيقية في كلمة المرور والرمز وصلاحيات الخادم. */
+function isInstalled(){
+  try {
+    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+    if (window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches) return true;
+    if (navigator.standalone === true) return true;              // آيفون
+    if (document.referrer.startsWith('android-app://')) return true;
+  } catch(e){}
+  return false;
+}
+
+/* مخرج للمالك: فتح الرابط بإضافة #web في آخره يسمح بالمتابعة في المتصفح */
+function webAllowed(){
+  try {
+    if (location.hash === '#web'){ sessionStorage.setItem('sc.web', '1'); history.replaceState(null, '', location.pathname); }
+    return sessionStorage.getItem('sc.web') === '1' || localStorage.getItem('masar.demo') === '1';
+  } catch(e){ return false; }
+}
+
+let _installEvent = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _installEvent = e; paintGate(); });
+window.addEventListener('appinstalled', () => { paintGate(); });
+
+function paintGate(){ if (document.querySelector('.gate')) renderGate(); }
+
+function renderGate(){
+  hideSplash();
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  $('#root').innerHTML = `
+  <div class="gate">
+    <div class="gate-top">
+      <span class="brand-plate"><img src="${LOGO}" alt="SANAD CARS"></span>
+      <h1>SANAD CARS</h1>
+      <p>نظام الصناديق والتحويلات</p>
+    </div>
+    <div class="gate-card">
+      <h2>ثبّت التطبيق للمتابعة</h2>
+      <p class="gate-lead">هذا النظام يعمل كتطبيق على هاتفك، لا كصفحة في المتصفح.
+        التثبيت يأخذ ثانيتين ويعطيك أيقونة على الشاشة الرئيسية، ويعمل دون إنترنت.</p>
+
+      ${_installEvent ? `<button class="btn btn-primary btn-block" data-act="gate-install">${ic('plus')}تثبيت التطبيق الآن</button>`
+        : `<ol class="gate-steps">
+            ${ios ? `<li>اضغط زر <b>المشاركة</b> في أسفل سفاري</li>
+                     <li>اختر <b>إضافة إلى الشاشة الرئيسية</b></li>
+                     <li>اضغط <b>إضافة</b>، ثم افتح التطبيق من أيقونته</li>`
+                  : `<li>اضغط <b>⋮</b> في أعلى المتصفح</li>
+                     <li>اختر <b>تثبيت التطبيق</b> أو <b>إضافة إلى الشاشة الرئيسية</b></li>
+                     <li>افتح التطبيق من أيقونته على الشاشة</li>`}
+           </ol>`}
+
+      <div class="gate-note">${ic('shield')}<span>بعد التثبيت، افتح التطبيق من أيقونته دائماً. الرابط لا يفتح النظام.</span></div>
+    </div>
+  </div>`;
+}
+
+async function gateInstall(){
+  if (!_installEvent) return toast('اتبع الخطوات المكتوبة لتثبيت التطبيق', true);
+  _installEvent.prompt();
+  try { await _installEvent.userChoice; } catch(e){}
+  _installEvent = null;
+  renderGate();
+}
+
 /* ---------------- API ---------------- */
 async function api(action, payload={}){
   if (S.decoy) throw Object.assign(new Error('غير متاح'), { code:'DECOY' });
@@ -1604,6 +1685,7 @@ function pwField(id, label, autocomplete, hint){
 
 /* ---------------- Boot & auth ---------------- */
 function boot(){
+  if (!isInstalled() && !webAllowed()) return renderGate();
   if (hasPin() && !S.token){
     const t = sessRead_();
     if (t){ S.token = t; sessTouch_(); return loadApp(); }
@@ -4579,6 +4661,7 @@ document.addEventListener('click', async e => {
     case 'sync-now': setBtnBusy(el, true); await syncOutbox(true); closeSheet(); break;
     case 'sync-retry': outboxRetry(id); closeSheet(); break;
     case 'sync-drop': outboxDrop(id); closeSheet(); break;
+    case 'gate-install': gateInstall(); break;
     case 'theme': openTheme(); break;
     case 'theme-set': setTheme(el.dataset.t); break;
     case 'lang': openLang(); break;
