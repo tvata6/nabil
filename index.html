@@ -346,6 +346,11 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 .wiz-bar{display:flex;gap:6px;padding:0 18px 12px}
 .wiz-bar span{flex:1;height:4px;border-radius:2px;background:var(--line-2)}
 .wiz-bar span.on{background:var(--petrol)}
+.fx-row{display:flex;align-items:center;gap:10px;padding:4px 0}
+.fx-row + .fx-row{border-top:1px solid var(--line-2)}
+.fx-pick{display:flex;align-items:center;gap:11px;flex:1;text-align:start;padding:9px 2px}
+.fx-row.on .row-title{color:var(--petrol);font-weight:600}
+.fx-amt{width:130px;height:42px;text-align:center;flex:none}
 .car-tabs{margin-bottom:14px}
 .car-actions{margin-top:18px;padding-top:16px;border-top:1px solid var(--line-2)}
 .car-pay{max-width:130px}
@@ -474,6 +479,20 @@ input,textarea,.num,.amt{user-select:text;-webkit-user-select:text}
 .cat-price b{font-size:21px;font-weight:600;letter-spacing:-.02em}
 .cat-price small{color:var(--muted);font-size:13px}
 .cat-cent{margin-inline-start:auto;color:var(--faint);font-size:12px}
+.past-warn{display:flex;align-items:flex-start;gap:10px;margin-top:12px;padding:12px 13px;border-radius:13px;
+  background:var(--amber-tint);color:var(--amber-ink)}
+.past-warn b{display:block;font-size:14px;font-weight:600;margin-bottom:3px}
+.past-warn small{display:block;font-size:12.5px;line-height:1.7;opacity:.95}
+.past-warn svg.i{width:18px;height:18px;flex:none;margin-top:2px}
+.cat-list{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--paper)}
+.cat-list-h{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;margin-bottom:8px}
+.cat-list-h svg.i{width:14px;height:14px}
+.cat-who{display:flex;align-items:baseline;gap:8px;padding:4px 0;font-size:13px}
+.cat-who b{font-weight:500}
+.cat-who small{color:var(--faint);font-size:11.5px}
+.cat-who i{margin-inline-start:auto;font-style:normal;font-size:11px;font-weight:600;color:var(--petrol)}
+.cat-who.me b{color:var(--petrol)}
+.cat-hold.done{background:var(--out-tint);color:var(--out)}
 .cat-hold{display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 11px;border-radius:11px;
   background:var(--paper);color:var(--muted);font-size:12.5px}
 .cat-hold small{display:block;color:var(--faint);font-size:11px}
@@ -506,6 +525,11 @@ input,textarea,.num,.amt{user-select:text;-webkit-user-select:text}
 .gate-note{display:flex;align-items:flex-start;gap:9px;margin-top:18px;padding:11px 13px;border-radius:12px;
   background:var(--paper);color:var(--muted);font-size:12.5px;line-height:1.7}
 .gate-note svg.i{width:16px;height:16px;flex:none;margin-top:2px}
+
+.search{position:relative}
+.search .clear{position:absolute;inset-inline-end:8px;top:50%;transform:translateY(-50%);width:28px;height:28px;
+  border-radius:50%;display:grid;place-items:center;color:var(--faint);background:var(--line-2)}
+.search .clear svg.i{width:14px;height:14px}
 
 /* Toast */
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + var(--safe-b));z-index:60;display:flex;justify-content:center;pointer-events:none}
@@ -896,8 +920,23 @@ const RULES = [
   [/^بعد (\d+) يوم$/, (_, n) => 'in ' + n + (n === '1' ? ' day' : ' days')],
   [/^باقٍ عليه (.+)$/, 'Still owes $1'],
   [/^الشحن (.+)$/, 'Shipping $1'],
+  [/^(\d+) مكتب يتفاوض عليها$/, '$1 office negotiating'],
+  [/^(\d+) مكاتب تتفاوض عليها$/, '$1 offices negotiating'],
+  [/^أكّد حجزها (.+)$/, 'Confirmed by $1'],
+  [/^حجزها (.+)$/, 'Taken by $1'],
+  [/^(\d+) من 18 رقماً$/, '$1 of 18 digits'],
+  [/^زائد (\d+) رقماً$/, '$1 digits too many'],
+  [/^ينقص (.+) دج$/, '$1 DA short'],
+  [/^زائد (.+) دج عن المطلوب$/, '$1 DA over the required amount'],
+  [/^الزبون: (.+)$/, 'Customer: $1'],
+  [/^(.+) له تاريخ عندنا$/, '$1 has history with us'],
+  [/^ألغى حجزاً سابقاً$/, 'Cancelled a reservation before'],
+  [/^ألغى (\d+) حجوزات سابقاً$/, 'Cancelled $1 reservations before'],
+  [/^أُلغي (.+)$/, 'Cancelled $1'],
+  [/^سبقك (.+) بتأكيد حجزها$/, '$1 confirmed it first'],
   [/^إضافة السيارة وتسجيل (.+)$/, 'Add car and record $1'],
   [/^تسجيل وحفظ (.+)$/, 'Save and record $1'],
+  [/^(.+) · الباقي (.+)$/, '$1 · remaining $2'],
   [/^(\d+) من (\d+)$/, '$1 of $2'],
   [/^وجدت تسجيلاً لم يكتمل: (.+)\. هل تكمله؟$/, 'Found an unfinished entry: $1. Continue it?'],
   [/^تدخل (.+)$/, 'Goes into $1'],
@@ -1632,6 +1671,43 @@ async function gateInstall(){
   renderGate();
 }
 
+/* ===== قراءة المبالغ الطويلة =====
+   7 أرقام بلا فواصل مرهقة للعين وسبب شائع للخطأ.
+   نعرضها مفصولة أثناء الكتابة ونقرأها في الكود بلا فواصل. */
+const rawNum = el => String(el && el.value || '').replace(/[^\d]/g, '');
+function groupDigits(el){
+  const pos = el.selectionStart, before = el.value;
+  const digits = rawNum(el);
+  el.value = digits ? Number(digits).toLocaleString('en-US') : '';
+  const added = el.value.length - before.length;
+  const at = Math.max(0, (pos || el.value.length) + added);
+  try { el.setSelectionRange(at, at); } catch(e){}
+}
+/* يُطبَّق على كل حقول المبالغ دفعة واحدة */
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (el && el.matches && el.matches('input.num.money')) groupDigits(el);
+  if (el && el.closest && el.closest('.search')) paintClear(el.closest('.search'));
+}, true);
+
+/* زر مسح صغير داخل حقول البحث */
+function paintClear(box){
+  const input = box.querySelector('input');
+  const has = input && input.value.length > 0;
+  let btn = box.querySelector('.clear');
+  if (has && !btn){
+    btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'clear'; btn.setAttribute('aria-label', 'مسح');
+    btn.innerHTML = `<svg class="i" viewBox="0 0 24 24">${I.x}</svg>`;
+    btn.addEventListener('click', () => {
+      input.value = '';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.focus();
+    });
+    box.appendChild(btn);
+  } else if (!has && btn) btn.remove();
+}
+
 /* ---------------- API ---------------- */
 async function api(action, payload={}){
   if (S.decoy) throw Object.assign(new Error('غير متاح'), { code:'DECOY' });
@@ -1863,6 +1939,7 @@ function rerender(){
   afterRender();
 }
 function afterRender(){
+  document.querySelectorAll('.search').forEach(paintClear);
   animateOdo();
   runNumberAnimations();
   if (S.view === 'history' && !S.hist.loaded) loadHistory();
@@ -2045,6 +2122,7 @@ function followUpItems(incoming, watching, otherIncoming){
   const queued = outboxCount();
   const failed = outbox().filter(o => o.status === 'FAILED').length;
   const supAlerts = (S.ov.supplier_alerts || []);
+  const catNotices = (S.ov.catalog_notices || []);
   const tech = [];
   if (failed) tech.push({ k:'sync-bad', icon:'x', cls:'out', act:'sync-open',
     text:`${failed} عملية لم تُقبل، راجعها`, n:failed });
@@ -2053,8 +2131,9 @@ function followUpItems(incoming, watching, otherIncoming){
   if (otherIncoming) tech.push({ k:'other', icon:'swap', cls:'tr', act:'tab', v:'transfers',
     text:`${otherIncoming} تحويل ينتظر تأكيدك في صناديق أخرى`, n:otherIncoming });
 
-  const n = incoming.length + ship.length + watching.length + supAlerts.length + tech.reduce((a,b)=>a+b.n,0);
-  return { incoming, ship, watching, supAlerts, tech, n };
+  const n = incoming.length + ship.length + watching.length + supAlerts.length + catNotices.length
+    + tech.reduce((a,b)=>a+b.n,0);
+  return { incoming, ship, watching, supAlerts, catNotices, tech, n };
 }
 
 /* صفحة «تحتاج متابعتك»
@@ -2103,6 +2182,15 @@ function openFollowUp(){
         <span class="fu-label ${g.key === 'late' ? 'hot' : ''}">${ic('car')}${g.title}
           <span class="fu-n">${g.items.length}</span></span>
         ${g.items.map(shipCard).join('')}</div>`).join('')}
+
+      ${f.catNotices.length ? `<div class="fu-tier"><span class="fu-label">${ic('car')}سيارات حُسم حجزها
+        <span class="fu-n">${f.catNotices.length}</span></span>
+        <div class="list">${f.catNotices.map(nt => `<div class="row">
+          <span class="row-ic out">${ic('check')}</span>
+          <span class="row-main"><span class="row-title">${esc(nt.car_title)}</span>
+            <span class="row-sub"><span>أكّد حجزها ${esc(nt.by_name)}</span><span>${esc(nt.by_box || '')}</span></span></span>
+          <span class="row-end"><button class="link" data-act="cat-notice-ok" data-id="${nt.notice_id}">حسناً</button></span>
+        </div>`).join('')}</div></div>` : ''}
 
       ${f.supAlerts.length ? `<div class="fu-tier"><span class="fu-label hot">${ic('box')}دفعات للموردين
         <span class="fu-n">${f.supAlerts.length}</span></span>
@@ -2983,7 +3071,7 @@ function openCustoms(orderId){
   openSheet(`${sheetHead('تكلفة الديوانة')}<div class="sheet-body">
     <p class="lead">اكتب التكلفة الحقيقية من فاتورة الترانزيت لهذه السيارة وحدها.</p>
     <div class="field"><label class="field-l" for="cuVal">التكلفة بالدينار</label>
-      <input class="input num" id="cuVal" inputmode="numeric" value="${o.customs_actual || ''}" placeholder="المبلغ بالدينار"></div>
+      <input class="input num money" id="cuVal" inputmode="numeric" value="${o.customs_actual || ''}" placeholder="المبلغ بالدينار"></div>
     <div class="hint">دفع الزبون ${money(o.customs_paid)}. بعد الحفظ يحسب النظام الفائض أو النقص.</div></div>
     <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="customs-go" data-id="${orderId}">حفظ التكلفة</button></div>`);
 }
@@ -3034,8 +3122,8 @@ function startWizard(customerId){
     car: { car_model:'', color:'', agreed_price:'', customs_expected:'', ship_date:'' },
     cars: [],                 // سيارات إضافية للتاجر
     carIdx: 0,                // السيارة المعروضة حالياً
-    payMode: 'ALL',           // ALL = نسبة موحّدة على الكل، EACH = لكل سيارة
-    pay: { mode:'PERCENT', percent:30, box_id: S.boxId || ((S.me.boxes||[])[0]||{}).box_id || '' },
+    payMode: 'EACH',          // EACH = مبلغ لكل سيارة، ALL = الثمن كاملاً، NONE = لم يدفع
+    pay: { mode:'AMOUNT', amount:'', box_id: S.boxId || ((S.me.boxes||[])[0]||{}).box_id || '' },
     step: customerId ? 2 : 1
   };
   if (draft && draft.customer_id === fresh.customer_id &&
@@ -3075,7 +3163,7 @@ function renderWizard(){
 function wizStep1(){
   const c = S.wiz.customer;
   return `<div class="field"><label class="field-l" for="wName">الاسم الكامل</label>
-      <input class="input" id="wName" value="${esc(c.full_name)}" placeholder="الاسم واللقب" autocomplete="off"></div>
+      <input class="input" id="wName" enterkeyhint="next" value="${esc(c.full_name)}" placeholder="الاسم واللقب" autocomplete="off"></div>
     <div class="field"><label class="field-l" for="wPhone">رقم الهاتف <small>(اختياري)</small></label>
       <input class="input" id="wPhone" type="tel" dir="ltr" value="${esc(c.phone)}" placeholder="رقم الهاتف"></div>
     <div class="field"><label class="field-l" for="wWilaya">الولاية <small>(اختياري)</small></label>
@@ -3113,13 +3201,13 @@ function wizStep2(cust){
     <div class="field"><label class="field-l" for="wColor">اللون <small>(اختياري)</small></label>
       <input class="input" id="wColor" value="${esc(car.color)}" placeholder="اللون"></div>
     <div class="field"><label class="field-l" for="wPrice">الثمن المتفق عليه</label>
-      <input class="input num" id="wPrice" inputmode="numeric" value="${esc(car.agreed_price)}" placeholder="المبلغ بالدينار">
+      <input class="input num money" id="wPrice" enterkeyhint="done" inputmode="numeric" value="${car.agreed_price ? Number(String(car.agreed_price).replace(/[^\d]/g,'')).toLocaleString('en-US') : ''}" placeholder="المبلغ بالدينار">
       <div class="hint" id="wPriceHint">${millions(car.agreed_price)}</div></div>
     <div class="field"><label class="field-l" for="wShip">تاريخ الشحن المتوقع <small>(اختياري)</small></label>
       <div class="date-row"><span>${ic('clock')}</span><input type="date" id="wShip" style="flex:1" value="${esc(car.ship_date)}"></div>
       <div class="hint">يذكّرك النظام قبله بيومين.</div></div>
     <div class="field"><label class="field-l" for="wCustoms">الديوانة المتوقعة <small>(اختياري)</small></label>
-      <input class="input num" id="wCustoms" inputmode="numeric" value="${esc(car.customs_expected)}" placeholder="المبلغ بالدينار"></div>
+      <input class="input num money" id="wCustoms" inputmode="numeric" value="${esc(car.customs_expected)}" placeholder="المبلغ بالدينار"></div>
 
     ${dealer ? `<div class="car-actions">
       <button type="button" class="btn btn-soft btn-block btn-sm" data-act="wiz-car-add">${ic('plus')}إضافة سيارة أخرى</button>
@@ -3135,7 +3223,7 @@ function wizStep3(cust){
   const price = Number(w.car.agreed_price || 0);
   const who = cust ? cust.full_name : w.customer.full_name;
   const boxes = S.me.boxes || [];
-  const dep = w.pay.mode === 'FULL' ? price : w.pay.mode === 'PERCENT' ? Math.round(price * w.pay.percent / 100) : 0;
+  const dep = w.pay.mode === 'FULL' ? price : w.pay.mode === 'AMOUNT' ? Number(w.pay.amount || 0) : 0;
   return `<div class="card" style="padding:14px;margin-bottom:16px">
       <div class="mc-head"><span>${esc(who)}</span><b>${esc(w.car.car_model)}${w.car.color ? ' ' + esc(w.car.color) : ''}</b></div>
       <div class="mc-foot"><span>الثمن المتفق عليه</span><b class="num">${fmt(price)}</b></div>
@@ -3143,13 +3231,13 @@ function wizStep3(cust){
     </div>
     <span class="field-l">كم دفع الآن؟</span>
     <div class="seg" id="wModes">
-      <button type="button" data-wmode="PERCENT" aria-pressed="${w.pay.mode==='PERCENT'}">عربون بنسبة</button>
+      <button type="button" data-wmode="AMOUNT" aria-pressed="${w.pay.mode==='AMOUNT'}">مبلغ مدفوع</button>
       <button type="button" data-wmode="FULL" aria-pressed="${w.pay.mode==='FULL'}">المبلغ كامل</button>
       <button type="button" data-wmode="NONE" aria-pressed="${w.pay.mode==='NONE'}">لم يدفع بعد</button>
     </div>
-    <div id="wPctRow" style="display:${w.pay.mode==='PERCENT'?'flex':'none'};align-items:center;gap:10px;margin-top:12px">
-      <input class="input num" id="wPct" inputmode="numeric" value="${w.pay.percent}" style="width:90px;text-align:center">
-      <span class="hint" style="margin:0">%</span><span class="dep-amount" id="wDep">${dep?fmt(dep)+' دج':''}</span>
+    <div id="wPctRow" style="display:${w.pay.mode==='AMOUNT'?'block':'none'};margin-top:12px">
+      <input class="input num money" id="wPaid" enterkeyhint="done" inputmode="numeric" value="${w.pay.amount ? Number(w.pay.amount).toLocaleString('en-US') : ''}" placeholder="المبلغ المدفوع بالدينار">
+      <div class="hint" id="wDep"></div>
     </div>
     <div id="wBoxWrap" style="margin-top:14px"></div>`;
 }
@@ -3160,7 +3248,7 @@ function wizStep3Multi(cust, list){
   const who = cust ? cust.full_name : w.customer.full_name;
   const total = list.reduce((t,c) => t + Number(c.agreed_price || 0), 0);
   const boxes = S.me.boxes || [];
-  const pct = w.pay.mode === 'FULL' ? 100 : w.pay.mode === 'NONE' ? 0 : w.pay.percent;
+
 
   return `<div class="card" style="padding:14px;margin-bottom:16px">
       <div class="mc-head"><span>${esc(who)}</span><b>${list.length} سيارة</b></div>
@@ -3169,33 +3257,24 @@ function wizStep3Multi(cust, list){
 
     <span class="field-l">كم دفع الآن؟</span>
     <div class="seg" id="wPayHow">
-      <button type="button" data-payhow="ALL" aria-pressed="${w.payMode==='ALL'}">نسبة على الكل</button>
-      <button type="button" data-payhow="EACH" aria-pressed="${w.payMode==='EACH'}">لكل سيارة</button>
+      <button type="button" data-payhow="EACH" aria-pressed="${w.payMode==='EACH'}">مبلغ لكل سيارة</button>
+      <button type="button" data-payhow="ALL" aria-pressed="${w.payMode==='ALL'}">الثمن كاملاً</button>
+      <button type="button" data-payhow="NONE" aria-pressed="${w.payMode==='NONE'}">لم يدفع بعد</button>
     </div>
 
-    ${w.payMode === 'ALL' ? `
-      <div class="seg" style="margin-top:12px">
-        <button type="button" data-wmode="PERCENT" aria-pressed="${w.pay.mode==='PERCENT'}">عربون بنسبة</button>
-        <button type="button" data-wmode="FULL" aria-pressed="${w.pay.mode==='FULL'}">المبلغ كامل</button>
-        <button type="button" data-wmode="NONE" aria-pressed="${w.pay.mode==='NONE'}">لم يدفع بعد</button>
-      </div>
-      <div id="wPctRow" style="display:${w.pay.mode==='PERCENT'?'flex':'none'};align-items:center;gap:10px;margin-top:12px">
-        <input class="input num" id="wPct" inputmode="numeric" value="${w.pay.percent}" style="width:90px;text-align:center">
-        <span class="hint" style="margin:0">%</span><span class="dep-amount" id="wDep"></span>
-      </div>
-      ${pct ? `<div class="list" style="margin-top:12px">${list.map(c => `<div class="row">
-        <span class="row-main"><span class="row-title">${esc(c.car_model)}${c.color?' '+esc(c.color):''}</span>
-          <span class="row-sub"><span class="num">${fmt(Number(c.agreed_price))}</span></span></span>
-        <span class="row-end"><span class="amt in num">${fmt(Math.round(Number(c.agreed_price) * pct / 100))}</span>
-          <span class="row-bal">يدفع الآن</span></span></div>`).join('')}</div>` : ''}
-    ` : `
+    ${w.payMode === 'EACH' ? `
       <div class="list" style="margin-top:12px">${list.map((c, i) => `<div class="row">
         <span class="row-main"><span class="row-title">${esc(c.car_model)}${c.color?' '+esc(c.color):''}</span>
           <span class="row-sub"><span>الثمن <b class="num">${fmt(Number(c.agreed_price))}</b></span></span></span>
         <span class="row-end" style="width:130px">
-          <input class="input num car-pay" data-carpay="${i}" inputmode="numeric" placeholder="0"
-            value="${c.deposit_amount || ''}" style="height:40px;text-align:center"></span></div>`).join('')}</div>
-    `}
+          <input class="input num money car-pay" data-carpay="${i}" inputmode="numeric" placeholder="0"
+            value="${c.deposit_amount ? Number(c.deposit_amount).toLocaleString('en-US') : ''}" style="height:40px;text-align:center"></span></div>`).join('')}</div>
+    ` : w.payMode === 'ALL' ? `
+      <div class="list" style="margin-top:12px">${list.map(c => `<div class="row">
+        <span class="row-main"><span class="row-title">${esc(c.car_model)}${c.color?' '+esc(c.color):''}</span></span>
+        <span class="row-end"><span class="amt in num">${fmt(Number(c.agreed_price))}</span>
+          <span class="row-bal">يدفع الآن</span></span></div>`).join('')}</div>
+    ` : ''}
 
     <div id="wBoxWrap" style="margin-top:14px"></div>`;
 }
@@ -3207,14 +3286,14 @@ function bindWizard(sh){
     if ($('#wColor')) {
       const c = wizCarAt(w.carIdx) || w.car;
       c.color = $('#wColor').value;
-      c.agreed_price = $('#wPrice').value; c.ship_date = $('#wShip').value; c.customs_expected = $('#wCustoms').value;
+      c.agreed_price = rawNum($('#wPrice')); c.ship_date = $('#wShip').value; c.customs_expected = $('#wCustoms').value;
       const h = $('#wPriceHint'); if (h) h.textContent = millions(c.agreed_price);
     }
     sh.querySelectorAll('[data-carpay]').forEach(inp => {
       const c = wizCarAt(Number(inp.dataset.carpay));
-      if (c) c.deposit_amount = inp.value;
+      if (c) c.deposit_amount = rawNum(inp);
     });
-    if ($('#wPct')) w.pay.percent = Math.min(100, Math.max(1, Number($('#wPct').value || 0)));
+    if ($('#wPaid')) w.pay.amount = rawNum($('#wPaid'));
     paint(); draftSave();
   };
   const paint = () => {
@@ -3230,11 +3309,14 @@ function bindWizard(sh){
       const multi = cars.length > 1;
       const price = multi ? cars.reduce((t,c) => t + Number(c.agreed_price || 0), 0) : Number(w.car.agreed_price || 0);
       // في وضع «لكل سيارة» المجموع هو حاصل جمع ما كُتب في الحقول
-      const dep = (multi && w.payMode === 'EACH')
-        ? cars.reduce((t,c) => t + (Number(c.deposit_amount) || 0), 0)
-        : (w.pay.mode === 'FULL' ? price : w.pay.mode === 'PERCENT' ? Math.round(price * w.pay.percent / 100) : 0);
-      const d = $('#wDep'); if (d) d.textContent = dep ? fmt(dep) + ' دج' : '';
-      const r = $('#wPctRow'); if (r) r.style.display = w.pay.mode === 'PERCENT' ? 'flex' : 'none';
+      const dep = multi
+        ? (w.payMode === 'EACH' ? cars.reduce((t,c) => t + (Number(c.deposit_amount) || 0), 0)
+          : w.payMode === 'ALL' ? price : 0)
+        : (w.pay.mode === 'FULL' ? price : w.pay.mode === 'AMOUNT' ? Number(w.pay.amount || 0) : 0);
+      const d = $('#wDep');
+      if (d) d.textContent = dep ? (dep > price ? 'المبلغ أكبر من الثمن المتفق عليه' : millions(dep) + ' · الباقي ' + fmt(Math.max(0, price - dep)) + ' دج') : '';
+      if (d) d.className = 'hint' + (dep > price ? ' warn' : '');
+      const r = $('#wPctRow'); if (r) r.style.display = w.pay.mode === 'AMOUNT' ? 'block' : 'none';
       const boxes = S.me.boxes || [];
       const wrap = $('#wBoxWrap');
       if (wrap) wrap.innerHTML = (w.pay.mode === 'NONE' || !dep) ? ''
@@ -3242,11 +3324,19 @@ function bindWizard(sh){
           ? `<div class="hint" style="margin:0;display:flex;align-items:center;gap:6px">${ic('box')} تدخل ${esc((boxes[0]||{}).name || '')}</div>`
           : `<span class="field-l">أي صندوق استلم المبلغ؟</span><div class="chips">${boxes.map(b =>
               `<button type="button" class="chip" data-wbox="${b.box_id}" aria-pressed="${b.box_id===w.pay.box_id}">${esc(b.name)}</button>`).join('')}</div>`);
-      btn.disabled = false;
-      btn.textContent = dep ? `تسجيل وحفظ ${fmt(dep)} دج` : 'تسجيل';
+      btn.disabled = dep > price;
+      btn.textContent = dep > price ? 'المبلغ أكبر من الثمن'
+        : dep ? `تسجيل وحفظ ${fmt(dep)} دج` : 'تسجيل';
     }
   };
   sh.addEventListener('input', sync);
+  // زر الإدخال في لوحة المفاتيح ينتقل للخطوة التالية بدل البحث عن الزر
+  sh.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const btn = $('#wizNext');
+    if (btn && !btn.disabled) btn.click();
+  });
   sh.addEventListener('click', e => {
     const cs = e.target.closest('[data-catstatus]');
     if (cs){ S.cat.status = cs.dataset.catstatus; loadCatalog(true); return; }
@@ -3288,7 +3378,7 @@ async function wizardSave(btn){
 
   if (multi){
     const payload = {
-      box_id: w.pay.mode === 'NONE' && w.payMode === 'ALL' ? '' : w.pay.box_id,
+      box_id: w.payMode === 'NONE' ? '' : w.pay.box_id,
       cars: cars.map(c => {
         const base = { car_model: c.car_model.trim(), color: (c.color||'').trim(),
           agreed_price: Number(c.agreed_price || 0),
@@ -3298,11 +3388,12 @@ async function wizardSave(btn){
           const amt = Number(c.deposit_amount || 0);
           return Object.assign(base, amt > 0 ? { deposit_mode:'AMOUNT', deposit_amount: amt } : { deposit_mode:'NONE' });
         }
-        return Object.assign(base, { deposit_mode: w.pay.mode, deposit_percent: w.pay.percent });
+        if (w.payMode === 'ALL') return Object.assign(base, { deposit_mode:'FULL' });
+        return Object.assign(base, { deposit_mode:'NONE' });
       }),
       client_ref: refFor(key)
     };
-    if (w.payMode === 'EACH' && payload.cars.every(c => c.deposit_mode === 'NONE')) payload.box_id = '';
+    if (payload.cars.every(c => c.deposit_mode === 'NONE')) payload.box_id = '';
     if (w.customer_id) payload.customer_id = w.customer_id;
     else payload.customer = { full_name: w.customer.full_name.trim(), phone: w.customer.phone.trim(),
       wilaya: w.customer.wilaya.trim(), type: w.customer.type };
@@ -3314,7 +3405,7 @@ async function wizardSave(btn){
     agreed_price: Number(w.car.agreed_price || 0),
     customs_expected: w.car.customs_expected ? Number(w.car.customs_expected) : '',
     ship_date: w.car.ship_date || '',
-    deposit_mode: w.pay.mode, deposit_percent: w.pay.percent,
+    deposit_mode: w.pay.mode, deposit_amount: Number(w.pay.amount || 0),
     box_id: w.pay.mode === 'NONE' ? '' : w.pay.box_id,
     client_ref: refFor(key)
   };
@@ -3374,7 +3465,7 @@ function openEditOrder(id){
       <input type="hidden" id="eoModel" value="${esc(o.car_model||'')}"></div>
     <div class="field"><label class="field-l" for="eoColor">اللون</label><input class="input" id="eoColor" value="${esc(o.color||'')}"></div>
     ${staff ? `<div class="field"><label class="field-l" for="eoPrice">الثمن المتفق عليه</label>
-      <input class="input num" id="eoPrice" inputmode="numeric" value="${o.agreed_price}">
+      <input class="input num money" id="eoPrice" inputmode="numeric" value="${o.agreed_price}">
       <div class="hint">تغيير الثمن يغيّر الباقي على الزبون.</div></div>` : ''}
     <div class="field"><label class="field-l" for="eoNotes">ملاحظة</label><input class="input" id="eoNotes" value="${esc(o.notes||'')}"></div>
   </div>
@@ -3577,7 +3668,7 @@ function openNewSO(supplierId){
     <div class="field"><label class="field-l" for="soLabel">اسم الطلبية <small>(اختياري)</small></label>
       <input class="input" id="soLabel" placeholder="رقم الحاوية أو وصفها"></div>
     <div class="field"><label class="field-l" for="soTotal">المبلغ الإجمالي بالدولار</label>
-      <input class="input num" id="soTotal" inputmode="decimal" placeholder="المبلغ بالدولار"></div>
+      <input class="input num money" id="soTotal" inputmode="decimal" placeholder="المبلغ بالدولار"></div>
     <div class="field"><label class="field-l" for="soDue">موعد دفع الباقي</label>
       <div class="date-row"><span>${ic('clock')}</span><input type="date" id="soDue" style="flex:1"></div></div>
     <div class="field"><label class="field-l" for="soAlert">نبّهني قبله بـ</label>
@@ -3585,7 +3676,7 @@ function openNewSO(supplierId){
         <input class="input num" id="soAlert" inputmode="numeric" value="7" style="width:90px;text-align:center">
         <span class="hint" style="margin:0">يوم</span></div></div>
     <div class="field"><label class="field-l" for="soDep">العربون المدفوع الآن <small>(اختياري)</small></label>
-      <input class="input num" id="soDep" inputmode="decimal" placeholder="المبلغ بالدولار"></div>
+      <input class="input num money" id="soDep" inputmode="decimal" placeholder="المبلغ بالدولار"></div>
     <div class="field" id="soBrokerWrap"><span class="field-l">من أي وسيط؟</span>
       <div class="chips">${brokers.map((b,i) => `<button type="button" class="chip" data-sbroker="${b.broker_id}"
         aria-pressed="${i===0}">${esc(b.name)} · ${fmt(b.usd_balance)} $</button>`).join('')}</div></div>
@@ -3694,40 +3785,115 @@ function openNewBroker(){
 function openBuyUsd(){
   const brokers = S.sup.brokers || [];
   const boxes = (S.ov.boxes || []).filter(b => b.type !== 'SYSTEM');
+  const st = { broker: (brokers[0]||{}).broker_id || '', multi: false, picked: {} };
+  st.picked[S.boxId || (boxes[0]||{}).box_id || ''] = '';
+
   openSheet(`${sheetHead('شراء دولار')}<div class="sheet-body">
     <div class="field"><span class="field-l">لأي وسيط؟</span>
       <div class="chips">${brokers.map((b,i) => `<button type="button" class="chip" data-fbroker="${b.broker_id}"
         aria-pressed="${i===0}">${esc(b.name)}</button>`).join('')}</div></div>
-    <div class="field"><span class="field-l">من أي صندوق؟</span>
-      <div class="chips">${boxes.map((b,i) => `<button type="button" class="chip" data-fbox="${b.box_id}"
-        aria-pressed="${b.box_id===S.boxId || (i===0 && !boxes.some(x=>x.box_id===S.boxId))}">${esc(b.name)}</button>`).join('')}</div></div>
+
     <div class="field"><label class="field-l" for="fxUsd">مبلغ الدولار</label>
-      <input class="input num" id="fxUsd" inputmode="decimal" placeholder="المبلغ بالدولار"></div>
+      <input class="input num money" id="fxUsd" inputmode="numeric" placeholder="المبلغ بالدولار"></div>
     <div class="field"><label class="field-l" for="fxRate">سعر الصرف</label>
       <input class="input num" id="fxRate" inputmode="decimal" placeholder="سعر الدينار للدولار"></div>
-    <div class="card" style="padding:14px"><div class="mc-head"><span>يخرج من الصندوق</span>
+
+    <div class="card" style="padding:14px;margin-bottom:16px"><div class="mc-head"><span>المطلوب بالدينار</span>
       <b class="num" id="fxDzd">0</b></div></div>
+
+    <div class="field"><span class="field-l">من أي صندوق؟</span>
+      <div class="seg" id="fxMode">
+        <button type="button" data-fxmode="one" aria-pressed="true">صندوق واحد</button>
+        <button type="button" data-fxmode="many" aria-pressed="false">عدة صناديق</button>
+      </div>
+      <div id="fxBoxes" style="margin-top:12px"></div>
+      <div class="hint" id="fxLeft"></div>
+    </div>
   </div>
   <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="fx-save" disabled>أكمل البيانات</button></div>`,
   { full:true, onMount: sh => {
-    sh.dataset.broker = brokers[0] ? brokers[0].broker_id : '';
-    sh.dataset.box = S.boxId || (boxes[0] || {}).box_id || '';
-    const calc = () => {
-      const u = Number($('#fxUsd').value || 0), r = Number($('#fxRate').value || 0);
-      const dzd = Math.round(u * r);
-      $('#fxDzd').textContent = fmt(dzd) + ' دج';
-      const btn = $('.sheet-foot .btn');
-      btn.disabled = !(u > 0 && r > 0 && sh.dataset.broker && sh.dataset.box);
-      btn.textContent = btn.disabled ? 'أكمل البيانات' : `شراء ${fmt(u)} $ بـ ${fmt(dzd)} دج`;
+    const total = () => Math.round((Number(rawNum($('#fxUsd'))) || 0) * (Number($('#fxRate').value) || 0));
+    const sumPicked = () => Object.keys(st.picked)
+      .reduce((t,k) => t + (Number(String(st.picked[k]).replace(/[^\d]/g,'')) || 0), 0);
+
+    const boxRow = b => {
+      const on = st.picked[b.box_id] !== undefined;
+      const bal = (b.balances && b.balances.DZD) || 0;
+      return `<div class="fx-row ${on ? 'on' : ''}">
+        <button type="button" class="fx-pick" data-fxbox="${b.box_id}">
+          <span class="radio ${on ? 'on' : ''}"></span>
+          <span class="row-main"><span class="row-title">${esc(b.name)}</span>
+            <span class="row-sub"><span>الرصيد <b class="num">${fmt(bal)}</b></span></span></span></button>
+        ${on && st.multi ? `<input class="input num money fx-amt" data-fxamt="${b.box_id}" inputmode="numeric"
+            placeholder="0" value="${st.picked[b.box_id] || ''}">` : ''}
+      </div>`;
     };
-    sh.addEventListener('input', calc);
+
+    const paint = () => {
+      const t = total();
+      $('#fxDzd').textContent = fmt(t) + ' دج';
+      $('#fxBoxes').innerHTML = boxes.map(boxRow).join('');
+
+      const keys = Object.keys(st.picked);
+      let ok = t > 0 && st.broker && keys.length > 0;
+      let note = '';
+      if (st.multi){
+        const sum = sumPicked(), diff = t - sum;
+        if (diff > 0) note = `ينقص ${fmt(diff)} دج`;
+        else if (diff < 0) note = `زائد ${fmt(-diff)} دج عن المطلوب`;
+        else if (t) note = 'المجموع مطابق ✓';
+        ok = ok && t > 0 && diff === 0;
+      } else {
+        ok = ok && keys.length === 1;
+        if (keys.length > 1) note = 'اختر صندوقاً واحداً أو انتقل إلى «عدة صناديق»';
+      }
+      const l = $('#fxLeft');
+      l.textContent = note;
+      l.className = 'hint' + (note && note.indexOf('✓') === -1 ? ' warn' : '');
+
+      const btn = $('.sheet-foot .btn');
+      btn.disabled = !ok;
+      btn.textContent = ok ? `شراء ${fmt(Number(rawNum($('#fxUsd'))))} $ بـ ${fmt(t)} دج` : 'أكمل البيانات';
+      sh.dataset.broker = st.broker;
+      sh.dataset.sources = JSON.stringify(Object.keys(st.picked).map(k => ({
+        box_id: k, amount: st.multi ? Number(String(st.picked[k]).replace(/[^\d]/g,'')) || 0 : t
+      })));
+    };
+
+    sh.addEventListener('input', e => {
+      const amt = e.target.closest('[data-fxamt]');
+      if (amt) st.picked[amt.dataset.fxamt] = amt.value;
+      paint();
+      if (amt){ const again = sh.querySelector(`[data-fxamt="${amt.dataset.fxamt}"]`);
+        if (again){ again.focus(); const n = again.value.length; again.setSelectionRange(n, n); } }
+    });
+
     sh.addEventListener('click', e => {
       const br = e.target.closest('[data-fbroker]');
-      if (br){ sh.dataset.broker = br.dataset.fbroker; sh.querySelectorAll('[data-fbroker]').forEach(x => x.setAttribute('aria-pressed', x===br)); calc(); }
-      const bx = e.target.closest('[data-fbox]');
-      if (bx){ sh.dataset.box = bx.dataset.fbox; sh.querySelectorAll('[data-fbox]').forEach(x => x.setAttribute('aria-pressed', x===bx)); calc(); }
+      if (br){ st.broker = br.dataset.fbroker;
+        sh.querySelectorAll('[data-fbroker]').forEach(x => x.setAttribute('aria-pressed', x===br)); paint(); }
+
+      const md = e.target.closest('[data-fxmode]');
+      if (md){
+        st.multi = md.dataset.fxmode === 'many';
+        sh.querySelectorAll('[data-fxmode]').forEach(x => x.setAttribute('aria-pressed', x===md));
+        if (!st.multi){                                    // نعود لصندوق واحد: نبقي الأول
+          const first = Object.keys(st.picked)[0];
+          st.picked = {}; if (first) st.picked[first] = '';
+        }
+        paint();
+      }
+
+      const bx = e.target.closest('[data-fxbox]');
+      if (bx){
+        const id = bx.dataset.fxbox;
+        if (st.multi){
+          if (st.picked[id] !== undefined) delete st.picked[id]; else st.picked[id] = '';
+        } else st.picked = { [id]: '' };
+        paint();
+      }
     });
-    calc();
+    paint();
   } });
 }
 
@@ -3781,9 +3947,12 @@ function viewCatalog(){
 }
 
 function catalogCard(c){
-  const mine = c.held_by_user === S.me.user.user_id;
+  const me = S.me.user.user_id;
+  const list = c.interests || [];
+  const mine = list.some(i => i.user_id === me);
   const admin = S.me.user.role === 'ADMIN';
-  const canAct = mine || admin;
+  const reserved = c.status === 'RESERVED';
+
   return `<article class="cat-card ${c.status.toLowerCase()}">
     <div class="cat-top">
       <div><b>${esc(c.title)}</b>
@@ -3794,22 +3963,27 @@ function catalogCard(c){
     <div class="cat-price"><b class="num">${fmt(c.price_dzd)}</b> <small>دج</small>
       <span class="cat-cent">${centimes(c.price_dzd)}</span></div>
 
-    ${c.status !== 'AVAILABLE' ? `<div class="cat-hold">
-      ${ic(c.status === 'RESERVED' ? 'check' : 'clock')}
-      <span>${esc(c.held_by_box_name || '')}${c.held_by_name ? ' · ' + esc(c.held_by_name) : ''}
-        ${c.held_at ? `<small>${dayLabel(String(c.held_at).slice(0,10))} ${String(c.held_at).slice(11,16)}</small>` : ''}</span>
-    </div>` : ''}
+    ${reserved ? `<div class="cat-hold done">${ic('check')}
+        <span>حجزها ${esc(c.held_by_name || '')}${c.held_by_box_name ? ' · ' + esc(c.held_by_box_name) : ''}
+          ${c.customer_name && (admin || c.held_by_user === me) ? `<small>الزبون: ${esc(c.customer_name)} · ${esc(c.customer_nin || '')}</small>` : ''}
+          ${c.confirmed_at ? `<small>${dayLabel(String(c.confirmed_at).slice(0,10))} ${String(c.confirmed_at).slice(11,16)}</small>` : ''}</span>
+      </div>`
+      : list.length ? `<div class="cat-list">
+          <span class="cat-list-h">${ic('clock')}${list.length} ${list.length === 1 ? 'مكتب يتفاوض عليها' : 'مكاتب تتفاوض عليها'}</span>
+          ${list.map(i => `<span class="cat-who ${i.user_id === me ? 'me' : ''}">
+            <b>${esc(i.user_name)}</b><small>${esc(i.box_name || '')} · ${String(i.at).slice(11,16)}</small>
+            ${i.user_id === me ? '<i>أنت</i>' : ''}</span>`).join('')}
+        </div>` : ''}
 
     <div class="cat-acts">
-      <button class="btn btn-soft btn-sm" data-act="cat-send" data-id="${c.car_id}">${ic('share')}إرسال للزبون</button>
-      ${c.status === 'AVAILABLE'
-        ? `<button class="btn btn-primary btn-sm" data-act="cat-hold" data-id="${c.car_id}">قيد الحجز</button>`
-        : c.status === 'PENDING' && canAct
+      ${!reserved ? `<button class="btn btn-soft btn-sm" data-act="cat-send" data-id="${c.car_id}">${ic('share')}إرسال للزبون</button>` : ''}
+      ${reserved
+        ? (admin || c.held_by_user === me
+            ? `<button class="btn btn-ghost btn-sm" data-act="cat-release" data-id="${c.car_id}">إلغاء الحجز</button>` : '')
+        : mine
           ? `<button class="btn btn-primary btn-sm" data-act="cat-confirm" data-id="${c.car_id}">${ic('check')}تأكيد الحجز</button>
-             <button class="btn btn-ghost btn-sm" data-act="cat-release" data-id="${c.car_id}">إلغاء</button>`
-          : c.status === 'RESERVED' && canAct
-            ? `<button class="btn btn-ghost btn-sm" data-act="cat-release" data-id="${c.car_id}">إلغاء الحجز</button>`
-            : ''}
+             <button class="btn btn-ghost btn-sm" data-act="cat-release" data-id="${c.car_id}">سحب اسمي</button>`
+          : `<button class="btn btn-primary btn-sm" data-act="cat-hold" data-id="${c.car_id}">قيد الحجز</button>`}
       <button class="btn btn-ghost btn-sm" data-act="cat-open" data-id="${c.car_id}">التفاصيل</button>
     </div>
   </article>`;
@@ -3844,6 +4018,11 @@ async function openCatalogCar(id){
   const admin = S.me.user.role === 'ADMIN';
   openSheet(`${sheetHead(esc(c.title))}<div class="sheet-body">
     <div class="cat-dot big ${c.status.toLowerCase()}">${catStatus(c)}</div>
+    ${(c.interests || []).length && c.status !== 'RESERVED' ? `<div class="cat-list" style="margin-top:12px">
+      <span class="cat-list-h">${ic('clock')}المكاتب التي تتفاوض عليها</span>
+      ${c.interests.map(i => `<span class="cat-who ${i.user_id === S.me.user.user_id ? 'me' : ''}">
+        <b>${esc(i.user_name)}</b><small>${esc(i.box_name||'')} · ${dayLabel(String(i.at).slice(0,10))} ${String(i.at).slice(11,16)}</small></span>`).join('')}
+    </div>` : ''}
     <dl class="dl" style="margin-top:14px">
       <div><dt>الشركة</dt><dd>${esc(c.brand || '—')}</dd></div>
       <div><dt>السيارة</dt><dd>${esc(c.name || '—')}</dd></div>
@@ -3855,11 +4034,15 @@ async function openCatalogCar(id){
     </dl>
     ${c.link ? `<a class="btn btn-soft btn-block" style="margin-top:14px" href="${esc(c.link)}" target="_blank" rel="noopener">${ic('globe')}فتح رابط المورد</a>` : ''}
     <button class="btn btn-ghost btn-block" style="margin-top:8px" data-act="cat-hist" data-id="${c.car_id}">${ic('list')}سجل الحجوزات</button>
+    ${c.customer_nin && (S.me.user.role === 'ADMIN' || c.held_by_user === S.me.user.user_id)
+      ? `<button class="btn btn-ghost btn-block" style="margin-top:8px" data-act="cust-past" data-nin="${esc(c.customer_nin)}">${ic('user')}سجل هذا الزبون</button>` : ''}
     ${admin ? `<div style="display:flex;gap:8px;margin-top:14px">
       <button class="btn btn-ghost btn-sm" style="flex:1" data-act="cat-edit" data-id="${c.car_id}">تعديل</button>
       <button class="btn btn-ghost btn-sm" style="flex:1;color:var(--out)" data-act="cat-del" data-id="${c.car_id}">حذف</button></div>` : ''}
   </div>
-  <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="cat-send" data-id="${c.car_id}">${ic('share')}إرسال للزبون</button></div>`,
+  ${c.status !== 'RESERVED'
+    ? `<div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="cat-send" data-id="${c.car_id}">${ic('share')}إرسال للزبون</button></div>`
+    : `<div class="sheet-foot"><div class="hint" style="margin:0;text-align:center">هذه السيارة محجوزة، لم تعد معروضة للزبائن.</div></div>`}`,
   { full:true });
 }
 
@@ -3890,6 +4073,91 @@ function carMessage(c){
     + `السعر: ${centimes(c.price_dzd)}\n`
     + (c.specs ? `المواصفات: ${c.specs}\n` : '')
     + (c.link ? `\n🔗 رابط السيارة:\n${c.link}` : '');
+}
+
+const NIN_LEN = 18;
+
+/** تأكيد الحجز لا يتم بلا هوية الزبون: اسمه ورقمه الوطني من 18 رقماً. */
+function openCatalogConfirm(id){
+  const c = S.cat.items.find(x => x.car_id === id);
+  if (!c) return;
+  openSheet(`${sheetHead('تأكيد الحجز')}<div class="sheet-body">
+    <p class="lead">تأكيد الحجز يُخرج <b>${esc(c.title)}</b> من الكتالوج نهائياً، ويُخطر بقية المكاتب.
+      سجّل هوية الزبون قبل الإقفال.</p>
+    <div class="field"><label class="field-l" for="cnName">اسم الزبون</label>
+      <input class="input" id="cnName" placeholder="الاسم واللقب" autocomplete="off"></div>
+    <div class="field"><label class="field-l" for="cnNin">رقم التعريف الوطني</label>
+      <input class="input num" id="cnNin" inputmode="numeric" dir="ltr" placeholder="18 رقماً">
+      <div class="hint" id="cnCount">0 من ${NIN_LEN} رقماً</div></div>
+    <div id="cnPast"></div>
+  </div>
+  <div class="sheet-foot"><button class="btn btn-primary btn-block" id="cnBtn" data-act="cat-confirm-go" data-id="${id}" disabled>أكمل البيانات</button></div>`,
+  { full:true, onMount: sh => {
+    const digits = () => $('#cnNin').value.replace(/\D/g, '');
+    const paint = () => {
+      const d = digits(), name = $('#cnName').value.trim();
+      const ok = d.length === NIN_LEN && name.length >= 2;
+      const cnt = $('#cnCount');
+      cnt.textContent = d.length === NIN_LEN ? 'الرقم مكتمل ✓'
+        : d.length > NIN_LEN ? `زائد ${d.length - NIN_LEN} رقماً` : `${d.length} من ${NIN_LEN} رقماً`;
+      cnt.className = 'hint' + (d.length && d.length !== NIN_LEN ? ' warn' : '');
+      const btn = $('#cnBtn');
+      btn.disabled = !ok;
+      btn.textContent = ok ? 'تأكيد الحجز' : 'أكمل البيانات';
+    };
+    let lastNin = '';
+    const lookup = async () => {
+      const d = digits();
+      if (d.length !== NIN_LEN || d === lastNin) return;
+      lastNin = d;
+      $('#cnPast').innerHTML = '';
+      try {
+        const h = await api('customerHistory', { customer_nin: d });
+        if (!h || !h.found) return;
+        const box = $('#cnPast'); if (!box) return;
+        const lc = h.last_cancelled;
+        box.innerHTML = `<div class="past-warn">
+          ${ic('clock')}
+          <div><b>${esc(h.name || 'هذا الزبون')} له تاريخ عندنا</b>
+            <small>${h.cancelled ? `ألغى ${h.cancelled === 1 ? 'حجزاً' : h.cancelled + ' حجوزات'} سابقاً`
+                                  : `سبق له ${h.total === 1 ? 'حجز سيارة' : h.total + ' حجوزات'}`}</small>
+            ${lc ? `<small>${esc(lc.car_title)} · حجزها ${dayLabel(String(lc.confirmed_at).slice(0,10))}
+                     وألغاها ${dayLabel(String(lc.released_at).slice(0,10))}</small>` : ''}
+            ${h.total > (h.cancelled || 0) ? `<small>ومنها ${h.total - h.cancelled} حجز قائم أو مكتمل</small>` : ''}
+          </div></div>`;
+      } catch(e){}
+    };
+    sh.addEventListener('input', e => {
+      if (e.target.id === 'cnNin'){
+        const d = digits().slice(0, NIN_LEN);
+        e.target.value = d.replace(/(\d{3})(?=\d)/g, '$1 ').trim();   // تجميع ثلاثيات للقراءة
+        if (d.length !== NIN_LEN){ lastNin = ''; $('#cnPast').innerHTML = ''; }
+        else lookup();
+      }
+      paint();
+    });
+    paint();
+    setTimeout(() => $('#cnName').focus(), 120);
+  } });
+}
+
+/** كل حجوزات زبون برقمه الوطني، قائمة ومُلغاة. */
+async function openCustomerPast(nin){
+  openSheet(`${sheetHead('سجل الزبون')}<div class="sheet-body" id="cpBody"><div class="sk" style="height:160px;border-radius:14px"></div></div>`);
+  try {
+    const h = await api('customerHistory', { customer_nin: nin });
+    if (!$('#cpBody')) return;
+    $('#cpBody').innerHTML = `
+      <div class="hint" style="margin:0 0 12px">${esc(h.name || '')} · <span class="num">${esc(nin)}</span></div>
+      ${h.items.length ? `<div class="list">${h.items.map(r => `<div class="row">
+          <span class="row-ic ${r.outcome === 'CANCELLED' ? 'out' : 'in'}">${ic(r.outcome === 'CANCELLED' ? 'x' : 'check')}</span>
+          <span class="row-main"><span class="row-title">${esc(r.car_title)}</span>
+            <span class="row-sub"><span>${esc(r.user_name || '')}</span><span>${esc(r.box_name || '')}</span>
+              <span>${dayLabel(String(r.confirmed_at).slice(0,10))}</span></span>
+            ${r.outcome === 'CANCELLED' ? `<span class="row-sub" style="color:var(--out)">أُلغي ${dayLabel(String(r.released_at).slice(0,10))}${r.released_by ? ' · ' + esc(r.released_by) : ''}</span>` : ''}</span>
+        </div>`).join('')}</div>`
+        : `<div class="card empty">${ic('user')}<b>لا يوجد حجز سابق لهذا الزبون</b></div>`}`;
+  } catch(x){ closeSheet(); toast(x.message, true); }
 }
 
 function openCatalogSend(id){
@@ -3936,7 +4204,7 @@ function openCatalogForm(id){
     <div class="field"><label class="field-l" for="cfSpecs">المواصفات <small>(اختياري)</small></label>
       <input class="input" id="cfSpecs" value="${esc(c.specs||'')}" placeholder="المواصفات"></div>
     <div class="field"><label class="field-l" for="cfPrice">السعر بالدينار</label>
-      <input class="input num" id="cfPrice" inputmode="numeric" value="${esc(String(c.price_dzd||''))}" placeholder="المبلغ بالدينار">
+      <input class="input num money" id="cfPrice" inputmode="numeric" value="${esc(String(c.price_dzd||''))}" placeholder="المبلغ بالدينار">
       <div class="hint" id="cfCent">${c.price_dzd ? centimes(c.price_dzd) : ''}</div></div>
     <div class="field"><label class="field-l" for="cfLink">رابط المورد</label>
       <input class="input" id="cfLink" dir="ltr" value="${esc(c.link||'')}" placeholder="https://"></div>
@@ -3949,7 +4217,7 @@ function openCatalogForm(id){
       if (b){ sh.dataset.gear = b.dataset.gear; sh.querySelectorAll('[data-gear]').forEach(x => x.setAttribute('aria-pressed', x===b)); }
     });
     $('#cfPrice', sh).addEventListener('input', e => {
-      $('#cfCent').textContent = e.target.value ? centimes(e.target.value) : '';
+      $('#cfCent').textContent = rawNum(e.target) ? centimes(rawNum(e.target)) : '';
     });
   } });
 }
@@ -3966,6 +4234,7 @@ function openSheet(html, { full=false, onMount, sticky=false }={}){
   const sh = $('.sheet'), sc = $('.scrim');
   requestAnimationFrame(()=>{ sh.classList.add('show'); sc.classList.add('show'); });
   hideSplash();
+  sh.querySelectorAll('.search').forEach(paintClear);
   bindSheetSwipe(sh);
   onMount && onMount(sh);
   document.body.style.overflow = 'hidden';
@@ -4505,7 +4774,7 @@ document.addEventListener('click', async e => {
     case 'refund': openRefund(id); break;
     case 'customs': openCustoms(id); break;
     case 'customs-go': {
-      const val = Number($('#cuVal').value || 0);
+      const val = Number(rawNum($('#cuVal')) || 0);
       if (S.order && S.order.order_id === id){
         S.order.customs_actual = val; S.order.customs_known = true;
         S.order.customs_balance = (S.order.customs_paid || 0) - val;
@@ -4571,6 +4840,12 @@ document.addEventListener('click', async e => {
       if (fn2) fn2({ brand: picked.brand, model: picked.model || name, label: name });
       break; }
 
+    case 'cust-past': openCustomerPast(el.dataset.nin); break;
+    case 'cat-notice-ok':
+      if (S.ov) S.ov.catalog_notices = (S.ov.catalog_notices || []).filter(n => n.notice_id !== id);
+      renderShell(false);
+      bgRun('markCatalogNoticeSeen', { notice_id:id }, { closeSheet:false, refresh:false });
+      break;
     case 'cat-refresh': loadCatalog(); break;
     case 'cat-open': openCatalogCar(id); break;
     case 'cat-hist': openCatalogHistory(id); break;
@@ -4580,9 +4855,17 @@ document.addEventListener('click', async e => {
     case 'cat-wechat': { const cw = S.cat.items.find(x => x.car_id === id);
       if (cw){ copyText(carMessage(cw), 'نُسخت الرسالة، الصقها في ويشات');
         setTimeout(() => { location.href = 'weixin://'; }, 400); } break; }
-    case 'cat-hold': case 'cat-confirm': case 'cat-release': {
+    case 'cat-confirm': openCatalogConfirm(id); break;
+    case 'cat-confirm-go': {
+      setBtnBusy(el, true);
+      try {
+        await api('catalogConfirm', { car_id:id, customer_name:$('#cnName').value.trim(),
+          customer_nin:$('#cnNin').value.replace(/\D/g, '') });
+        closeSheet(); toast('تم تأكيد الحجز'); await loadCatalog(true);
+      } catch(x){ setBtnBusy(el, false); toast(x.message, true); }
+      break; }
+    case 'cat-hold': case 'cat-release': {
       const map = { 'cat-hold':['catalogHold','وُضعت قيد الحجز'],
-                    'cat-confirm':['catalogConfirm','تم تأكيد الحجز'],
                     'cat-release':['catalogRelease','عادت متاحة'] };
       const pair = map[a];
       setBtnBusy(el, true);
@@ -4595,7 +4878,7 @@ document.addEventListener('click', async e => {
       const shc = el.closest('.sheet');
       const payload = { brand:$('#cfBrand').value.trim(), name:$('#cfName').value.trim(),
         model_year:$('#cfYear').value.trim(), color:$('#cfColor').value.trim(), gearbox:shc.dataset.gear,
-        specs:$('#cfSpecs').value.trim(), price_dzd:Number($('#cfPrice').value || 0), link:$('#cfLink').value.trim() };
+        specs:$('#cfSpecs').value.trim(), price_dzd:Number(rawNum($('#cfPrice')) || 0), link:$('#cfLink').value.trim() };
       if (id) payload.car_id = id;
       bgRun(id ? 'catalogUpdate' : 'catalogCreate', payload,
         { okMsg: id ? 'تم الحفظ' : 'أُضيفت السيارة', refresh:false, after: () => loadCatalog(true) });
@@ -4619,9 +4902,9 @@ document.addEventListener('click', async e => {
     case 'so-save': {
       const sh = el.closest('.sheet');
       const payload = { supplier_id:id, label:$('#soLabel').value.trim(),
-        total_usd:Number($('#soTotal').value || 0), due_date:$('#soDue').value || '',
+        total_usd:Number(rawNum($('#soTotal')) || 0), due_date:$('#soDue').value || '',
         alert_days:Number($('#soAlert').value || 7),
-        deposit_usd: $('#soDep').value ? Number($('#soDep').value) : '', broker_id: sh.dataset.broker };
+        deposit_usd: rawNum($('#soDep')) ? Number(rawNum($('#soDep'))) : '', broker_id: sh.dataset.broker };
       bgRun('createSupplierOrder', payload, { okMsg:'تمت إضافة الطلبية',
         after: o => { loadSuppliers(); if (o && o.so_id) openSO(o.so_id); } });
       break; }
@@ -4645,8 +4928,8 @@ document.addEventListener('click', async e => {
     case 'fx-buy': openBuyUsd(); break;
     case 'fx-save': {
       const sh2 = el.closest('.sheet');
-      bgRun('buyUsd', { box_id:sh2.dataset.box, broker_id:sh2.dataset.broker,
-        usd_amount:Number($('#fxUsd').value || 0), rate:Number($('#fxRate').value || 0) },
+      bgRun('buyUsd', { broker_id:sh2.dataset.broker, sources: JSON.parse(sh2.dataset.sources || '[]'),
+        usd_amount:Number(rawNum($('#fxUsd')) || 0), rate:Number($('#fxRate').value || 0) },
         { okMsg:'تم شراء الدولار', after: r => { (r && r.warnings || []).forEach(w => toast(w, true)); loadSuppliers(); } });
       break; }
     case 'link-so': openLinkSO(id); break;
@@ -5265,24 +5548,28 @@ const Mock = (() => {
   const CAT = [
     { car_id:'CAR1', brand:'Geely', name:'Coolray', model_year:2026, color:'أبيض', gearbox:'AUTO',
       specs:'فل أوبسيون', price_dzd:4050000, link:'https://supplier.example/coolray',
-      status:'AVAILABLE', held_by_user:'', held_by_name:'', held_box_name:'', held_at:'', created_at:'' },
+      status:'AVAILABLE', held_by_user:'', held_by_name:'', held_box_name:'', held_at:'', created_at:'', interests:[] },
     { car_id:'CAR2', brand:'MG', name:'MG5', model_year:2025, color:'أسود', gearbox:'AUTO',
       specs:'', price_dzd:3290000, link:'https://supplier.example/mg5',
       status:'PENDING', held_by_user:'U3', held_by_name:'أنور بابا طاهر', held_box_name:'مكتب ورقلة',
-      held_at:'2026-10-20 11:20:00', created_at:'' },
+      held_at:'2026-10-20 11:20:00', created_at:'',
+      interests:[{ user_id:'U3', user_name:'أنور بابا طاهر', box_name:'مكتب ورقلة', at:'2026-10-20 11:20:00' }] },
     { car_id:'CAR3', brand:'Volkswagen', name:'T-Cross', model_year:2026, color:'أزرق', gearbox:'AUTO',
       specs:'', price_dzd:5480000, link:'https://supplier.example/tcross',
       status:'RESERVED', held_by_user:'U2', held_by_name:'نبيل', held_box_name:'منزل نبيل',
-      held_at:'2026-10-19 16:05:00', created_at:'' }
+      held_at:'2026-10-19 16:05:00', created_at:'', confirmed_at:'2026-10-19 16:05:00',
+      interests:[{ user_id:'U2', user_name:'نبيل', box_name:'منزل نبيل', at:'2026-10-19 16:05:00' }] }
   ];
   const CATLOG = [];
+  const NTC = [];
+  const RES = [];
   const CATSIG = { v: '1' };
   const catBump = (action, c) => {
     CATSIG.v = String(Date.now());
     CATLOG.push({ car_id:c.car_id, action, user_name:me().full_name,
       box_name:(box(S.boxId)||{}).name || '', at: now() });
   };
-  const catView = c => Object.assign({}, c, {
+  const catView = c => Object.assign({}, c, { interests: c.interests || [],
     title:[c.brand, c.name, c.model_year].filter(Boolean).join(' '),
     gearbox_label: c.gearbox === 'AUTO' ? 'أوتوماتيك' : 'عادي',
     status_label: { AVAILABLE:'متاحة', PENDING:'قيد الحجز', RESERVED:'تم الحجز' }[c.status],
@@ -5367,6 +5654,7 @@ const Mock = (() => {
         pulse_sig: L.length + '|' + T.filter(t=>t.status==='PENDING').map(t=>t.transfer_id).sort().join(','),
         shipping_alerts: shipAlerts(),
         supplier_alerts: staff() ? SO.filter(soDueSoon).map(soView) : [],
+        catalog_notices: NTC.filter(n => n.user_id === cur && !n.seen),
         recent_entries: sorted().filter(e=>v.some(b=>b.box_id===e.box_id)).reverse().slice(0,15).map(enrich),
         today, alerts:[]
       };
@@ -5455,18 +5743,49 @@ const Mock = (() => {
     catalogUpdate: p => { const c = CAT.find(x => x.car_id === p.car_id); Object.assign(c, p); catBump('UPDATE', c); return catView(c); },
     catalogDelete: p => { const c = CAT.find(x => x.car_id === p.car_id); c.status = 'DELETED'; catBump('DELETE', c); return { ok:true }; },
     catalogHold: p => { const c = CAT.find(x => x.car_id === p.car_id);
-      if (c.status !== 'AVAILABLE') err(c.status === 'PENDING'
-        ? 'حجزها ' + c.held_by_name + ' من ' + c.held_box_name + ' قبل لحظات'
-        : 'هذه السيارة محجوزة بالفعل عند ' + c.held_by_name);
-      c.status = 'PENDING'; c.held_by_user = cur; c.held_by_name = me().full_name;
-      c.held_box_name = (box(S.boxId) || {}).name || ''; c.held_at = now(); catBump('HOLD', c); return catView(c); },
+      if (c.status === 'RESERVED') err('أكّد ' + c.held_by_name + ' حجز هذه السيارة');
+      if (!c.interests.some(i => i.user_id === cur))
+        c.interests.push({ user_id:cur, user_name:me().full_name, box_name:(box(S.boxId)||{}).name || '', at:now() });
+      if (c.status !== 'PENDING'){ c.status='PENDING'; c.held_by_user=cur; c.held_by_name=me().full_name;
+        c.held_box_name=(box(S.boxId)||{}).name || ''; c.held_at=now(); }
+      catBump('HOLD', c); return catView(c); },
     catalogConfirm: p => { const c = CAT.find(x => x.car_id === p.car_id);
-      if (c.held_by_user !== cur && !staff()) err('هذا الحجز يخص ' + c.held_by_name);
-      c.status = 'RESERVED'; catBump('CONFIRM', c); return catView(c); },
+      if (c.status === 'RESERVED') err('سبقك ' + c.held_by_name + ' بتأكيد حجزها');
+      if (!staff() && !c.interests.some(i => i.user_id === cur)) err('اضغط «قيد الحجز» أولاً ثم أكّد');
+      const nm = String(p.customer_name||'').trim(); const nin = String(p.customer_nin||'').replace(/\D/g,'');
+      if (nm.length < 2) err('اكتب اسم الزبون');
+      if (nin.length !== 18) err('رقم التعريف الوطني يجب أن يكون 18 رقماً، وقد كتبت ' + nin.length);
+      c.customer_name = nm; c.customer_nin = nin;
+      const past = RES.filter(r => r.customer_nin === nin);
+      RES.push({ res_id:'R'+(RES.length+1), car_id:c.car_id, car_title:catView(c).title, customer_name:nm,
+        customer_nin:nin, user_name:me().full_name, box_name:(box(S.boxId)||{}).name || '',
+        confirmed_at:now(), outcome:'ACTIVE', released_at:'', released_by:'' });
+      c.interests.filter(i => i.user_id !== cur).forEach(i => NTC.push({ notice_id:'N'+(NTC.length+1),
+        user_id:i.user_id, car_id:c.car_id, car_title:catView(c).title, by_name:me().full_name,
+        by_box:(box(S.boxId)||{}).name || '', at:now() }));
+      c.status='RESERVED'; c.held_by_user=cur; c.held_by_name=me().full_name;
+      c.held_box_name=(box(S.boxId)||{}).name || ''; c.confirmed_at=now();
+      catBump('CONFIRM', c); return catView(c); },
     catalogRelease: p => { const c = CAT.find(x => x.car_id === p.car_id);
-      if (c.held_by_user !== cur && !staff()) err('هذا الحجز يخص ' + c.held_by_name);
-      c.status = 'AVAILABLE'; c.held_by_user=''; c.held_by_name=''; c.held_box_name=''; c.held_at='';
+      const admin = staff();
+      if (c.status === 'RESERVED' && c.customer_nin)
+        RES.filter(r => r.car_id === c.car_id && r.customer_nin === c.customer_nin && r.outcome === 'ACTIVE')
+          .forEach(r => { r.outcome = 'CANCELLED'; r.released_at = now(); r.released_by = me().full_name; });
+      if (admin && (c.status === 'RESERVED' || p.all)) c.interests = [];
+      else c.interests = c.interests.filter(i => i.user_id !== cur);
+      if (!c.interests.length){ c.status='AVAILABLE'; c.customer_name=''; c.customer_nin=''; c.held_by_user=''; c.held_by_name=''; c.held_box_name=''; c.held_at=''; c.confirmed_at=''; }
+      else { const f = c.interests[0]; c.status='PENDING'; c.held_by_user=f.user_id; c.held_by_name=f.user_name;
+        c.held_box_name=f.box_name; c.held_at=f.at; c.confirmed_at=''; }
       catBump('RELEASE', c); return catView(c); },
+    customerHistory: p => { const key = String(p.customer_nin||'').replace(/\D/g,'');
+      if (key.length !== 18) return { found:false, items:[], cancelled:0, total:0 };
+      const items = RES.filter(r => r.customer_nin === key).reverse();
+      const canc = items.filter(r => r.outcome === 'CANCELLED');
+      return { found: items.length > 0, name: items.length ? items[0].customer_name : '', items,
+        total: items.length, cancelled: canc.length, last_cancelled: canc[0] || null }; },
+    getCatalogNotices: () => NTC.filter(n => n.user_id === cur && !n.seen),
+    markCatalogNoticeSeen: p => { NTC.filter(n => n.user_id === cur && (!p.notice_id || n.notice_id === p.notice_id))
+      .forEach(n => n.seen = true); return { cleared:1 }; },
 
     createOrdersBatch: p => {
       let cid = p.customer_id;
@@ -5518,12 +5837,24 @@ const Mock = (() => {
       contact:p.contact||'', notes:'', status:'ACTIVE' }; SUP.push(x); return x; },
     listBrokers: () => BRK.map(b => Object.assign({}, b, { usd_balance: brkBal(b.broker_id) })),
     createBroker: p => { const b = { broker_id:'BRK'+(BRK.length+1), name:p.name, phone:p.phone||'' }; BRK.push(b); return b; },
-    buyUsd: p => { FXL.push({ broker_id:p.broker_id, direction:'IN', usd_amount:Number(p.usd_amount),
-        rate:Number(p.rate), so_id:'', entry_date:localDate(new Date()), description:'شراء دولار', broker_name:'' });
-      add({ box_id:p.box_id, entry_date:localDate(new Date()), created_at:now(), direction:'OUT',
-        amount: Math.round(Number(p.usd_amount)*Number(p.rate)), entry_type:'FX_BUY',
-        counterparty:(BRK.find(b=>b.broker_id===p.broker_id)||{}).name, description:'شراء دولار' });
-      return { broker_usd: brkBal(p.broker_id), box_balance: bal(p.box_id), warnings: [] }; },
+    buyUsd: p => {
+      const usd = Number(p.usd_amount), rate = Number(p.rate), dzd = Math.round(usd * rate);
+      const src = (p.sources && p.sources.length) ? p.sources : [{ box_id:p.box_id, amount:dzd }];
+      const sum = src.reduce((t,x) => t + Number(x.amount || 0), 0);
+      if (sum !== dzd) err(sum < dzd ? 'ينقص ' + (dzd-sum) + ' دج ليكتمل مبلغ الشراء'
+                                     : 'المجموع يزيد ' + (sum-dzd) + ' دج عن مبلغ الشراء');
+      let left = usd;
+      src.forEach((x, i) => {
+        const share = (i === src.length - 1) ? left : Math.round(usd * x.amount / dzd);
+        left -= share;
+        FXL.push({ broker_id:p.broker_id, direction:'IN', usd_amount: share,
+          rate, so_id:'', entry_date:localDate(new Date()), description:'شراء دولار' });
+        add({ box_id:x.box_id, entry_date:localDate(new Date()), created_at:now(), direction:'OUT',
+          amount:Number(x.amount), entry_type:'FX_BUY',
+          counterparty:(BRK.find(b=>b.broker_id===p.broker_id)||{}).name,
+          description:'شراء دولار' + (src.length > 1 ? ` (${i+1} من ${src.length})` : '') });
+      });
+      return { broker_usd: brkBal(p.broker_id), dzd_total: dzd, boxes: src.length, warnings: [] }; },
     listSupplierOrders: p => ({ items: SO.filter(o => !p.supplier_id || o.supplier_id === p.supplier_id).map(soView) }),
     getSupplierOrder: p => { const o = SO.find(x => x.so_id === p.so_id);
       return Object.assign(soView(o), {
