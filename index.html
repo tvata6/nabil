@@ -541,6 +541,12 @@ input,textarea{user-select:text;-webkit-user-select:text;-webkit-touch-callout:d
   border-radius:50%;display:grid;place-items:center;color:var(--faint);background:var(--line-2)}
 .search .clear svg.i{width:14px;height:14px}
 
+/* خيط رفيع يتحرك أعلى الشاشة أثناء التحديث في الخلفية: إشارة بلا إزعاج */
+body.syncing::before{content:"";position:fixed;top:0;inset-inline:0;height:2px;z-index:90;
+  background:linear-gradient(90deg,transparent,var(--petrol),transparent);
+  background-size:40% 100%;background-repeat:no-repeat;animation:sweep 1.1s linear infinite}
+@keyframes sweep{from{background-position:-40% 0}to{background-position:140% 0}}
+
 /* Toast */
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + var(--safe-b));z-index:60;display:flex;justify-content:center;pointer-events:none}
 .toast{max-width:480px;background:var(--asphalt);color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.2);display:flex;gap:10px;align-items:center;animation:reveal .2s}
@@ -1459,7 +1465,8 @@ async function pickAvatar(userId){
       renderShell(false);
       toast('تم تحديث الصورة');
       syncAvatars();
-    } catch(x){ toast(x.message, true); }
+    } catch(x){ if (!silent) toast(x.message, true); }
+  finally { document.body.classList.remove('syncing'); }
   };
   input.click();
 }
@@ -1830,11 +1837,48 @@ function signOutLocal(){
 }
 
 async function loadApp(){
-  renderShell(true);
+  // عرض فوري من آخر نسخة محفوظة: لا ينتظر الموظف الخادم ليرى صندوقه
+  const cm = cacheGet_('getMe', {}), co = cacheGet_('getOverview', {});
+  let warm = false;
+  if (!S.demo && cm && co && !S.me){
+    S.me = cm.data;
+    S.ovRaw = co.data;
+    S.ov = applyOutboxToOverview(S.ovRaw);
+    S.stale = co.at;
+    warm = true;
+    startPulse();
+    renderShell(false);                 // الشاشة جاهزة في جزء من الثانية
+    refresh(true).catch(() => {});      // والتحديث يمضي خلفها
+  }
+
+  if (!warm) renderShell(true);
   try {
+    // طلب واحد يجمع الحساب والشاشة الرئيسية والتصنيفات ووجهات التحويل:
+    // Apps Script ينفّذ الطلبات بالتتابع، فكل طلب إضافي ثانية انتظار على الموظف.
+    const boot = (!S.demo) ? await api('getBoot') : null;
+    if (boot){
+      S.me = boot.me;
+      cachePut_('getMe', {}, boot.me);
+      if (S.me.must_change_password) return renderForcePassword();
+      if (!hasPin() && pinSupported()) return renderPinSetup();
+
+      S.ovRaw = boot.overview;
+      S.ov = applyOutboxToOverview(S.ovRaw);
+      S.sig = S.ov.pulse_sig || S.sig;
+      cachePut_('getOverview', {}, boot.overview);
+      if (boot.categories && boot.categories.length){ S.cats = boot.categories; cachePut_('listCategories', {}, boot.categories); }
+      if (boot.targets && boot.targets.length){ S.targets = boot.targets; cachePut_('listTransferTargets', {}, boot.targets); }
+      S.boxId = S.boxId || S.me.default_box_id || (S.ov.boxes[0] || {}).box_id;
+      startPulse();
+      renderShell(false);                       // الشاشة ظهرت: ما بقي يُحمَّل خلفها
+      setTimeout(() => prefetchForOffline(), 1200);
+      return;
+    }
+
     S.me = await api('getMe');
     if (S.me.must_change_password) return renderForcePassword();
     if (!hasPin() && !S.demo && pinSupported()) return renderPinSetup();
+    if (warm){ renderShell(false); return; }   // البيانات الحديثة وصلت والتحديث جارٍ
     await startApp();
   } catch(x){
     if (!S.token) return;
@@ -1859,11 +1903,12 @@ async function startApp(){
 
 async function refresh(silent){
   const btn = $('[data-act="refresh"]'); btn && btn.classList.add('spin');
+  if (S.ov) document.body.classList.add('syncing');
   try {
     S.ovRaw = await api('getOverview');
     S.ov = applyOutboxToOverview(S.ovRaw);
     S.sig = S.ov.pulse_sig || S.sig;
-    prefetchForOffline();
+    if (!S._prefetched) setTimeout(() => prefetchForOffline(), 1500);
     S.hist.loaded = false; S.trf.loaded = false;
     renderShell(false);
     if (!silent) toast('تم التحديث');
@@ -1875,6 +1920,7 @@ async function refresh(silent){
    تصنيفات المصاريف، وجهات التحويل، وقائمة الزبائن. */
 async function prefetchForOffline(){
   if (!isOnline() || S.demo) return;
+  S._prefetched = true;
   try { S.cats = await api('listCategories'); } catch(e){}
   try { S.targets = await api('listTransferTargets'); } catch(e){}
   try { const c = await api('listCustomers', {}); S.cust.items = c; S.cust.loaded = true; } catch(e){}
@@ -1972,6 +2018,7 @@ function afterRender(){
   if (S.view.startsWith('admin') && !S.adm.loaded) loadAdmin();
 }
 function skeleton(){
+  // هيكل يشبه الشاشة الحقيقية: الفراغ المطابق يبدو أسرع من مربعات عشوائية
   return `<section class="hero"><div class="sk" style="width:150px;height:40px"></div>
     <div class="sk" style="width:90px;height:14px;margin:24px 0 10px"></div><div class="sk" style="width:260px;height:46px"></div>
     <div class="quick">${'<div class="sk" style="height:74px;border-radius:14px"></div>'.repeat(3)}</div></section>
