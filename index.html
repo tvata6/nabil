@@ -541,11 +541,8 @@ input,textarea{user-select:text;-webkit-user-select:text;-webkit-touch-callout:d
   border-radius:50%;display:grid;place-items:center;color:var(--faint);background:var(--line-2)}
 .search .clear svg.i{width:14px;height:14px}
 
-/* خيط رفيع يتحرك أعلى الشاشة أثناء التحديث في الخلفية: إشارة بلا إزعاج */
-body.syncing::before{content:"";position:fixed;top:0;inset-inline:0;height:2px;z-index:90;
-  background:linear-gradient(90deg,transparent,var(--petrol),transparent);
-  background-size:40% 100%;background-repeat:no-repeat;animation:sweep 1.1s linear infinite}
-@keyframes sweep{from{background-position:-40% 0}to{background-position:140% 0}}
+/* التحديث في الخلفية صامت: لا شريط ولا وميض.
+   المؤشر الوحيد هو دوران أيقونة التحديث عندما يضغطها المستخدم بنفسه. */
 
 /* Toast */
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + var(--safe-b));z-index:60;display:flex;justify-content:center;pointer-events:none}
