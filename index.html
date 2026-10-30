@@ -1846,6 +1846,7 @@ async function loadApp(){
     S.ov = applyOutboxToOverview(S.ovRaw);
     S.stale = co.at;
     warm = true;
+    pickBox_();                         // الصندوق قبل الرسم، وإلا ظهرت الشاشة فارغة
     startPulse();
     renderShell(false);                 // الشاشة جاهزة في جزء من الثانية
     refresh(true).catch(() => {});      // والتحديث يمضي خلفها
@@ -1880,7 +1881,7 @@ async function loadApp(){
     S.me = await api('getMe');
     if (S.me.must_change_password) return renderForcePassword();
     if (!hasPin() && !S.demo && pinSupported()) return renderPinSetup();
-    if (warm){ renderShell(false); return; }   // البيانات الحديثة وصلت والتحديث جارٍ
+    if (warm){ pickBox_(); renderShell(false); return; }   // البيانات الحديثة وصلت والتحديث جارٍ
     await startApp();
   } catch(x){
     if (!S.token) return;
