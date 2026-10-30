@@ -1868,8 +1868,10 @@ async function loadApp(){
       cachePut_('getOverview', {}, boot.overview);
       if (boot.categories && boot.categories.length){ S.cats = boot.categories; cachePut_('listCategories', {}, boot.categories); }
       if (boot.targets && boot.targets.length){ S.targets = boot.targets; cachePut_('listTransferTargets', {}, boot.targets); }
-      S.boxId = S.boxId || S.me.default_box_id || (S.ov.boxes[0] || {}).box_id;
+      pickBox_();                               // نفس منطق البداية القديم بالضبط
+      S._pw = null;
       startPulse();
+      if (outboxCount()) setTimeout(() => syncOutbox(), 1500);
       renderShell(false);                       // الشاشة ظهرت: ما بقي يُحمَّل خلفها
       setTimeout(() => prefetchForOffline(), 1200);
       return;
@@ -1891,13 +1893,25 @@ async function loadApp(){
     renderShell(false); toast(x.message, true);
   }
 }
+/** صندوق العمل: الافتراضي إن كان من صناديق المستخدم، وإلا أول صندوق يملكه.
+    وللمدير بلا صناديق خاصة: أول صندوق في الشاشة الرئيسية حتى لا تبدو فارغة. */
+function pickBox_(){
+  const mine = (S.me && S.me.boxes || []).map(b => b.box_id);
+  if (mine.length){
+    S.boxId = mine.includes(S.me.default_box_id) ? S.me.default_box_id
+            : (mine.includes(S.boxId) ? S.boxId : mine[0]);
+    return;
+  }
+  const all = (S.ov && S.ov.boxes || []).filter(b => b.type !== 'SYSTEM');
+  if (all.length) S.boxId = all.some(b => b.box_id === S.boxId) ? S.boxId : all[0].box_id;
+}
+
 async function startApp(){
   startPulse();
   if (outboxCount()) setTimeout(() => syncOutbox(), 1500);
   S._pw = null;
   renderShell(true);
-  const ids = S.me.boxes.map(b => b.box_id);
-  S.boxId = ids.includes(S.me.default_box_id) ? S.me.default_box_id : (ids[0] || null);
+  pickBox_();
   await refresh(true);
 }
 
@@ -1908,6 +1922,7 @@ async function refresh(silent){
     S.ovRaw = await api('getOverview');
     S.ov = applyOutboxToOverview(S.ovRaw);
     S.sig = S.ov.pulse_sig || S.sig;
+    if (!currentBox()) pickBox_();
     if (!S._prefetched) setTimeout(() => prefetchForOffline(), 1500);
     S.hist.loaded = false; S.trf.loaded = false;
     renderShell(false);
