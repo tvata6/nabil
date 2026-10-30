@@ -4022,7 +4022,7 @@ function catalogCard(c){
 
     ${reserved ? `<div class="cat-hold done">${ic('check')}
         <span>حجزها ${esc(c.held_by_name || '')}${c.held_by_box_name ? ' · ' + esc(c.held_by_box_name) : ''}
-          ${c.customer_name && (admin || c.held_by_user === me) ? `<small>الزبون: ${esc(c.customer_name)} · ${esc(c.customer_nin || '')}</small>` : ''}
+          ${c.customer_name && (admin || c.held_by_user === me) ? `<small>الزبون: ${esc(c.customer_name)} · ${esc(ninText(c.customer_nin))}</small>` : ''}
           ${c.confirmed_at ? `<small>${dayLabel(String(c.confirmed_at).slice(0,10))} ${String(c.confirmed_at).slice(11,16)}</small>` : ''}</span>
       </div>`
       : list.length ? `<div class="cat-list">
@@ -4092,7 +4092,7 @@ async function openCatalogCar(id){
     ${c.link ? `<a class="btn btn-soft btn-block" style="margin-top:14px" href="${esc(c.link)}" target="_blank" rel="noopener">${ic('globe')}فتح رابط المورد</a>` : ''}
     <button class="btn btn-ghost btn-block" style="margin-top:8px" data-act="cat-hist" data-id="${c.car_id}">${ic('list')}سجل الحجوزات</button>
     ${c.customer_nin && (S.me.user.role === 'ADMIN' || c.held_by_user === S.me.user.user_id)
-      ? `<button class="btn btn-ghost btn-block" style="margin-top:8px" data-act="cust-past" data-nin="${esc(c.customer_nin)}">${ic('user')}سجل هذا الزبون</button>` : ''}
+      ? `<button class="btn btn-ghost btn-block" style="margin-top:8px" data-act="cust-past" data-nin="${esc(ninText(c.customer_nin))}">${ic('user')}سجل هذا الزبون</button>` : ''}
     ${admin ? `<div style="display:flex;gap:8px;margin-top:14px">
       <button class="btn btn-ghost btn-sm" style="flex:1" data-act="cat-edit" data-id="${c.car_id}">تعديل</button>
       <button class="btn btn-ghost btn-sm" style="flex:1;color:var(--out)" data-act="cat-del" data-id="${c.car_id}">حذف</button></div>` : ''}
@@ -4133,6 +4133,8 @@ function carMessage(c){
 }
 
 const NIN_LEN = 18;
+/** الرقم قد يصل مسبوقاً بعلامة التخزين: نعرضه أرقاماً فقط */
+const ninText = v => String(v == null ? '' : v).replace(/[^0-9]/g, '');
 
 /** تأكيد الحجز لا يتم بلا هوية الزبون: اسمه ورقمه الوطني من 18 رقماً. */
 function openCatalogConfirm(id){
@@ -4205,7 +4207,7 @@ async function openCustomerPast(nin){
     const h = await api('customerHistory', { customer_nin: nin });
     if (!$('#cpBody')) return;
     $('#cpBody').innerHTML = `
-      <div class="hint" style="margin:0 0 12px">${esc(h.name || '')} · <span class="num">${esc(nin)}</span></div>
+      <div class="hint" style="margin:0 0 12px">${esc(h.name || '')} · <span class="num">${esc(ninText(nin))}</span></div>
       ${h.items.length ? `<div class="list">${h.items.map(r => `<div class="row">
           <span class="row-ic ${r.outcome === 'CANCELLED' ? 'out' : 'in'}">${ic(r.outcome === 'CANCELLED' ? 'x' : 'check')}</span>
           <span class="row-main"><span class="row-title">${esc(r.car_title)}</span>
