@@ -789,7 +789,11 @@ const DICT = {
   'بدون اتصال · تعمل على آخر نسخة محفوظة':'Offline · showing the last saved data',
 
   // رمز الدخول
-  'رمز الطوارئ':'Emergency code','مفعّل · يفتح واجهة مموّهة':'On · opens a decoy screen','غير مفعّل':'Off',
+  'متى يُطلب الرمز؟':'When is the code asked?','في كل مرة':'Every time','بعد دقيقة':'After a minute',
+  'بعد 5 دقائق':'After 5 minutes','بعد خروجك من التطبيق، متى يطلب الرمز عند العودة؟':'After you leave the app, when should it ask for the code?',
+  'أعلى حماية: الرمز في كل فتح':'Most secure: the code every time',
+  'مريح: لا يزعجك عند التنقل السريع بين التطبيقات':'Convenient: no prompt when switching apps quickly',
+  'أقل إزعاج، وحماية أقل':'Least interruption, less protection','رمز الطوارئ':'Emergency code','مفعّل · يفتح واجهة مموّهة':'On · opens a decoy screen','غير مفعّل':'Off',
   'اكتب رمز دخولك الحقيقي أولاً':'Enter your real access code first','اكتب رمز الطوارئ':'Enter the emergency code',
   'أعد كتابة رمز الطوارئ':'Repeat the emergency code','تم حفظ رمز الطوارئ':'Emergency code saved',
   'أُلغي رمز الطوارئ':'Emergency code removed','إلغاء رمز الطوارئ':'Remove the emergency code',
@@ -936,6 +940,7 @@ const RULES = [
   [/^(\d+) مكتب يتفاوض عليها$/, '$1 office negotiating'],
   [/^(\d+) مكاتب تتفاوض عليها$/, '$1 offices negotiating'],
   [/^أكّد حجزها (.+)$/, 'Confirmed by $1'],
+  [/^أقفلها (.+)$/, 'Closed by $1'],
   [/^حجزها (.+)$/, 'Taken by $1'],
   [/^(\d+) من 18 رقماً$/, '$1 of 18 digits'],
   [/^زائد (\d+) رقماً$/, '$1 digits too many'],
@@ -2258,7 +2263,7 @@ function openFollowUp(){
         <div class="list">${f.catNotices.map(nt => `<div class="row">
           <span class="row-ic out">${ic('check')}</span>
           <span class="row-main"><span class="row-title">${esc(nt.car_title)}</span>
-            <span class="row-sub"><span>أكّد حجزها ${esc(nt.by_name)}</span><span>${esc(nt.by_box || '')}</span></span></span>
+            <span class="row-sub"><span>${S.me.user.role === 'ADMIN' ? 'أقفلها' : 'أكّد حجزها'} ${esc(nt.by_name)}</span><span>${esc(nt.by_box || '')}</span></span></span>
           <span class="row-end"><button class="link" data-act="cat-notice-ok" data-id="${nt.notice_id}">حسناً</button></span>
         </div>`).join('')}</div></div>` : ''}
 
@@ -2429,7 +2434,8 @@ function viewAccount(){
       <button class="row" data-act="tab" data-v="history"><span class="row-ic">${ic('list')}</span><span class="row-main"><span class="row-title">سجل العمليات</span><span class="row-sub">كل حركات صندوقك</span></span>${ic('chev')}</button>
       <button class="row" data-act="password"><span class="row-ic">${ic('lock')}</span><span class="row-main"><span class="row-title">تغيير كلمة المرور</span></span>${ic('chev')}</button>
       ${!hasPin() ? '' : `<button class="row" data-act="pin-lock"><span class="row-ic">${ic('lockClosed')}</span><span class="row-main"><span class="row-title">قفل التطبيق الآن</span><span class="row-sub">يطلب الرمز فوراً</span></span>${ic('chev')}</button>`}
-      ${!pinSupported() ? '' : hasPin() ? `<button class="row" data-act="pin-change"><span class="row-ic">${ic('shield')}</span><span class="row-main"><span class="row-title">رمز الدخول</span><span class="row-sub">تغيير الأرقام الأربعة</span></span>${ic('chev')}</button>`
+      ${!pinSupported() ? '' : hasPin() ? `<button class="row" data-act="pin-change"><span class="row-ic">${ic('shield')}</span><span class="row-main"><span class="row-title">رمز الدخول</span><span class="row-sub">تغيير الأرقام الأربعة</span></span>${ic('chev')}</button>
+        <button class="row" data-act="pin-when"><span class="row-ic">${ic('clock')}</span><span class="row-main"><span class="row-title">متى يُطلب الرمز</span><span class="row-sub">${graceLabel()}</span></span>${ic('chev')}</button>`
       : `<button class="row" data-act="pin-new"><span class="row-ic">${ic('shield')}</span><span class="row-main"><span class="row-title">رمز الدخول</span><span class="row-sub">غير مفعّل، فعّله لحماية الجهاز</span></span>${ic('chev')}</button>`}
       <button class="row" data-act="sync-open"><span class="row-ic">${ic('cloudOff')}</span><span class="row-main"><span class="row-title">المزامنة</span><span class="row-sub">${outboxCount() ? outboxCount() + ' عملية على الجهاز' : (isOnline() ? 'كل شيء متزامن' : 'بدون اتصال')}</span></span>${ic('chev')}</button>
       ${hasPin() ? `<button class="row" data-act="decoy"><span class="row-ic">${ic('shield')}</span><span class="row-main"><span class="row-title">رمز الطوارئ</span><span class="row-sub">${decoyExists() ? 'مفعّل · يفتح واجهة مموّهة' : 'غير مفعّل'}</span></span>${ic('chev')}</button>` : ''}
@@ -2460,6 +2466,23 @@ const AUTO_LOCK_MIN = 5;
 /* جلسة قصيرة داخل التبويب: تنجو من إعادة تحميل الصفحة عند التنقل بين التطبيقات،
    وتنتهي بإغلاق التبويب أو بعد AUTO_LOCK_MIN دقائق من آخر استعمال. */
 const SESS = { tok: 'sc.sess', seen: 'sc.seen' };
+/* متى يُطلب الرمز بعد مغادرة التطبيق؟ الافتراضي دقيقة واحدة.
+   كان خمس دقائق مخفية، فبدا السلوك عشوائياً للمستخدم. */
+const GRACE_KEY = 'sc.grace';
+const GRACE_OPTIONS = [
+  { v: 0,   label: 'في كل مرة' },
+  { v: 60,  label: 'بعد دقيقة' },
+  { v: 300, label: 'بعد 5 دقائق' }
+];
+function graceSec(){
+  const v = localStorage.getItem(GRACE_KEY);
+  return v === null ? 60 : Number(v);
+}
+function graceLabel(){
+  const g = graceSec();
+  const o = GRACE_OPTIONS.find(x => x.v === g);
+  return o ? o.label : 'بعد دقيقة';
+}
 function sessSave_(token){
   try { sessionStorage.setItem(SESS.tok, token); sessionStorage.setItem(SESS.seen, String(Date.now())); } catch(e){}
 }
@@ -2470,7 +2493,8 @@ function sessRead_(){
   try {
     const t = sessionStorage.getItem(SESS.tok), seen = Number(sessionStorage.getItem(SESS.seen) || 0);
     if (!t) return null;
-    if (Date.now() - seen > AUTO_LOCK_MIN * 60000){ sessClear_(); return null; }
+    const grace = graceSec() * 1000;
+    if (!grace || Date.now() - seen > grace){ sessClear_(); return null; }
     return t;
   } catch(e){ return null; }
 }
@@ -2761,6 +2785,19 @@ function openDecoySetup(){
     });
     st.say('اكتب رمز دخولك الحقيقي أولاً');
   } });
+}
+
+/** متى يُطلب الرمز: اختيار واضح بدل سلوك مخفي. */
+function openPinWhen(){
+  const cur = graceSec();
+  openSheet(`${sheetHead('متى يُطلب الرمز؟')}<div class="sheet-body">
+    <p class="lead">بعد خروجك من التطبيق، متى يطلب الرمز عند العودة؟</p>
+    ${GRACE_OPTIONS.map(o => `<button class="pick" data-act="pin-when-set" data-v="${o.v}" aria-pressed="${cur===o.v}">
+      <span class="radio"></span><span class="row-main"><b>${o.label}</b>
+        <small>${o.v === 0 ? 'أعلى حماية: الرمز في كل فتح'
+                 : o.v === 60 ? 'مريح: لا يزعجك عند التنقل السريع بين التطبيقات'
+                 : 'أقل إزعاج، وحماية أقل'}</small></span></button>`).join('')}
+  </div>`);
 }
 
 function openPinChange(){
@@ -4861,6 +4898,11 @@ document.addEventListener('click', async e => {
     case 'pin-lock': lockNow(); break;
     case 'decoy': openDecoySetup(); break;
     case 'decoy-off': decoyClear_(); closeSheet(); renderShell(false); toast('أُلغي رمز الطوارئ'); break;
+    case 'pin-when': openPinWhen(); break;
+    case 'pin-when-set':
+      localStorage.setItem(GRACE_KEY, el.dataset.v);
+      closeSheet(); renderShell(false); toast('يُطلب الرمز ' + graceLabel());
+      break;
     case 'pin-change': openPinChange(); break;
     case 'pin-new': renderPinSetup(); break;
     case 'pin-forgot': openPinForgot(); break;
