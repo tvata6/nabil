@@ -565,6 +565,23 @@ input,textarea{user-select:text;-webkit-user-select:text;-webkit-touch-callout:d
 .glob-total b{font-size:30px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .glob-total span{color:var(--muted);font-size:15px;margin-inline-start:6px}
 .glob-cur{margin-top:10px;display:flex;gap:10px;justify-content:center;color:var(--faint);font-size:12.5px}
+
+/* خلاصة الصندوق العام في الرئيسية: سطر واحد هادئ، لا ينافس رصيد الصندوق فوقه */
+.glob-card{display:flex;align-items:center;gap:10px;width:100%;padding:15px 16px;text-align:start;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);cursor:pointer}
+.glob-card:active{background:var(--tint)}
+.glob-card>small{color:var(--muted);font-size:12.5px;flex:none;white-space:nowrap}
+.glob-num{margin-inline-start:auto;display:flex;align-items:baseline;gap:4px}
+.glob-num{min-width:0}
+.glob-num b{font-size:21px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.glob-cur-s{color:var(--muted);font-size:12.5px}
+.glob-fx{color:var(--faint);font-size:12px;margin-inline-start:8px}
+.glob-go{display:flex;color:var(--faint);flex:none}
+.glob-go svg.i{width:17px;height:17px}
+.glob-sub{display:flex;align-items:center;gap:8px;margin-top:8px;padding:11px 14px;
+  border-radius:12px;background:var(--tint);color:var(--muted);font-size:12.5px}
+.glob-sub svg.i{width:15px;height:15px;flex:none}
+.glob-sub b{margin-inline-start:auto;color:var(--ink);font-size:14px;font-variant-numeric:tabular-nums}
 .ap-card{border-inline-start-color:var(--amber)}
 .ap-card.rejected{border-inline-start-color:var(--out);opacity:.85}
 .ap-card.approved{border-inline-start-color:var(--in)}
@@ -2431,6 +2448,28 @@ function animateOdo(){
 }
 
 /* ---------------- Home ---------------- */
+/* خلاصة الصندوق العام في الرئيسية — للمدير ومن يسميهم وحدهم.
+   تُبنى من نفس بطاقات «اليوم» فتبدو كأنها كانت هنا دائماً، والتفصيل في شاشته. */
+function globHome(){
+  const g = S.ov && S.ov.global_summary;
+  if (!g) return '';
+  const fx = Object.keys(g.totals || {}).filter(c => c !== 'DZD' && g.totals[c]);
+  return `
+    <section class="sec">
+      <div class="sec-h"><h2>الصندوق العام</h2>
+        <button class="link" data-act="tab" data-v="global">التفاصيل</button></div>
+      <button class="card glob-card" data-act="tab" data-v="global">
+        <small>مجموع ${g.boxes_count} صندوق</small>
+        <span class="glob-num"><b class="num">${fmt(g.dzd)}</b><span class="glob-cur-s">دج</span></span>
+        <span class="glob-go">${ic('chev')}</span>
+      </button>
+      ${g.in_transit ? `<div class="glob-sub">${ic('swap')}<span>في الطريق بين الصناديق</span>
+        <b class="num">${fmt(g.in_transit)}</b></div>` : ''}
+      ${fx.map(c => `<div class="glob-sub">${ic('box')}<span>رصيد ${esc(c)}</span>
+        <b class="num">${fmt(g.totals[c])}</b></div>`).join('')}
+    </section>`;
+}
+
 function viewHome(){
   const box = currentBox();
   if (!box) return `<div class="page-head"><h1>SANAD CARS</h1></div><div class="page"><div class="card empty">${ic('box')}<b>لا يوجد صندوق مرتبط بحسابك</b>اطلب من المدير إضافتك إلى صندوق، ثم حدّث الصفحة.</div></div>`;
@@ -2474,6 +2513,7 @@ function viewHome(){
     </div>
   </section>
   <div class="page">
+    ${globHome()}
     <section class="sec">
       <div class="sec-h"><h2>اليوم</h2><span class="hint" style="margin:0">${t.count} عملية</span></div>
       <div class="today">
