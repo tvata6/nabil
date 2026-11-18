@@ -1274,14 +1274,16 @@ const OFFLINE_OK = {
    يعني شاشة فارغة أمام الموظف ثواني. */
 const CACHEABLE = ['getMe', 'getOverview', 'listCustomers', 'listOrders', 'listEntries', 'listTransfers',
   'listCategories', 'listTransferTargets', 'catalogList', 'listSuppliers', 'listBrokers',
-  'adminListUsers', 'getGlobalView', 'getOrder'];
+  'adminListUsers', 'getGlobalView', 'getOrder', 'listSupplierOrders', 'getSupplierOrder',
+  'catalogHistory', 'customerHistory', 'webGetSettings', 'getGlobalViewers'];
 
 const isOnline = () => navigator.onLine !== false;
 
 /* ---------- الذاكرة المحلية ---------- */
 function cacheKey_(action, payload){
   const p = payload || {};
-  const bits = [p.box_id, p.customer_id, p.order_id, p.q, p.status].filter(Boolean).join('|');
+  const bits = [p.box_id, p.customer_id, p.order_id, p.supplier_id, p.so_id, p.car_id,
+                p.customer_nin, p.q, p.status].filter(Boolean).join('|');
   return action + (bits ? ':' + bits : '');
 }
 function cacheAll_(){ try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); } catch(e){ return {}; } }
@@ -1307,6 +1309,30 @@ function cacheGet_(action, payload){
 }
 function cacheClear_(){ try { localStorage.removeItem(CACHE_KEY); } catch(e){} }
 
+/* ورقة تفتح بمحتواها المحفوظ في جزء من الثانية، ثم يصحّحه الخادم خلفها.
+   هيكل الانتظار لا يظهر إلا في المرة الأولى التي لا يوجد فيها محفوظ،
+   وفشل الشبكة لا يغلق ورقة أمام الموظف فيها محتوى يقرؤه. */
+async function sheetLoad_(action, payload, bodyId, draw){
+  const el = () => document.getElementById(bodyId);
+  const hit = cacheGet_(action, payload || {});
+  let shown = false;
+  if (hit && el()){ try { draw(hit.data); shown = true; } catch(e){ console.error('warm', action, e); } }
+  let data;
+  try { data = await api(action, payload || {}); }
+  catch(x){
+    if (shown) return;                       // المحفوظ معروض: لا نغلق ورقة فيها محتوى
+    closeSheet(); toast(x.message, true); return;
+  }
+  if (!el()) return;
+  try { draw(data); }
+  catch(e){
+    console.error('draw', action, e);
+    if (shown) return;
+    el().innerHTML = `<div class="card empty">${ic('x')}<b>تعذّر عرض هذه البطاقة</b>
+      البيانات غير مكتملة. أغلق الورقة وحدّث الشاشة.</div>`;
+  }
+}
+
 /* تعبئة كل الشاشات من آخر نسخة محفوظة قبل أول رسم.
    الشاشة تظهر بمحتواها الحقيقي فوراً، و«قديم» يعني: اعرضه الآن وحدّثه خلفه. */
 function hydrateFromCache(){
@@ -1321,6 +1347,7 @@ function hydrateFromCache(){
   warm(S.adm,  take('adminListUsers'), d => { S.adm.users = d.users || []; S.adm.boxes = d.boxes || []; });
 
   const g = take('getGlobalView'); if (g && !S.glob.data){ S.glob.data = g; S.glob.stale = true; }
+  const w = take('webGetSettings'); if (w && !S.webAdm) S.webAdm = Object.assign({ loaded:true, stale:true }, w);
   if (!S.cats)    S.cats    = take('listCategories') || null;
   if (!S.targets) S.targets = take('listTransferTargets') || null;
 }
@@ -1953,7 +1980,7 @@ function signOutLocal(){
   S.cat = { items:[], counts:{}, loaded:false, q:'', status:'', sig:'' };
   S.glob = { data:null };
   S.adm = { loaded:false, users:[], boxes:[] };
-  S.cats = null; S.targets = null; S.order = null; S.so = null;
+  S.cats = null; S.targets = null; S.order = null; S.so = null; S.webAdm = null;
   S.boxId = null; S.ovRaw = null; S.sig = null; S._prefetched = false;
   S._pw = null; S.view = 'home';
   renderLogin();
@@ -2131,6 +2158,20 @@ function renderShell(loading){
   hideSplash();
 }
 function renderView(){
+  try { return renderView_(); }
+  catch(e){
+    console.error('render', S.view, e);
+    return `<div class="page-head"><h1>${esc(VIEW_TITLE[S.view] || 'الشاشة')}</h1></div>
+      <div class="page"><div class="card empty">${ic('x')}<b>تعذّر عرض هذه الشاشة</b>
+        البيانات المحفوظة غير مكتملة. اضغط تحديث لجلبها من جديد.
+        <span class="empty-acts"><button class="btn btn-primary btn-sm" data-act="hard-refresh">${ic('refresh')}تحديث</button></span>
+      </div></div>`;
+  }
+}
+const VIEW_TITLE = { home:'الرئيسية', customers:'الزبائن', transfers:'التحويلات', history:'السجل',
+  account:'حسابي', catalog:'الكتالوج', suppliers:'الموردون', global:'الصندوق العام',
+  'admin-users':'المستخدمون', 'admin-boxes':'الصناديق', 'admin-web':'الموقع' };
+function renderView_(){
   if (!S.ov) return skeleton();
   if (S.view === 'global') return viewGlobal();
   if (S.view === 'catalog') return viewCatalog();
@@ -3172,7 +3213,7 @@ function renderOrderSheet(o){
 
     <div class="sec">
       <div class="sec-h"><h2>دفعات هذه السيارة</h2></div>
-      ${o.entries.length ? `<div class="list">${o.entries.map(orderEntryRow).join('')}</div>`
+      ${(o.entries||[]).length ? `<div class="list">${o.entries.map(orderEntryRow).join('')}</div>`
         : `<div class="card empty">${ic('list')}<b>لا توجد دفعات بعد</b></div>`}
     </div>
     ${o.notes ? `<div class="t-note" style="margin-top:12px">${esc(o.notes)}</div>` : ''}
@@ -3417,15 +3458,25 @@ function catWebSummary(c){
 
 /* ---------- إدارة الموقع (المدير) ---------- */
 async function loadWebAdmin(){
+  const had = S.webAdm && S.webAdm.loaded && !S.webAdm.error;
+  if (S.webAdm) S.webAdm.stale = false;
   try { S.webAdm = Object.assign({ loaded:true }, await api('webGetSettings')); }
-  catch(x){ S.webAdm = { loaded:true, error:x.message }; toast(x.message, true); }
+  catch(x){
+    if (had) return;                       // المعروض محفوظ وصالح: لا نستبدله برسالة خطأ
+    S.webAdm = { loaded:true, error:x.message }; toast(x.message, true);
+  }
   if (S.view === 'admin-web') rerender();
 }
 function viewAdminWeb(){
   const head = adminHead('الموقع');
+  if (!S.webAdm){                                        // أول فتح: من المحفوظ إن وُجد
+    const hit = cacheGet_('webGetSettings', {});
+    S.webAdm = hit ? Object.assign({ loaded:true, stale:true }, hit.data) : { loaded:false };
+    loadWebAdmin();
+  } else if (S.webAdm.stale) loadWebAdmin();
   const W = S.webAdm;
-  if (!W || !W.loaded){ if (!W) { S.webAdm = { loaded:false }; loadWebAdmin(); }
-    return head + `<div class="page" style="padding-top:8px"><div class="sk" style="height:320px;border-radius:14px"></div></div>`; }
+  if (!W.loaded)
+    return head + `<div class="page" style="padding-top:8px"><div class="sk" style="height:320px;border-radius:14px"></div></div>`;
   if (W.error) return head + `<div class="page"><div class="card empty">${ic('x')}<b>${esc(W.error)}</b>
     <button class="btn btn-ghost btn-sm" data-act="web-reload" style="margin-top:12px">إعادة المحاولة</button></div></div>`;
   const s = W.settings || {};
@@ -4139,14 +4190,12 @@ async function openPayFlow(){
 async function openPayFlowCars(customerId){
   const c = S.cust.items.find(x => x.customer_id === customerId) || {};
   openSheet(`${sheetHead('اختر السيارة')}<div class="sheet-body" id="pfCars"><div class="sk" style="height:200px;border-radius:14px"></div></div>`, { full:true });
-  try {
-    const r = await api('listOrders', { customer_id: customerId, limit: 50 });
-    if (!$('#pfCars')) return;
+  return sheetLoad_('listOrders', { customer_id: customerId, limit: 50 }, 'pfCars', r => {
     $('#pfCars').innerHTML = `<div class="hint" style="margin:0 0 12px">${ic('user')} ${esc(c.full_name)}</div>` +
-      (r.items.length ? `<div class="list">${r.items.map(orderRow).join('')}</div>`
+      ((r.items||[]).length ? `<div class="list">${r.items.map(orderRow).join('')}</div>`
         : `<div class="card empty">${ic('car')}<b>لا توجد سيارة لهذا الزبون</b>
            <button class="btn btn-soft btn-sm" style="margin-top:10px" data-act="order-new" data-id="${customerId}">إضافة سيارة</button></div>`);
-  } catch(x){ closeSheet(); toast(x.message, true); }
+  });
 }
 
 /* ================= الموردون والوسطاء =================
@@ -4212,21 +4261,19 @@ async function openSupplier(id){
   const sup = S.sup.items.find(x => x.supplier_id === id) || {};
   openSheet(`${sheetHead(esc(sup.name || 'المورد'))}
     <div class="sheet-body" id="supBody"><div class="sk" style="height:220px;border-radius:14px"></div></div>`, { full:true });
-  try {
-    const r = await api('listSupplierOrders', { supplier_id: id });
-    if (!$('#supBody')) return;
+  return sheetLoad_('listSupplierOrders', { supplier_id: id }, 'supBody', r => {
     $('#supBody').innerHTML = `
       <div class="today">
         <div class="card"><small>علينا له</small><span class="amt ${sup.remaining_usd?'out':'in'}">${fmt(sup.remaining_usd||0)} $</span></div>
-        <div class="card"><small>طلبياته</small><span class="amt move">${r.items.length}</span></div>
+        <div class="card"><small>طلبياته</small><span class="amt move">${(r.items||[]).length}</span></div>
       </div>
       <div class="sec">
         <div class="sec-h"><h2>الطلبيات</h2><button class="link" data-act="so-new" data-id="${id}">+ طلبية</button></div>
-        ${r.items.length ? `<div class="list">${r.items.map(soRow).join('')}</div>`
+        ${(r.items||[]).length ? `<div class="list">${r.items.map(soRow).join('')}</div>`
           : `<div class="card empty">${ic('box')}<b>لا توجد طلبية بعد</b>سجّل أول حاوية لهذا المورد.
             <span class="empty-acts"><button class="btn btn-primary btn-sm" data-act="so-new" data-id="${id}">${ic('plus')}طلبية جديدة</button></span></div>`}
       </div>`;
-  } catch(x){ closeSheet(); toast(x.message, true); }
+  });
 }
 
 function soRow(o){
@@ -4243,12 +4290,7 @@ function soRow(o){
 /* ---------- بطاقة الطلبية ---------- */
 async function openSO(soId){
   openSheet(`${sheetHead('طلبية مورد')}<div class="sheet-body" id="soBody"><div class="sk" style="height:300px;border-radius:14px"></div></div>`, { full:true });
-  try {
-    const o = await api('getSupplierOrder', { so_id: soId });
-    if (!$('#soBody')) return;
-    S.so = o;
-    renderSOSheet(o);
-  } catch(x){ closeSheet(); toast(x.message, true); }
+  return sheetLoad_('getSupplierOrder', { so_id: soId }, 'soBody', o => { S.so = o; renderSOSheet(o); });
 }
 
 function renderSOSheet(o){
@@ -4278,7 +4320,7 @@ function renderSOSheet(o){
 
     <div class="sec">
       <div class="sec-h"><h2>الدفعات</h2></div>
-      ${o.payments.length ? `<div class="list">${o.payments.map(pm => `<div class="row">
+      ${(o.payments||[]).length ? `<div class="list">${o.payments.map(pm => `<div class="row">
         <span class="row-ic out">${ic('out')}</span>
         <span class="row-main"><span class="row-title">${esc(pm.description || 'دفعة')}</span>
           <span class="row-sub"><span>${esc(pm.broker_name)}</span><span>${dayLabel(pm.entry_date)}</span></span></span>
@@ -4287,8 +4329,8 @@ function renderSOSheet(o){
     </div>
 
     <div class="sec">
-      <div class="sec-h"><h2>سيارات هذه الحاوية</h2><span class="hint" style="margin:0">${o.cars.length} من 4</span></div>
-      ${o.cars.length ? `<div class="list">${o.cars.map(c => `<button class="row" data-act="order" data-id="${c.order_id}">
+      <div class="sec-h"><h2>سيارات هذه الحاوية</h2><span class="hint" style="margin:0">${(o.cars||[]).length} من 4</span></div>
+      ${(o.cars||[]).length ? `<div class="list">${o.cars.map(c => `<button class="row" data-act="order" data-id="${c.order_id}">
         <span class="row-ic tr">${ic('car')}</span>
         <span class="row-main"><span class="row-title">${esc(c.car_label)}</span>
           <span class="row-sub"><span>${esc(c.customer_name)}</span></span></span>${ic('chev')}</button>`).join('')}</div>`
@@ -4547,15 +4589,13 @@ function openBuyUsd(){
 /* ---------- ربط سيارة زبون بحاوية مورد ---------- */
 async function openLinkSO(orderId){
   openSheet(`${sheetHead('ربط السيارة بحاوية')}<div class="sheet-body" id="lsBody"><div class="sk" style="height:200px;border-radius:14px"></div></div>`, { full:true });
-  try {
-    const r = await api('listSupplierOrders', {});
-    if (!$('#lsBody')) return;
+  return sheetLoad_('listSupplierOrders', {}, 'lsBody', r => {
     const cur = (S.order || {}).so_id || '';
     $('#lsBody').innerHTML = `<p class="lead">اختر الحاوية التي جاءت فيها هذه السيارة.</p>
-      ${r.items.map(o => `<button class="pick" data-act="ls-set" data-id="${orderId}" data-so="${o.so_id}" aria-pressed="${cur===o.so_id}">
+      ${(r.items||[]).map(o => `<button class="pick" data-act="ls-set" data-id="${orderId}" data-so="${o.so_id}" aria-pressed="${cur===o.so_id}">
         <span class="radio"></span><span class="row-main"><b>${esc(o.label)}</b><small>${esc(o.supplier_name)} · ${esc(soStage(o))}</small></span></button>`).join('')}
       ${cur ? `<button class="btn btn-ghost btn-block" style="margin-top:10px" data-act="ls-set" data-id="${orderId}" data-so="">إلغاء الربط</button>` : ''}`;
-  } catch(x){ closeSheet(); toast(x.message, true); }
+  });
 }
 
 /* ================= كتالوج السيارات المشترك =================
@@ -4670,7 +4710,7 @@ async function openCatalogCar(id){
     ${c.photo_url ? `<img class="vy-prev" style="margin-top:12px" src="${esc(c.photo_url)}" alt="">` : ''}
     ${(c.interests || []).length && c.status !== 'RESERVED' ? `<div class="cat-list" style="margin-top:12px">
       <span class="cat-list-h">${ic('clock')}المكاتب التي تتفاوض عليها</span>
-      ${c.interests.map(i => `<span class="cat-who ${i.user_id === S.me.user.user_id ? 'me' : ''}">
+      ${(c.interests||[]).map(i => `<span class="cat-who ${i.user_id === S.me.user.user_id ? 'me' : ''}">
         <b>${esc(i.user_name)}</b><small>${esc(i.box_name||'')} · ${dayLabel(String(i.at).slice(0,10))} ${String(i.at).slice(11,16)}</small></span>`).join('')}
     </div>` : ''}
     <dl class="dl" style="margin-top:14px">
@@ -4698,9 +4738,7 @@ async function openCatalogCar(id){
 
 async function openCatalogHistory(id){
   openSheet(`${sheetHead('سجل الحجوزات')}<div class="sheet-body" id="chBody"><div class="sk" style="height:180px;border-radius:14px"></div></div>`);
-  try {
-    const rows = await api('catalogHistory', { car_id: id });
-    if (!$('#chBody')) return;
+  return sheetLoad_('catalogHistory', { car_id: id }, 'chBody', rows => {
     const LBL = { CREATE:'أُضيفت', UPDATE:'تعديل', HOLD:'وضعها قيد الحجز', CONFIRM:'أكّد الحجز',
                   RELEASE:'ألغى الحجز', DELETE:'حُذفت' };
     $('#chBody').innerHTML = rows.length ? `<div class="list">${rows.map(r => `<div class="row">
@@ -4709,7 +4747,7 @@ async function openCatalogHistory(id){
           <span class="row-sub"><span>${esc(r.user_name || '')}</span><span>${esc(r.box_name || '')}</span>
             <span>${dayLabel(String(r.at).slice(0,10))} ${String(r.at).slice(11,16)}</span></span></span>
       </div>`).join('')}</div>` : `<div class="card empty">${ic('list')}<b>لا توجد عمليات بعد</b></div>`;
-  } catch(x){ closeSheet(); toast(x.message, true); }
+  });
 }
 
 /* ---------- الإرسال للزبون ---------- */
@@ -4796,12 +4834,10 @@ function openCatalogConfirm(id){
 /** كل حجوزات زبون برقمه الوطني، قائمة ومُلغاة. */
 async function openCustomerPast(nin){
   openSheet(`${sheetHead('سجل الزبون')}<div class="sheet-body" id="cpBody"><div class="sk" style="height:160px;border-radius:14px"></div></div>`);
-  try {
-    const h = await api('customerHistory', { customer_nin: nin });
-    if (!$('#cpBody')) return;
+  return sheetLoad_('customerHistory', { customer_nin: nin }, 'cpBody', h => {
     $('#cpBody').innerHTML = `
       <div class="hint" style="margin:0 0 12px">${esc(h.name || '')} · <span class="num">${esc(ninText(nin))}</span></div>
-      ${h.items.length ? `<div class="list">${h.items.map(r => `<div class="row">
+      ${(h.items||[]).length ? `<div class="list">${h.items.map(r => `<div class="row">
           <span class="row-ic ${r.outcome === 'CANCELLED' ? 'out' : 'in'}">${ic(r.outcome === 'CANCELLED' ? 'x' : 'check')}</span>
           <span class="row-main"><span class="row-title">${esc(r.car_title)}</span>
             <span class="row-sub"><span>${esc(r.user_name || '')}</span><span>${esc(r.box_name || '')}</span>
@@ -4809,7 +4845,7 @@ async function openCustomerPast(nin){
             ${r.outcome === 'CANCELLED' ? `<span class="row-sub" style="color:var(--out)">أُلغي ${dayLabel(String(r.released_at).slice(0,10))}${r.released_by ? ' · ' + esc(r.released_by) : ''}</span>` : ''}</span>
         </div>`).join('')}</div>`
         : `<div class="card empty">${ic('user')}<b>لا يوجد حجز سابق لهذا الزبون</b></div>`}`;
-  } catch(x){ closeSheet(); toast(x.message, true); }
+  });
 }
 
 function openCatalogSend(id){
@@ -4907,7 +4943,7 @@ function viewGlobal(){
 
     <div class="sec">
       <div class="sec-h"><h2>${g.boxes_count} صندوق</h2></div>
-      <div class="list">${g.boxes.map(b => `<div class="row">
+      <div class="list">${(g.boxes||[]).map(b => `<div class="row">
         <span class="row-ic ${b.dzd < 0 ? 'out' : 'in'}">${ic('box')}</span>
         <span class="row-main"><span class="row-title">${esc(b.name)}</span>
           <span class="row-sub">${[b.keeper_name, b.location].filter(Boolean).map(x => `<span>${esc(x)}</span>`).join('')}</span></span>
@@ -4931,9 +4967,7 @@ async function loadGlobal(silent){
 async function openGlobalViewers(){
   openSheet(`${sheetHead('من يرى الصندوق العام')}<div class="sheet-body" id="gvBody">
     <div class="sk" style="height:200px;border-radius:14px"></div></div>`, { full:true });
-  try {
-    const r = await api('getGlobalViewers', {});
-    if (!$('#gvBody')) return;
+  return sheetLoad_('getGlobalViewers', {}, 'gvBody', r => {
     S._gv = r.users.filter(u => !u.always && u.can_see).map(u => u.user_id);
     $('#gvBody').innerHTML = `<p class="lead">اختر من يرى مجموع كل الصناديق. المدير يراه دائماً.</p>
       ${r.users.map(u => `<button class="pick" data-gvu="${u.user_id}" ${u.always ? 'disabled' : ''}
@@ -4941,7 +4975,7 @@ async function openGlobalViewers(){
         <span class="radio"></span><span class="row-main"><b>${esc(u.full_name)}</b>
           <small>${u.always ? 'مدير · يراه دائماً' : (u.role === 'ACCOUNTANT' ? 'محاسب' : 'صاحب صندوق')}</small></span></button>`).join('')}
       <button class="btn btn-primary btn-block" style="margin-top:14px" data-act="gv-save">حفظ</button>`;
-  } catch(x){ closeSheet(); toast(x.message, true); }
+  });
 }
 
 /* ---------- الموافقة على المصاريف ---------- */
@@ -5511,6 +5545,13 @@ document.addEventListener('click', async e => {
       const v = $('#view'); if (v){ v.classList.add('slide-in'); }
       tap(); break; }
     case 'refresh': refresh(); break;
+    case 'hard-refresh':                       // الذاكرة المحفوظة ناقصة: نبدأ منها من جديد
+      cacheClear_();
+      S.hist.loaded = false; S.trf.loaded = false; S.cust.loaded = false;
+      S.sup.loaded = false; S.cat.loaded = false; S.adm.loaded = false;
+      S.glob.data = null; S.webAdm = null;
+      refresh();
+      break;
     case 'new-op': openChooser(); break;
     case 'op': closeSheet(true); openOp(el.dataset.type); break;
     case 'close-sheet': closeSheet(); break;
@@ -5930,13 +5971,13 @@ function viewAdminUsers(){
 }
 function userRow(u){
   const self = u.user_id === S.me.user.user_id, off = u.status !== 'ACTIVE';
-  const noBox = u.role === 'KEEPER' && !u.boxes.length;
+  const noBox = u.role === 'KEEPER' && !(u.boxes || []).length;
   const tag = off ? '<span class="tag grey">موقوف</span>' : self ? '<span class="tag green">أنت</span>'
     : noBox ? '<span class="tag amber">بلا صندوق</span>' : u.must_change_password ? '<span class="tag amber">لم يفعّل حسابه</span>' : '';
   return `<button class="row" data-act="adm-user" data-id="${u.user_id}">
     ${avatarHtml(u.user_id, u.full_name, 'sm ' + (off?'off':''))}
     <span class="row-main"><span class="row-title">${esc(u.full_name)}</span>
-      <span class="row-sub"><span>${ROLE[u.role]}</span>${u.boxes.length ? `<span>${esc(u.boxes.map(b=>b.name).join('، '))}</span>` : ''}</span></span>
+      <span class="row-sub"><span>${ROLE[u.role]}</span>${(u.boxes||[]).length ? `<span>${esc(u.boxes.map(b=>b.name).join('، '))}</span>` : ''}</span></span>
     <span class="row-end">${tag}</span>
   </button>`;
 }
@@ -5949,7 +5990,7 @@ function openUserDetail(id){
       <div><b>${esc(u.full_name)}</b><span class="hint num" style="margin:0;display:block;text-align:start">${esc(u.username)}</span></div></div>
     <dl class="dl">
       <div><dt>الدور</dt><dd>${ROLE[u.role]}</dd></div>
-      <div><dt>الصناديق</dt><dd>${u.boxes.length ? esc(u.boxes.map(b=>b.name).join('، ')) : 'لا يوجد'}</dd></div>
+      <div><dt>الصناديق</dt><dd>${(u.boxes||[]).length ? esc(u.boxes.map(b=>b.name).join('، ')) : 'لا يوجد'}</dd></div>
       ${u.phone ? `<div><dt>الهاتف</dt><dd class="num">${esc(normPhone(u.phone))}</dd></div>` : ''}
       <div><dt>آخر دخول</dt><dd>${lastLogin(u)}</dd></div>
       <div><dt>الحالة</dt><dd>${off ? '<span class="tag grey">موقوف</span>' : u.must_change_password ? '<span class="tag amber">لم يغيّر كلمة المرور المؤقتة</span>' : '<span class="tag green">نشط</span>'}</dd></div>
@@ -5963,14 +6004,14 @@ function openUserDetail(id){
 }
 
 function keepersNames(b, excludeId){
-  const names = b.keeper_user_ids.filter(k => k !== excludeId).map(k => (admUser(k)||{}).full_name).filter(Boolean);
+  const names = (b.keeper_user_ids||[]).filter(k => k !== excludeId).map(k => (admUser(k)||{}).full_name).filter(Boolean);
   return names.length ? 'يمسكه: ' + names.join('، ') : 'بدون صاحب';
 }
 
 function openUserForm(id){
   const u = id ? admUser(id) : null, edit = !!u;
   const self = edit && u.user_id === S.me.user.user_id;
-  const f = { full_name:u?u.full_name:'', phone:u?u.phone:'', role:u?u.role:'', box_ids:new Set(u?u.boxes.map(b=>b.box_id):[]),
+  const f = { full_name:u?u.full_name:'', phone:u?u.phone:'', role:u?u.role:'', box_ids:new Set(u?(u.boxes||[]).map(b=>b.box_id):[]),
     new_box:false, nb_name:'', nb_location:'', nb_type:'CASH', username:'', touched:false, nbTouched:false };
   const boxes = S.adm.boxes.filter(b => b.status === 'ACTIVE' || f.box_ids.has(b.box_id));
   openSheet(`${sheetHead(edit ? 'تعديل المستخدم' : 'مستخدم جديد')}
@@ -6128,7 +6169,7 @@ async function doReset(id, btn){
 }
 function openDisable(id){
   const u = admUser(id);
-  const orphan = u.boxes.filter(b => { const bx = admBox(b.box_id); return bx && bx.keeper_user_ids.filter(k => k !== id).length === 0; });
+  const orphan = (u.boxes||[]).filter(b => { const bx = admBox(b.box_id); return bx && (bx.keeper_user_ids||[]).filter(k => k !== id).length === 0; });
   openSheet(`${sheetHead('إيقاف الحساب')}<div class="sheet-body">
     <p class="lead">لن يستطيع ${esc(u.full_name)} الدخول بعد الآن، ويُخرج من كل أجهزته فوراً. عملياته السابقة تبقى في السجل كما هي، ويمكنك تفعيل الحساب لاحقاً.</p>
     ${orphan.length ? `<div class="t-note" style="margin:0">${esc(orphan.map(b=>b.name).join('، '))} سيبقى بدون صاحب نشط. عيّن له صاحباً آخر من شاشة الصناديق.</div>` : ''}</div>
@@ -6155,8 +6196,8 @@ function viewAdminBoxes(){
   </div>`;
 }
 function boxRow(b){
-  const off = b.status !== 'ACTIVE', dzd = b.balances.DZD || 0;
-  const keepers = b.keeper_user_ids.map(k => (admUser(k)||{}).full_name).filter(Boolean);
+  const off = b.status !== 'ACTIVE', dzd = (b.balances || {}).DZD || 0;
+  const keepers = (b.keeper_user_ids || []).map(k => (admUser(k)||{}).full_name).filter(Boolean);
   return `<button class="row" data-act="adm-box" data-id="${b.box_id}">
     <span class="row-ic ${off?'void':'tr'}">${ic('box')}</span>
     <span class="row-main"><span class="row-title">${esc(b.name)}</span>
@@ -6624,14 +6665,14 @@ const Mock = (() => {
     catalogDelete: p => { const c = CAT.find(x => x.car_id === p.car_id); c.status = 'DELETED'; catBump('DELETE', c); return { ok:true }; },
     catalogHold: p => { const c = CAT.find(x => x.car_id === p.car_id);
       if (c.status === 'RESERVED') err('أكّد ' + c.held_by_name + ' حجز هذه السيارة');
-      if (!c.interests.some(i => i.user_id === cur))
+      if (!(c.interests||[]).some(i => i.user_id === cur))
         c.interests.push({ user_id:cur, user_name:me().full_name, box_name:(box(S.boxId)||{}).name || '', at:now() });
       if (c.status !== 'PENDING'){ c.status='PENDING'; c.held_by_user=cur; c.held_by_name=me().full_name;
         c.held_box_name=(box(S.boxId)||{}).name || ''; c.held_at=now(); }
       catBump('HOLD', c); return catView(c); },
     catalogConfirm: p => { const c = CAT.find(x => x.car_id === p.car_id);
       if (c.status === 'RESERVED') err('سبقك ' + c.held_by_name + ' بتأكيد حجزها');
-      if (!staff() && !c.interests.some(i => i.user_id === cur)) err('اضغط «قيد الحجز» أولاً ثم أكّد');
+      if (!staff() && !(c.interests||[]).some(i => i.user_id === cur)) err('اضغط «قيد الحجز» أولاً ثم أكّد');
       const nm = String(p.customer_name||'').trim(); const nin = String(p.customer_nin||'').replace(/\D/g,'');
       if (nm.length < 2) err('اكتب اسم الزبون');
       if (nin.length !== 18) err('رقم التعريف الوطني يجب أن يكون 18 رقماً، وقد كتبت ' + nin.length);
