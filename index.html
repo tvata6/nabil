@@ -1980,7 +1980,7 @@ function signOutLocal(){
   S.cat = { items:[], counts:{}, loaded:false, q:'', status:'', sig:'' };
   S.glob = { data:null };
   S.adm = { loaded:false, users:[], boxes:[] };
-  S.cats = null; S.targets = null; S.order = null; S.so = null; S.webAdm = null;
+  S.cats = null; S.targets = null; S.order = null; S.so = null; S.webAdm = null; S.pv = null;
   S.boxId = null; S.ovRaw = null; S.sig = null; S._prefetched = false;
   S._pw = null; S.view = 'home';
   renderLogin();
@@ -2097,34 +2097,152 @@ async function refresh(silent){
 
 /* نحمّل البيانات المرجعية ونحن متصلون، فتكون جاهزة عند الانقطاع:
    تصنيفات المصاريف، وجهات التحويل، وقائمة الزبائن. */
+/* ============ الكنس الخلفي ============
+   الموظف لا ينتظر شاشة أبداً: كل الأقسام تُجلب في الخلفية بعد الدخول،
+   وكل قسم يتغيّر على الخادم يُجلب من جديد قبل أن يصل إليه الموظف.
+   كلها عبر apiBg فتتنحّى كلما ضغط الموظف شيئاً. */
+
+const myRole  = () => (S.me && S.me.user) ? S.me.user.role : '';
+const isAdmin = () => myRole() === 'ADMIN';
+const staff   = () => myRole() === 'ADMIN' || myRole() === 'ACCOUNTANT';
+
+/* قسم في الخادم → كيف يُجلب هنا. staff: لمن له الصلاحية فقط. */
+const SECTIONS = {
+  led: { staff:false, run: async () => {
+    if (!S.boxId) return;
+    const h = await apiBg('listEntries', { box_id:S.boxId, limit:60, offset:0 });
+    S.hist.items = h.items; S.hist.total = h.total; S.hist.boxId = S.boxId;
+    S.hist.loaded = true; S.hist.stale = false;
+  }},
+  trf: { staff:false, run: async () => {
+    const t = await apiBg('listTransfers', { limit:100 });
+    S.trf.items = t.items; S.trf.loaded = true; S.trf.stale = false;
+  }},
+  cus: { staff:false, run: async () => {
+    S.cust.items = await apiBg('listCustomers', {});
+    S.cust.loaded = true; S.cust.stale = false;
+  }},
+  cat: { staff:false, run: async () => {
+    const r = await apiBg('catalogList', { q:'', status:'' });
+    S.cat.items = r.items; S.cat.counts = r.counts; S.cat.sig = r.sig;
+    S.cat.loaded = true; S.cat.stale = false;
+  }},
+  sup: { staff:true, run: async () => {
+    S.sup.items = await apiBg('listSuppliers', {});
+    try { S.sup.brokers = await apiBg('listBrokers', {}); } catch(e){}
+    S.sup.loaded = true; S.sup.stale = false;
+  }},
+  adm: { staff:true, run: async () => {
+    if (!isAdmin()) return;
+    const r = await apiBg('adminListUsers', {});
+    S.adm = { loaded:true, users:r.users, boxes:r.boxes };
+  }},
+  web: { staff:true, run: async () => {
+    if (!isAdmin()) return;
+    S.webAdm = Object.assign({ loaded:true }, await apiBg('webGetSettings', {}));
+  }},
+  ord: { staff:false, run: async () => {}}   // السيارات تُجلب مع الزبون، فلا جلب عام لها
+};
+
+/** ترتيب الجلب: ما يفتحه الموظف غالباً أولاً. */
+const SWEEP_ORDER = ['cus', 'trf', 'led', 'cat', 'sup', 'adm', 'web'];
+
+let _sweeping = false;
+
+/** يجلب الأقسام المذكورة واحداً بعد الآخر، ولا يزاحم الموظف. */
+async function sweep(keys, why){
+  if (!isOnline() || S.demo || S.locked || S.decoy || !S.token) return;
+  if (_sweeping) return;                       // كنسة واحدة في وقت واحد
+  _sweeping = true;
+  try {
+    for (const k of keys){
+      const sec = SECTIONS[k];
+      if (!sec || (sec.staff && !staff())) continue;
+      if (!S.token || S.locked) break;
+      try { await sec.run(); } catch(e){ /* قسم تعذّر: البقية تمضي */ }
+      if (S.view && viewUsesSection(S.view) === k) rerender();
+    }
+  } finally { _sweeping = false; }
+}
+
+/** أي قسم تعرضه هذه الشاشة، حتى نعيد رسمها فور وصول تحديثها. */
+function viewUsesSection(v){
+  return ({ history:'led', transfers:'trf', customers:'cus', catalog:'cat',
+            suppliers:'sup', 'admin-users':'adm', 'admin-boxes':'adm', 'admin-web':'web' })[v] || '';
+}
+
 async function prefetchForOffline(){
   if (!isOnline() || S.demo) return;
   S._prefetched = true;
   try { S.cats = await apiBg('listCategories'); } catch(e){}
   try { S.targets = await apiBg('listTransferTargets'); } catch(e){}
-  try { const c = await apiBg('listCustomers', {}); S.cust.items = c; S.cust.loaded = true; S.cust.stale = false; } catch(e){}
-  // التحويلات في الشريط السفلي: تُجلب خلفاً حتى لا ينتظرها الموظف أول مرة
-  try { const t = await apiBg('listTransfers', { limit:100 }); S.trf.items = t.items; S.trf.loaded = true; S.trf.stale = false; } catch(e){}
+  await sweep(SWEEP_ORDER, 'boot');
   syncAvatars();
 }
 
 /* المتابعة التلقائية: نبضة خفيفة كل 45 ثانية، وفوراً عند العودة إلى التطبيق.
    لا نحمّل البيانات كاملة إلا إذا تغيّرت بصمة الخادم. */
-const PULSE_MS = 45000;
+const PULSE_MS = 15000;   // سؤال رخيص: عدّادات من خصائص السكربت، بلا مسح جداول
 let _pulseTimer = null;
 
+/* سؤال واحد رخيص كل 15 ثانية: «ما الذي تغيّر؟» — فيُحدَّث المتغيّر وحده.
+   لا إعادة تحميل شاملة، ولا انتظار يراه الموظف. */
 async function pulse(force){
   if (S.decoy || !S.token || S.locked || S.busy || document.hidden) return;
-  try {
-    const p = await apiBg('getPulse');
-    if (S.sig === null || S.sig === undefined){ S.sig = p.sig; return; }
+  let p;
+  try { p = await apiBg('getPulse'); }
+  catch(e){ return; }                          // الشبكة منقطعة: النبضة التالية تتكفّل
+  if (!p) return;
+
+  if (!p.v){                                   // خادم لم يُحدَّث بعد: السلوك القديم
+    if (S.sig == null){ S.sig = p.sig; return; }
     if (p.sig !== S.sig){ S.sig = p.sig; await refresh(true); }
-    else if (force) { /* لا جديد */ }
-  } catch(e){ /* الشبكة منقطعة: نحاول في النبضة التالية */ }
+    return;
+  }
+
+  const prev = S.pv;
+  S.pv = p.v;
+  if (!prev){ S.sig = p.sig; return; }         // أول نبضة: نحفظ المرجع فقط
+  if (p.v.all === prev.all && !force) return;  // لا جديد في الخادم كله
+  S.sig = p.sig;
+
+  markActive();                                // المكتب يعمل: أبقِ الإيقاع سريعاً
+  const changed = Object.keys(SECTIONS).filter(k => p.v[k] !== prev[k]);
+  // الأرصدة تتغيّر مع المال والتحويلات، فالرئيسية تُحدَّث معها
+  if (changed.indexOf('led') !== -1 || changed.indexOf('trf') !== -1 ||
+      changed.indexOf('ord') !== -1 || changed.indexOf('adm') !== -1) refresh(true);
+
+  // الشاشة التي أمام الموظف أولاً، ثم البقية خلفها
+  const here = viewUsesSection(S.view);
+  const order = changed.slice().sort((a2,b2) => (a2===here?-1:0) - (b2===here?-1:0));
+  if (order.length) sweep(order, 'pulse');
 }
+/* إيقاع متكيّف: 15 ثانية ما دام الموظف يعمل أو الخادم يتغيّر،
+   ودقيقة إذا رقد الهاتف في الجيب — فلا تُستهلك الحصة بلا فائدة. */
+const PULSE_SLOW_MS = 60000;
+const PULSE_BUSY_MS = 120000;          // يُعدّ «يعمل» دقيقتين بعد آخر لمسة أو تغيير
+let _pulseBound = false, _lastActive = 0;
+
+function markActive(){ _lastActive = Date.now(); }
+
+function pulseEvery(){
+  return (Date.now() - _lastActive < PULSE_BUSY_MS) ? PULSE_MS : PULSE_SLOW_MS;
+}
+
 function startPulse(){
   clearInterval(_pulseTimer);
-  _pulseTimer = setInterval(pulse, PULSE_MS);
+  markActive();
+  _pulseTimer = setInterval(() => {
+    if (Date.now() - (S._lastPulse || 0) < pulseEvery() - 500) return;
+    S._lastPulse = Date.now();
+    pulse();
+  }, 5000);
+  if (!_pulseBound){                   // عودة الموظف للتطبيق = أهم لحظة ليجد كل شيء طازجاً
+    _pulseBound = true;
+    document.addEventListener('visibilitychange', () => { if (!document.hidden){ markActive(); pulse(); } });
+    window.addEventListener('online', () => { markActive(); pulse(); });
+    ['pointerdown','keydown'].forEach(ev => document.addEventListener(ev, markActive, { passive:true }));
+  }
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(() => pulse(true), 400); });
 
@@ -4687,16 +4805,11 @@ async function loadCatalog(silent){
 
 /* نبضة الكتالوج: بصمة خفيفة كل 10 ثوانٍ ما دامت الشاشة مفتوحة */
 let _catTimer = null;
+/* النبضة العامة صارت تحمل عدّاد الكتالوج، فلا داعي لنبضة ثانية تنافسها
+   على نفس الحصة. دخول شاشة الكتالوج يسأل مرة واحدة فوراً. */
 function catalogWatch(on){
   clearInterval(_catTimer);
-  if (!on) return;
-  _catTimer = setInterval(async () => {
-    if (S.view !== 'catalog' || document.hidden || !S.token || S.decoy) return;
-    try {
-      const r = await apiBg('catalogPulse', {});
-      if (r && r.sig && r.sig !== S.cat.sig) loadCatalog(true);
-    } catch(e){}
-  }, 10000);
+  if (on) pulse();
 }
 
 /* ---------- بطاقة التفاصيل ---------- */
