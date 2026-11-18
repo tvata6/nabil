@@ -1348,6 +1348,8 @@ function hydrateFromCache(){
 
   const g = take('getGlobalView'); if (g && !S.glob.data){ S.glob.data = g; S.glob.stale = true; }
   const w = take('webGetSettings'); if (w && !S.webAdm) S.webAdm = Object.assign({ loaded:true, stale:true }, w);
+  const o = take('listOrders'); if (o && !S.orders) S.orders = { items:o.items||[], total:o.total||0, at:0 };
+  const so = take('listSupplierOrders'); if (so && !S.sup.orders) S.sup.orders = so.items || [];
   if (!S.cats)    S.cats    = take('listCategories') || null;
   if (!S.targets) S.targets = take('listTransferTargets') || null;
 }
@@ -1980,7 +1982,7 @@ function signOutLocal(){
   S.cat = { items:[], counts:{}, loaded:false, q:'', status:'', sig:'' };
   S.glob = { data:null };
   S.adm = { loaded:false, users:[], boxes:[] };
-  S.cats = null; S.targets = null; S.order = null; S.so = null; S.webAdm = null; S.pv = null;
+  S.cats = null; S.targets = null; S.order = null; S.so = null; S.webAdm = null; S.pv = null; S.orders = null;
   S.boxId = null; S.ovRaw = null; S.sig = null; S._prefetched = false;
   S._pw = null; S.view = 'home';
   renderLogin();
@@ -2028,6 +2030,7 @@ async function loadApp(){
       S.ovRaw = boot.overview;
       S.ov = applyOutboxToOverview(S.ovRaw);
       S.sig = S.ov.pulse_sig || S.sig;
+      S.pv = S.ov.pulse_v || S.pv;
       cachePut_('getOverview', {}, boot.overview);
       if (boot.categories && boot.categories.length){ S.cats = boot.categories; cachePut_('listCategories', {}, boot.categories); }
       if (boot.targets && boot.targets.length){ S.targets = boot.targets; cachePut_('listTransferTargets', {}, boot.targets); }
@@ -2086,6 +2089,7 @@ async function refresh(silent){
     S.ovRaw = await api('getOverview');
     S.ov = applyOutboxToOverview(S.ovRaw);
     S.sig = S.ov.pulse_sig || S.sig;
+    S.pv = S.ov.pulse_v || S.pv;
     if (!currentBox()) pickBox_();
     if (!S._prefetched) setTimeout(() => prefetchForOffline(), 2500);
     S.hist.stale = true; S.trf.stale = true;   // تُحدَّث خلف الشاشة، لا هيكل انتظار
@@ -2130,6 +2134,12 @@ const SECTIONS = {
   sup: { staff:true, run: async () => {
     S.sup.items = await apiBg('listSuppliers', {});
     try { S.sup.brokers = await apiBg('listBrokers', {}); } catch(e){}
+    try {                                  // كل الطلبيات في طلب واحد لا طلب لكل مورد
+      const r = await apiBg('listSupplierOrders', {});
+      S.sup.orders = r.items; cachePut_('listSupplierOrders', {}, r);
+      (r.items || []).forEach(o => cachePut_('listSupplierOrders', { supplier_id:o.supplier_id },
+        { total:0, items:r.items.filter(x => x.supplier_id === o.supplier_id) }));
+    } catch(e){}
     S.sup.loaded = true; S.sup.stale = false;
   }},
   adm: { staff:true, run: async () => {
@@ -2141,11 +2151,41 @@ const SECTIONS = {
     if (!isAdmin()) return;
     S.webAdm = Object.assign({ loaded:true }, await apiBg('webGetSettings', {}));
   }},
-  ord: { staff:false, run: async () => {}}   // السيارات تُجلب مع الزبون، فلا جلب عام لها
+  // كل السيارات في طلب واحد بدل طلب لكل زبون: بطاقة أي زبون تفتح من الذاكرة
+  ord: { staff:false, run: async () => {
+    const r = await apiBg('listOrders', { limit:300 });
+    // نختم الجلب بعدّاد القسم: ما دام لم يتغيّر، فهذه النسخة هي الحق
+    S.orders = { items:r.items, total:r.total, at:Date.now(), pv:(S.pv||{}).ord };
+  }}
 };
 
+/** هل الجلب العام للسيارات ما زال مطابقاً للخادم؟ */
+function ordersFresh(){
+  return !!(S.orders && S.pv && S.orders.pv !== undefined && S.orders.pv === S.pv.ord);
+}
+
+/** سيارات زبون واحد من الجلب العام، إن كان قد وصل. */
+function ordersOf(customerId){
+  if (!S.orders) return null;
+  return S.orders.items.filter(o => o.customer_id === customerId);
+}
+
+/** بطاقات طلبيات هذا المورد تُجلب خلف فتحه. */
+function warmAheadSO_(supplierId){
+  const all = (S.sup && S.sup.orders) || [];
+  warmAhead('getSupplierOrder', all.filter(o => o.supplier_id === supplierId).map(o => o.so_id), 'so_id');
+}
+
+/** يسبق ضغطة الموظف: بعد فتح بطاقة، نجلب خلفاً ما سيفتحه منها غالباً. */
+async function warmAhead(action, ids, key){
+  for (const id of (ids || []).slice(0, 6)){
+    if (!id || cacheGet_(action, { [key]:id })) continue;
+    try { await apiBg(action, { [key]:id }); } catch(e){ return; }
+  }
+}
+
 /** ترتيب الجلب: ما يفتحه الموظف غالباً أولاً. */
-const SWEEP_ORDER = ['cus', 'trf', 'led', 'cat', 'sup', 'adm', 'web'];
+const SWEEP_ORDER = ['cus', 'ord', 'trf', 'led', 'cat', 'sup', 'adm', 'web'];
 
 let _sweeping = false;
 
@@ -3223,14 +3263,24 @@ async function openCustomer(id){
   const c = S.cust.items.find(x => x.customer_id === id);
   openSheet(`${sheetHead(c ? esc(c.full_name) : 'الزبون')}
     <div class="sheet-body" id="custBody"><div class="sk" style="height:220px;border-radius:14px"></div></div>`, { full:true });
-  // آخر نسخة محفوظة تُرسم فوراً، والخادم يصحّحها خلفها
-  const hit = c ? cacheGet_('listOrders', { customer_id:id }) : null;
-  if (hit && $('#custBody')) renderCustomerSheet(c, hit.data.items || []);
+  // سياراته موجودة سلفاً من الجلب العام، وإلا فمن آخر نسخة محفوظة
+  let shown = null;
+  if (c){
+    const pre = ordersOf(id);
+    const hit = pre ? null : cacheGet_('listOrders', { customer_id:id });
+    shown = pre || (hit ? (hit.data.items || []) : null);
+    if (shown && $('#custBody')) renderCustomerSheet(c, shown);
+  }
+  // ما سيفتحه بعد قليل: بطاقات سياراته تُجلب خلفه
+  if (shown) warmAhead('getOrder', shown.map(o => o.order_id), 'order_id');
+  // الجلب العام مختوم بعدّاد لم يتغيّر: لا داعي لطلب يكرّر ما في اليد
+  if (shown && ordersFresh()) return;
   try {
     const r = await api('listOrders', { customer_id:id, limit:100 });
     if (!$('#custBody')) return;
     renderCustomerSheet(c, r.items);
-  } catch(x){ if (hit) return; closeSheet(); toast(x.message, true); }
+    if (!shown) warmAhead('getOrder', r.items.map(o => o.order_id), 'order_id');
+  } catch(x){ if (shown) return; closeSheet(); toast(x.message, true); }
 }
 
 function renderCustomerSheet(c, orders){
@@ -4379,6 +4429,7 @@ async function openSupplier(id){
   const sup = S.sup.items.find(x => x.supplier_id === id) || {};
   openSheet(`${sheetHead(esc(sup.name || 'المورد'))}
     <div class="sheet-body" id="supBody"><div class="sk" style="height:220px;border-radius:14px"></div></div>`, { full:true });
+  warmAheadSO_(id);
   return sheetLoad_('listSupplierOrders', { supplier_id: id }, 'supBody', r => {
     $('#supBody').innerHTML = `
       <div class="today">
