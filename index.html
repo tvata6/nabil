@@ -368,6 +368,22 @@ textarea.input{height:84px;padding:12px 14px;resize:none;line-height:1.5}
 .mc-result.refund{background:var(--amber-tint);color:var(--amber-ink)}
 .mc-result.owe{background:var(--out-tint);color:var(--out)}
 .mc-result.done{background:var(--in-tint);color:var(--in)}
+.trk-card .mc-head span:first-child{display:inline-flex;align-items:center;gap:6px}
+.trk-card .mc-head .ic,.trk-card .mc-head svg{width:16px;height:16px}
+.trk-msg{padding:12px 14px;border-radius:12px;background:var(--line-2);font-size:14px;line-height:1.7;word-break:break-word}
+.chips.wrap{flex-wrap:wrap;overflow:visible}
+.vy-prev{display:block;width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:10px;background:var(--line-2)}
+.vy-group{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:12px;cursor:pointer}
+.vy-group input{width:20px;height:20px;margin-top:2px;flex:none;accent-color:var(--petrol)}
+.vy-group b{display:block;font-weight:600}.vy-group small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.web-stat{display:flex;padding:14px}.web-stat > div{flex:1;display:flex;flex-direction:column;gap:2px}
+.web-stat b{font-size:24px;font-weight:600}.web-stat small{color:var(--muted);font-size:12.5px}
+.web-stat > div + div{border-inline-start:1px solid var(--line-2);padding-inline-start:14px}
+.pct-row{display:flex;align-items:center;gap:8px}.pct-row .input{max-width:110px;text-align:center}
+.web-tr{margin:0 0 16px}.web-tr summary{cursor:pointer;color:var(--petrol);font-weight:500;padding:6px 0 12px}
+.rev-row{align-items:flex-start}.rev-row.off{opacity:.55}
+.rev-text{display:block;margin:4px 0;color:var(--ink);font-size:14px;line-height:1.6;white-space:pre-line}
+.stars{color:#E9A20C;letter-spacing:1px}
 
 .offbar{display:flex;align-items:center;gap:8px;width:100%;max-width:520px;margin:0 auto;padding:9px 14px;
   font-size:13px;font-weight:500;text-align:start}
@@ -670,6 +686,27 @@ S.lang = localStorage.getItem(LANG_KEY) || 'ar';
 const isEN = () => S.lang === 'en';
 
 const DICT = {
+  'رابط المتابعة على الموقع':'Tracking link on the website','لم يُرسل':'Not sent','إرسال الرابط للزبون':'Send link to customer',
+  'إعادة الإرسال أو النسخ':'Resend or copy','لم يفتحه الزبون بعد':'Customer has not opened it yet',
+  'يرى منه الزبون مكان سيارته وموعد وصولها وحسابه':'Shows the customer where the car is, when it arrives and the balance',
+  'رابط المتابعة':'Tracking link','نسخ الرسالة':'Copy message','رابط العائلة':'Family link',
+  'رابط العائلة يُظهر مكان السيارة وموعدها فقط، بلا أي مبلغ.':'The family link shows only location and arrival, no amounts.',
+  'إصدار رابط جديد (يُبطل القديم)':'Issue a new link (disables the old one)','إصدار رابط جديد':'Issue a new link',
+  'نعم، أصدر رابطاً جديداً':'Yes, issue a new link','السيارة مشحونة':'Car shipped','بيانات الرحلة':'Voyage details',
+  'اسم الباخرة':'Vessel name','رقم الحاوية':'Container number','ميناء الوصول':'Arrival port','موعد الوصول المتوقع':'Expected arrival',
+  'إضافة صورة':'Add photo','تغيير الصورة':'Change photo','حفظ: مشحونة':'Save: shipped','على الموقع':'On the website',
+  'تظهر للزبائن':'Shown to customers','مخفية':'Hidden','أين هي الآن؟':'Where is it now?','عند المورد':'At supplier',
+  'في البحر':'At sea','في الميناء':'In port','موعد الوصول':'Arrival','صورة للموقع':'Website photo','الموقع':'Website',
+  'المكاتب، الحاوية القادمة، التقييمات':'Offices, next container, reviews','الأساس':'Basics','رابط الموقع':'Website URL',
+  'واتساب الشركة':'Company WhatsApp','المستحق من الثمن عند الشحن':'Due at shipping','الحاوية القادمة':'Next container',
+  'تغادر شنغهاي':'Leaves Shanghai','عدد الأماكن':'Places','محجوز منها':'Taken','الشركة والثقة':'Company and trust',
+  'اسم الشركة':'Company name','رقم السجل التجاري':'Trade register no.','العنوان الرئيسي':'Main address',
+  'سياسة العربون والإلغاء':'Deposit and cancellation','إذا تأخرت الباخرة':'If the ship is late','حفظ الإعدادات':'Save settings',
+  'المكاتب على الموقع':'Offices on the website','مكتب':'Office','التقييمات':'Reviews','لا تقييمات بعد':'No reviews yet',
+  'إخفاء':'Hide','إظهار':'Show','مكتب جديد':'New office','تعديل المكتب':'Edit office','الولاية':'Province','العنوان':'Address',
+  'يفتح':'Opens','يغلق':'Closes','أيام الإغلاق':'Closed days','صندوق هذا المكتب':'Box of this office','بلا ربط':'Not linked',
+  'متابعة الزبائن':'Customer follow-up','لم يُرسل لهم رابط المتابعة':'Tracking link not sent','مرّ موعد وصولها':'Arrival date passed',
+  'لم تتغير مرحلتها منذ مدة':'Stage unchanged for a long time','حُفظت إعدادات الموقع':'Website settings saved',
   // التنقل والشاشات
   'الرئيسية':'Home','السجل':'History','التحويلات':'Transfers','حسابي':'Account','التنقل':'Navigation',
   'تسجيل الدخول':'Sign in','تسجيل الخروج':'Sign out','دخول':'Sign in','خروج':'Sign out',
@@ -683,6 +720,16 @@ const DICT = {
   'اختر كلمة مرور خاصة بك':'Choose your own password',
   'كلمة المرور التي دخلت بها مؤقتة. اختر كلمة لا يعرفها غيرك.':'The password you signed in with is temporary. Choose one only you know.',
   'حفظ والمتابعة':'Save and continue','تم حفظ كلمة المرور':'Password saved','تغيير كلمة المرور':'Change password',
+  'الصندوق العام':'All boxes','مجموع كل الصناديق':'Total of all boxes','من يرى الصندوق العام':'Who sees all boxes',
+  'اختيار المستخدمين':'Choose users','اختر من يرى مجموع كل الصناديق. المدير يراه دائماً.':'Choose who sees the total of all boxes. The manager always sees it.',
+  'مدير · يراه دائماً':'Manager · always sees it','محاسب':'Accountant','صاحب صندوق':'Box keeper',
+  'في الطريق':'In transit','على الزبائن':'Owed by customers','رصيد الدولار عند الوسطاء':'USD at brokers',
+  'مصاريف تنتظر موافقتك':'Expenses awaiting your approval','مصاريفي':'My expenses',
+  'موافقة':'Approve','رفض':'Reject','رفض المصروف':'Reject the expense','سبب الرفض':'Reason for rejecting',
+  'سيعود المبلغ إلى الصندوق، ويرى صاحبه سبب الرفض.':'The amount returns to the box and the author sees why.',
+  'تمت الموافقة':'Approved','رُفض المصروف وعاد المبلغ':'Expense rejected, amount returned',
+  'اكتب سبب الرفض':'Write the reason','بانتظار الموافقة':'Waiting for approval','معتمد':'Approved','مرفوض':'Rejected',
+  'المصروف بانتظار موافقة المدير أو المحاسب':'The expense is waiting for the manager or accountant',
   'حفظ كلمة المرور':'Save password','اللغة':'Language','العربية':'العربية','الإنجليزية':'English',
   'بيانات وهمية لا تُحفظ. اختر من تريد أن تجرّب التطبيق بصفته.':'Demo data, nothing is saved. Choose who you want to try the app as.',
   'وضع التجربة':'Demo mode','وضع التجربة: البيانات وهمية ولا تُحفظ':'Demo mode: data is fake and not saved',
@@ -2021,6 +2068,7 @@ function renderView(){
   if (S.view === 'account') return viewAccount();
   if (S.view === 'admin-users') return viewAdminUsers();
   if (S.view === 'admin-boxes') return viewAdminBoxes();
+  if (S.view === 'admin-web') return viewAdminWeb();
   return viewHome();
 }
 function rerender(){
@@ -2216,8 +2264,8 @@ function followUpItems(incoming, watching, otherIncoming){
   const failed = outbox().filter(o => o.status === 'FAILED').length;
   const supAlerts = (S.ov.supplier_alerts || []);
   const catNotices = (S.ov.catalog_notices || []);
-  const pendExp = (S.ov.pending_expenses || []);           // تنتظر موافقتي
-  const myExp = (S.ov.my_expense_updates || []);           // مصاريفي المعلّقة أو المرفوضة
+  const pendExp = (S.ov.pending_expenses || []);
+  const myExp = (S.ov.my_expense_updates || []);
   const tech = [];
   if (failed) tech.push({ k:'sync-bad', icon:'x', cls:'out', act:'sync-open',
     text:`${failed} عملية لم تُقبل، راجعها`, n:failed });
@@ -2226,9 +2274,10 @@ function followUpItems(incoming, watching, otherIncoming){
   if (otherIncoming) tech.push({ k:'other', icon:'swap', cls:'tr', act:'tab', v:'transfers',
     text:`${otherIncoming} تحويل ينتظر تأكيدك في صناديق أخرى`, n:otherIncoming });
 
+  const wc = webFollowCounts();
   const n = incoming.length + ship.length + watching.length + supAlerts.length + catNotices.length
     + pendExp.length + myExp.filter(e => e.approval === 'REJECTED').length
-    + tech.reduce((a,b)=>a+b.n,0);
+    + tech.reduce((a,b)=>a+b.n,0) + wc.no_link + wc.late + wc.stale;
   return { incoming, ship, watching, supAlerts, catNotices, pendExp, myExp, tech, n };
 }
 
@@ -2307,6 +2356,7 @@ function openFollowUp(){
           <div class="t-actions"><button class="btn btn-primary btn-sm" style="flex:1" data-act="so" data-id="${a.so_id}">فتح الطلبية</button></div>
         </article>`).join('')}</div>` : ''}
 
+      ${webFollowTierHtml()}
       ${watching.length ? `<div class="fu-tier"><span class="fu-label">${ic('clock')}بانتظار تأكيد غيرك</span>
         ${watching.map(transferCard).join('')}</div>` : ''}
 
@@ -2478,6 +2528,7 @@ function viewAccount(){
     <div class="list menu">
       <button class="row" data-act="adm-users"><span class="row-ic">${ic('users')}</span><span class="row-main"><span class="row-title">المستخدمون</span><span class="row-sub">إضافة الحسابات والصلاحيات</span></span>${ic('chev')}</button>
       <button class="row" data-act="adm-boxes"><span class="row-ic">${ic('box')}</span><span class="row-main"><span class="row-title">الصناديق</span><span class="row-sub">أصحاب الصناديق والأرصدة الافتتاحية</span></span>${ic('chev')}</button>
+      <button class="row" data-act="adm-web"><span class="row-ic">${ic('globe')}</span><span class="row-main"><span class="row-title">الموقع</span><span class="row-sub">المكاتب، الحاوية القادمة، التقييمات</span></span>${ic('chev')}</button>
     </div>` : ''}
     <div class="list menu" style="margin-top:14px">
       <button class="row" data-act="logout" style="color:var(--out)"><span class="row-ic" style="background:var(--out-tint);color:var(--out)">${ic('logout')}</span><span class="row-main"><span class="row-title">تسجيل الخروج</span></span></button>
@@ -3007,6 +3058,7 @@ function renderOrderSheet(o){
       <div class="prog"><span style="width:${paidPct}%"></span></div>
       <div class="mc-foot"><span>مدفوع <b class="num">${fmt(o.price_paid)}</b></span>
         <span class="${o.price_remaining>0?'due':'ok'}">${o.price_remaining>0?`الباقي <b class="num">${fmt(o.price_remaining)}</b>`:'خالص'}</span></div>
+      ${o.due_now > 0 ? `<div class="mc-result owe" style="margin-top:10px">مستحق الآن ${money(o.due_now)}<small style="display:block;opacity:.8">${o.stage === 'SHIPPED' ? 'دفعة الشحن' : 'الباقي عند الوصول'}، ويراه الزبون في رابطه</small></div>` : ''}
       ${o.price_remaining > 0 ? `<button class="btn btn-primary btn-block btn-sm" style="margin-top:12px" data-act="pay" data-id="${o.order_id}" data-purpose="PRICE">تسجيل دفعة على الثمن</button>` : ''}
     </div>
 
@@ -3023,6 +3075,8 @@ function renderOrderSheet(o){
       ${staff ? `<button class="btn-text" style="width:100%;margin-top:6px" data-act="customs" data-id="${o.order_id}">${o.customs_known?'تعديل تكلفة الديوانة':'إدخال تكلفة الديوانة من الفاتورة'}</button>` : ''}
     </div>
 
+    ${trackCardHtml(o)}
+    ${voyageRowHtml(o)}
     ${S.me.user.role !== 'KEEPER' ? `<button class="row ship-row" data-act="link-so" data-id="${o.order_id}">
       <span class="row-ic ${o.so_id ? 'in' : 'tr'}">${ic('box')}</span>
       <span class="row-main"><span class="row-title">حاوية المورد</span>
@@ -3052,6 +3106,365 @@ function orderEntryRow(e){
       ${e.status==='VOIDED'?'<span class="tag grey">ملغاة</span>':''}</span></span>
     <span class="row-end"><span class="amt ${e.status==='VOIDED'?'voided':inn?'in':'out'}">${inn?'+':'−'} ${fmt(e.amount)}</span></span>
   </div>`;
+}
+
+/* =================== الموقع العام: رابط المتابعة والرحلة ===================
+   كل سيارة لها رابط سري يرسله المكتب للزبون عبر واتساب، فيتابع منه سيارته على الموقع.
+   تغيير المرحلة إلى «مشحونة» يسأل عن الباخرة والحاوية والميناء وموعد الوصول،
+   وصفحة الزبون تتحدّث وحدها. سيارات الحاوية الواحدة تتغير معاً بضغطة. */
+const WEB_PORTS = { DZALG:'الجزائر', DZORN:'وهران', DZBJA:'بجاية', DZAAE:'عنابة', DZSKI:'سكيكدة', DZMOS:'مستغانم', DZDJE:'جن جن' };
+const VOYAGE_AR = { WAIT:'عند المورد', SEA:'في البحر', PORT:'في الميناء' };
+const WEEK_AR = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+const WILAYAS = ['أدرار','الشلف','الأغواط','أم البواقي','باتنة','بجاية','بسكرة','بشار','البليدة','البويرة','تمنراست','تبسة','تلمسان','تيارت','تيزي وزو','الجزائر','الجلفة','جيجل','سطيف','سعيدة','سكيكدة','سيدي بلعباس','عنابة','قالمة','قسنطينة','المدية','مستغانم','المسيلة','معسكر','ورقلة','وهران','البيض','إليزي','برج بوعريريج','بومرداس','الطارف','تندوف','تيسمسيلت','الوادي','خنشلة','سوق أهراس','تيبازة','ميلة','عين الدفلى','النعامة','عين تموشنت','غرداية','غليزان','تيميمون','برج باجي مختار','أولاد جلال','بني عباس','عين صالح','عين قزام','تقرت','جانت','المغير','المنيعة'];
+
+/** صورة للموقع: تُصغَّر على الجهاز إلى 1280 بكسل JPEG قبل الإرسال. */
+function shrinkPhoto(file, max = 1280){
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error('تعذّرت قراءة الصورة'));
+    fr.onload = () => {
+      const im = new Image();
+      im.onerror = () => reject(new Error('الملف ليس صورة صالحة'));
+      im.onload = () => {
+        const k = Math.min(1, max / Math.max(im.width, im.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        const x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
+        x.drawImage(im, 0, 0, c.width, c.height);
+        let q = 0.82, out = c.toDataURL('image/jpeg', q);
+        while (out.length > 900000 && q > 0.45){ q -= 0.1; out = c.toDataURL('image/jpeg', q); }
+        resolve(out);
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+function pickPhoto(onPick){
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = async () => {
+    const f = input.files && input.files[0]; if (!f) return;
+    try { onPick(await shrinkPhoto(f)); } catch(x){ toast(x.message, true); }
+  };
+  input.click();
+}
+
+/** بطاقة «رابط المتابعة» داخل بطاقة السيارة. */
+function trackCardHtml(o){
+  const sent = !!o.link_sent_at;
+  const viewed = o.link_viewed_at ? `فتحه الزبون ${dayLabel(String(o.link_viewed_at).slice(0,10))}` : 'لم يفتحه الزبون بعد';
+  return `<div class="card money-card trk-card">
+    <div class="mc-head"><span>${ic('globe')} رابط المتابعة على الموقع</span>
+      ${sent ? `<span class="tag green">أُرسل ${dayLabel(String(o.link_sent_at).slice(0,10))}</span>` : '<span class="tag amber">لم يُرسل</span>'}</div>
+    <div class="mc-foot"><span>${sent ? viewed : 'يرى منه الزبون مكان سيارته وموعد وصولها وحسابه'}</span></div>
+    <button class="btn ${sent ? 'btn-soft' : 'btn-primary'} btn-block btn-sm" style="margin-top:12px" data-act="trk-open" data-id="${o.order_id}">
+      ${ic('chat')}${sent ? 'إعادة الإرسال أو النسخ' : 'إرسال الرابط للزبون'}</button>
+  </div>`;
+}
+
+/** سطر الرحلة: الباخرة والحاوية وموعد الوصول، يُضغط لتصحيحها. */
+function voyageRowHtml(o){
+  if (!o.vessel && !o.eta && !o.container_no) return '';
+  const days = o.days_to_arrive;
+  const when = o.eta ? `${dayLabel(o.eta)}${days != null ? (days > 0 ? ` · بعد ${days} يوم` : days === 0 ? ' · اليوم' : ` · مرّ منذ ${-days} يوم`) : ''}` : 'موعد الوصول غير محدد';
+  return `<button class="row ship-row" data-act="voyage-edit" data-id="${o.order_id}">
+    <span class="row-ic ${days != null && days < -3 && o.stage === 'SHIPPED' ? 'out' : 'tr'}">${ic('send')}</span>
+    <span class="row-main"><span class="row-title">${esc(o.vessel || 'الرحلة')}${o.port_label ? ' ← ' + esc(o.port_label) : ''}</span>
+      <span class="row-sub"><span>${when}</span>${o.container_no ? `<span class="num" dir="ltr">${esc(o.container_no)}</span>` : ''}
+      ${o.has_proof ? '<span class="tag green">صورة</span>' : ''}</span></span>${ic('chev')}</button>`;
+}
+
+async function openTrackLink(id, rotate){
+  openSheet(`${sheetHead('رابط المتابعة')}<div class="sheet-body" id="trkBody"><div class="sk" style="height:220px;border-radius:14px"></div></div>`);
+  try {
+    const r = await api('getTrackLink', { order_id:id, rotate: !!rotate });
+    if (!$('#trkBody')) return;
+    S._trk = r;
+    if (S.order && S.order.order_id === id && rotate){ S.order.link_sent_at = ''; }
+    $('#trkBody').innerHTML = `
+      ${rotate ? '<div class="hint warn" style="margin:0 0 12px">صدر رابط جديد، والقديم لم يعد يعمل. أرسل الجديد للزبون.</div>' : ''}
+      <div class="trk-msg">${esc(r.message).replace(/\n/g, '<br>')}</div>
+      <a class="btn btn-primary btn-block" style="margin-top:14px" data-act="trk-sent" data-id="${id}"
+         href="https://wa.me/${waPhone(r.phone)}?text=${encodeURIComponent(r.message)}" target="_blank" rel="noopener">
+         ${ic('chat')}إرسال عبر واتساب${r.phone ? '' : ' (اختر جهة الاتصال)'}</a>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-ghost btn-sm" style="flex:1" data-act="trk-copy" data-v="msg">${ic('copy')}نسخ الرسالة</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1" data-act="trk-copy" data-v="family">${ic('users')}رابط العائلة</button></div>
+      <p class="hint" style="margin-top:14px">رابط العائلة يُظهر مكان السيارة وموعدها فقط، بلا أي مبلغ.</p>
+      <button class="btn-text" style="width:100%;margin-top:4px;color:var(--out)" data-act="trk-rotate" data-id="${id}">إصدار رابط جديد (يُبطل القديم)</button>`;
+  } catch(x){ closeSheet(); toast(x.message, true); }
+}
+
+function openTrackRotate(id){
+  openSheet(`${sheetHead('إصدار رابط جديد')}<div class="sheet-body">
+    <p class="lead">يتوقف الرابط القديم ورابط العائلة فوراً، ويصدر رابطان جديدان. استعمله إن وصل الرابط لشخص لا يجب أن يراه.</p></div>
+    <div class="sheet-foot"><button class="btn btn-danger btn-block" data-act="trk-rotate-go" data-id="${id}">نعم، أصدر رابطاً جديداً</button></div>`);
+}
+
+/**
+ * نموذج الرحلة: عند التحويل إلى «مشحونة» (stage = 'SHIPPED')،
+ * أو لتصحيح البيانات لاحقاً دون تغيير المرحلة (stage = '').
+ */
+function openVoyageForm(orderId, stage){
+  const o = S.order && S.order.order_id === orderId ? S.order : {};
+  const st = { photo:'', port: o.port || 'DZALG', group: (o.group_count || 1) > 1 };
+  const portChips = Object.keys(WEB_PORTS).map(k =>
+    `<button type="button" class="chip" data-port="${k}" aria-pressed="${st.port === k}">${WEB_PORTS[k]}</button>`).join('');
+  openSheet(`${sheetHead(stage ? 'السيارة مشحونة' : 'بيانات الرحلة')}<div class="sheet-body">
+    ${stage ? '<p class="lead">ما تكتبه هنا يظهر للزبون في رابط متابعته فوراً. كل الخانات اختيارية.</p>' : ''}
+    <div class="field"><label class="field-l" for="vyVessel">اسم الباخرة</label>
+      <input class="input" id="vyVessel" dir="auto" value="${esc(o.vessel || '')}" placeholder="الباخرة" autocomplete="off"></div>
+    <div class="field"><label class="field-l" for="vyCont">رقم الحاوية</label>
+      <input class="input num" id="vyCont" dir="ltr" value="${esc(o.container_no || '')}" placeholder="MSCU1234567" autocomplete="off" autocapitalize="characters"></div>
+    <div class="field"><span class="field-l">ميناء الوصول</span><div class="chips wrap" id="vyPorts">${portChips}</div></div>
+    <div class="field"><div class="date-row"><span>موعد الوصول المتوقع</span>
+      <input type="date" id="vyEta" value="${esc(o.eta || '')}" min="${todayStr()}"></div>
+      <div class="hint">أول موعد تكتبه يُحفظ كوعد للزبون، ومنه يُحسب «الوصول في الموعد».</div></div>
+    <div class="field"><span class="field-l">صورة السيارة أو ورقة الشحن <small>(اختياري)</small></span>
+      <button type="button" class="btn btn-ghost btn-block" data-act="vy-photo" id="vyPhotoBtn">${ic('camera')}${o.has_proof ? 'تغيير الصورة' : 'إضافة صورة'}</button>
+      <img id="vyPrev" class="vy-prev" alt="" hidden></div>
+    ${st.group ? `<label class="vy-group"><input type="checkbox" id="vyGroup" checked>
+      <span><b>تطبيق على كل سيارات الحاوية (${o.group_count})</b><small>نفس الباخرة والموعد والمرحلة</small></span></label>` : ''}
+  </div>
+  <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="vy-save" data-id="${orderId}" data-stage="${stage || ''}">${stage ? 'حفظ: مشحونة' : 'حفظ'}</button></div>`,
+  { full:true, onMount: sh => {
+    sh._vy = st;
+    sh.addEventListener('click', e => {
+      const b = e.target.closest('[data-port]');
+      if (b){ st.port = b.dataset.port; sh.querySelectorAll('[data-port]').forEach(x => x.setAttribute('aria-pressed', x === b)); }
+    });
+  } });
+}
+
+function voyageSave(orderId, stage, el){
+  const sh = el.closest('.sheet'); const st = sh._vy || {};
+  const p = { order_id: orderId, vessel: $('#vyVessel').value.trim(), container_no: $('#vyCont').value.trim(),
+              port: st.port || '', eta: $('#vyEta').value || '' };
+  if (st.photo) p.photo = st.photo;
+  if (stage){ p.stage = stage; p.apply_group = !!($('#vyGroup') && $('#vyGroup').checked); }
+  if (S.order && S.order.order_id === orderId){
+    Object.assign(S.order, { vessel:p.vessel, container_no:p.container_no, port:p.port, port_label:WEB_PORTS[p.port] || '', eta:p.eta });
+    if (stage) S.order.stage = stage;
+  }
+  bgRun(stage ? 'setOrderStage' : 'updateOrder', p, {
+    okMsg: stage ? (p.apply_group ? 'حُدّثت سيارات الحاوية كلها' : 'السيارة مشحونة') : 'حُفظت بيانات الرحلة',
+    after: () => openOrder(orderId) });
+}
+
+/* ---------- المتابعة: روابط لم تُرسل، وصول متأخر، مراحل متوقفة ---------- */
+function webFollowCounts(){
+  const w = (S.ov && S.ov.web_followup) || {};
+  return { no_link:(w.no_link || []).length, late:(w.late || []).length, stale:(w.stale || []).length };
+}
+const WEB_FU = {
+  no_link: { title:'لم يُرسل لهم رابط المتابعة', icon:'globe', cls:'tr', sub: x => x.stage_label },
+  late:    { title:'مرّ موعد وصولها', icon:'clock', cls:'out', sub: x => `كان الموعد ${dayLabel(x.eta)} · منذ ${x.days_late} يوم` },
+  stale:   { title:'لم تتغير مرحلتها منذ مدة', icon:'clock', cls:'tr', sub: x => `${x.stage_label} منذ ${x.days} يوم` }
+};
+function webFollowTierHtml(){
+  const c = webFollowCounts();
+  const rows = Object.keys(WEB_FU).filter(k => c[k]).map(k => `<button class="row" data-act="web-fu" data-v="${k}">
+      <span class="row-ic ${WEB_FU[k].cls}">${ic(WEB_FU[k].icon)}</span>
+      <span class="row-main"><span class="row-title">${c[k]} ${k === 'no_link' ? 'سيارة' : 'سيارة'}: ${WEB_FU[k].title}</span></span>${ic('chev')}</button>`);
+  if (!rows.length) return '';
+  return `<div class="fu-tier"><span class="fu-label">${ic('globe')}متابعة الزبائن</span><div class="list">${rows.join('')}</div></div>`;
+}
+function openWebFollowList(kind){
+  const list = ((S.ov && S.ov.web_followup) || {})[kind] || [];
+  const meta = WEB_FU[kind];
+  openSheet(`${sheetHead(meta.title)}<div class="sheet-body">
+    ${kind === 'no_link' ? '<p class="lead">افتح كل سيارة واضغط «إرسال الرابط للزبون».</p>'
+      : kind === 'late' ? '<p class="lead">حدّث مرحلتها إن وصلت، أو موعدها إن تأخرت الباخرة، فالزبون يرى ما تكتبه.</p>'
+      : '<p class="lead">الزبون يرى آخر تحديث في رابطه. تأكد أن المرحلة صحيحة.</p>'}
+    <div class="list">${list.map(x => `<button class="row" data-act="order" data-id="${x.order_id}">
+      <span class="row-ic ${meta.cls}">${ic('car')}</span>
+      <span class="row-main"><span class="row-title">${esc(x.customer_name)}</span>
+        <span class="row-sub"><span>${esc(x.car_label)}</span><span>${esc(meta.sub(x))}</span></span></span>${ic('chev')}</button>`).join('')}</div>
+  </div>`, { full:true });
+}
+
+/* ---------- الكتالوج: مكان السيارة على الموقع ---------- */
+function catWebFieldsHtml(c){
+  const show = c.web_show !== false;
+  const v = c.voyage || 'WAIT';
+  return `<div class="sec-h" style="margin:22px 2px 10px"><h2>على الموقع</h2></div>
+    <div class="field"><div class="chips" id="cfShow">
+      <button type="button" class="chip" data-show="1" aria-pressed="${show}">تظهر للزبائن</button>
+      <button type="button" class="chip" data-show="0" aria-pressed="${!show}">مخفية</button></div></div>
+    <div class="field"><span class="field-l">أين هي الآن؟</span><div class="chips" id="cfVoy">
+      ${Object.keys(VOYAGE_AR).map(k => `<button type="button" class="chip" data-voy="${k}" aria-pressed="${v === k}">${VOYAGE_AR[k]}</button>`).join('')}</div></div>
+    <div id="cfSeaBox" ${v === 'WAIT' ? 'hidden' : ''}>
+      <div class="field"><label class="field-l" for="cfVessel">اسم الباخرة</label>
+        <input class="input" id="cfVessel" dir="auto" value="${esc(c.vessel || '')}" placeholder="الباخرة"></div>
+      <div class="field"><span class="field-l">ميناء الوصول</span><div class="chips wrap" id="cfPorts">
+        ${Object.keys(WEB_PORTS).map(k => `<button type="button" class="chip" data-cport="${k}" aria-pressed="${(c.port || 'DZALG') === k}">${WEB_PORTS[k]}</button>`).join('')}</div></div>
+      <div class="field"><div class="date-row"><span>موعد الوصول</span><input type="date" id="cfEta" value="${esc(c.eta || '')}"></div></div>
+    </div>
+    <div class="field"><span class="field-l">صورة للموقع <small>(اختياري)</small></span>
+      ${c.photo_url ? `<img class="vy-prev" src="${esc(c.photo_url)}" alt="" id="cfPrev">` : '<img class="vy-prev" alt="" id="cfPrev" hidden>'}
+      <button type="button" class="btn btn-ghost btn-block" data-act="cf-photo">${ic('camera')}${c.photo_url ? 'تغيير الصورة' : 'إضافة صورة'}</button></div>`;
+}
+function catWebBind(sh, c){
+  sh._web = { show: c.web_show !== false, voyage: c.voyage || 'WAIT', port: c.port || 'DZALG', photo: '' };
+  sh.addEventListener('click', e => {
+    const s = e.target.closest('[data-show]');
+    if (s){ sh._web.show = s.dataset.show === '1'; sh.querySelectorAll('[data-show]').forEach(x => x.setAttribute('aria-pressed', x === s)); }
+    const v = e.target.closest('[data-voy]');
+    if (v){ sh._web.voyage = v.dataset.voy; sh.querySelectorAll('[data-voy]').forEach(x => x.setAttribute('aria-pressed', x === v));
+      $('#cfSeaBox').hidden = v.dataset.voy === 'WAIT'; }
+    const p = e.target.closest('[data-cport]');
+    if (p){ sh._web.port = p.dataset.cport; sh.querySelectorAll('[data-cport]').forEach(x => x.setAttribute('aria-pressed', x === p)); }
+  });
+}
+function catWebPayload(sh){
+  const w = sh._web || {};
+  const out = { web_show: !!w.show, voyage: w.voyage || 'WAIT' };
+  if (out.voyage !== 'WAIT'){ out.vessel = ($('#cfVessel') || {}).value || ''; out.port = w.port || 'DZALG'; out.eta = ($('#cfEta') || {}).value || ''; }
+  else { out.vessel = ''; out.eta = ''; }
+  if (w.photo) out.photo = w.photo;
+  return out;
+}
+function catWebSummary(c){
+  if (c.web_show === false) return '<span class="tag grey">مخفية عن الموقع</span>';
+  const v = c.voyage || 'WAIT';
+  return `<span class="tag ${v === 'WAIT' ? 'grey' : 'green'}">على الموقع: ${VOYAGE_AR[v]}</span>
+    ${c.vessel ? ` <span class="hint" style="display:inline">${esc(c.vessel)}${c.eta ? ' · يصل ' + dayLabel(c.eta) : ''}</span>` : ''}`;
+}
+
+/* ---------- إدارة الموقع (المدير) ---------- */
+async function loadWebAdmin(){
+  try { S.webAdm = Object.assign({ loaded:true }, await api('webGetSettings')); }
+  catch(x){ S.webAdm = { loaded:true, error:x.message }; toast(x.message, true); }
+  if (S.view === 'admin-web') rerender();
+}
+function viewAdminWeb(){
+  const head = adminHead('الموقع');
+  const W = S.webAdm;
+  if (!W || !W.loaded){ if (!W) { S.webAdm = { loaded:false }; loadWebAdmin(); }
+    return head + `<div class="page" style="padding-top:8px"><div class="sk" style="height:320px;border-radius:14px"></div></div>`; }
+  if (W.error) return head + `<div class="page"><div class="card empty">${ic('x')}<b>${esc(W.error)}</b>
+    <button class="btn btn-ghost btn-sm" data-act="web-reload" style="margin-top:12px">إعادة المحاولة</button></div></div>`;
+  const s = W.settings || {};
+  const v = k => esc(s[k] || '');
+  const st = W.stats || {};
+  const ta = (k, label) => `<div class="field"><label class="field-l" for="ws_${k.replace(/\W/g,'_')}">${label}</label>
+    <textarea class="input" data-ws="${k}" id="ws_${k.replace(/\W/g,'_')}" dir="auto">${v(k)}</textarea></div>`;
+  const inp = (k, label, attrs) => `<div class="field"><label class="field-l" for="ws_${k.replace(/\W/g,'_')}">${label}</label>
+    <input class="input" data-ws="${k}" id="ws_${k.replace(/\W/g,'_')}" value="${v(k)}" ${attrs || ''}></div>`;
+  return head + `<div class="page web-adm" style="padding-top:8px">
+    <div class="card web-stat"><div><b class="num">${st.links_sent || 0}</b><small>من ${st.active_orders || 0} سيارة أُرسل رابطها</small></div>
+      <div><b class="num">${st.links_viewed || 0}</b><small>زبون فتح رابطه</small></div></div>
+
+    <div class="sec-h" style="margin:20px 2px 10px"><h2>الأساس</h2></div>
+    <div class="card" style="padding:14px 14px 0">
+      ${inp('web.site_url', 'رابط الموقع', 'dir="ltr" placeholder="https://" inputmode="url"')}
+      ${inp('web.whatsapp', 'واتساب الشركة', 'dir="ltr" inputmode="tel" placeholder="05xx xx xx xx"')}
+      <div class="field"><label class="field-l" for="ws_pct">المستحق من الثمن عند الشحن</label>
+        <div class="pct-row"><input class="input num" data-ws="web.pay_shipped_pct" id="ws_pct" inputmode="numeric" value="${v('web.pay_shipped_pct') || (W.defaults || {})['web.pay_shipped_pct'] || 70}"><span>%</span></div>
+        <div class="hint">يظهر للزبون في رابطه: كم يُطلب منه عند الشحن، والباقي كله عند الوصول.</div></div>
+    </div>
+
+    <div class="sec-h" style="margin:20px 2px 10px"><h2>الحاوية القادمة</h2></div>
+    <div class="card" style="padding:14px 14px 0">
+      <div class="field"><div class="date-row"><span>تغادر شنغهاي</span><input type="date" data-ws="web.next_departure" value="${v('web.next_departure')}"></div></div>
+      <div style="display:flex;gap:10px">
+        <div class="field" style="flex:1"><label class="field-l" for="ws_cap">عدد الأماكن</label><input class="input num" data-ws="web.next_capacity" id="ws_cap" inputmode="numeric" value="${v('web.next_capacity')}"></div>
+        <div class="field" style="flex:1"><label class="field-l" for="ws_taken">محجوز منها</label><input class="input num" data-ws="web.next_taken" id="ws_taken" inputmode="numeric" value="${v('web.next_taken')}"></div></div>
+      <div class="hint" style="margin:-8px 0 14px">تختفي البطاقة من الموقع وحدها بعد موعد المغادرة.</div>
+    </div>
+
+    <div class="sec-h" style="margin:20px 2px 10px"><h2>الشركة والثقة</h2></div>
+    <div class="card" style="padding:14px 14px 0">
+      ${inp('web.company_name', 'اسم الشركة')}
+      ${inp('web.cr_number', 'رقم السجل التجاري', 'dir="ltr"')}
+      ${inp('web.nif', 'الرقم الجبائي NIF', 'dir="ltr"')}
+      ${inp('web.address', 'العنوان الرئيسي')}
+      ${ta('web.policy_deposit_ar', 'سياسة العربون والإلغاء')}
+      ${ta('web.policy_delay_ar', 'إذا تأخرت الباخرة')}
+      <details class="web-tr"><summary>الترجمة الفرنسية والإنجليزية <small>(اختياري)</small></summary>
+        ${ta('web.policy_deposit_fr', 'Acompte et annulation (FR)')}${ta('web.policy_delay_fr', 'Retard du navire (FR)')}
+        ${ta('web.policy_deposit_en', 'Deposit and cancellation (EN)')}${ta('web.policy_delay_en', 'Ship delay (EN)')}
+      </details>
+    </div>
+    <button class="btn btn-primary btn-block" style="margin-top:14px" data-act="web-save">حفظ الإعدادات</button>
+
+    <div class="sec-h" style="margin:26px 2px 10px"><h2>المكاتب على الموقع</h2>
+      <button class="btn btn-ghost btn-sm" data-act="web-office" data-id="">${ic('plus','sm')}مكتب</button></div>
+    ${(W.offices || []).length ? `<div class="list">${W.offices.map(o => `<button class="row" data-act="web-office" data-id="${o.office_id}">
+      <span class="row-ic tr">${ic('pin')}</span>
+      <span class="row-main"><span class="row-title">${esc(o.name)}</span>
+        <span class="row-sub"><span>${esc(WILAYAS[o.wilaya_code - 1] || '')}</span><span class="num" dir="ltr">${esc(o.open_time)}–${esc(o.close_time)}</span>
+        <span>${o.closed_days ? 'مغلق ' + o.closed_days.split(',').filter(String).map(d => WEEK_AR[+d]).join('، ') : 'كل الأيام'}</span></span></span>${ic('chev')}</button>`).join('')}</div>`
+      : `<div class="card empty">${ic('pin')}<b>لا مكاتب بعد</b><span class="hint">أضف مكتباً ليظهر للزبائن بعنوانه وساعاته، واربطه بصندوقه ليظهر في روابط متابعة زبائنه.</span></div>`}
+
+    <div class="sec-h" style="margin:26px 2px 10px"><h2>التقييمات</h2></div>
+    ${(W.reviews || []).length ? `<div class="list">${W.reviews.map(r => `<div class="row rev-row ${r.status === 'HIDDEN' ? 'off' : ''}">
+      <span class="row-main"><span class="row-title"><span class="stars" aria-label="${r.rating} من 5">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span> ${esc(r.display_name || 'زبون')} · ${esc(r.wilaya || '')}</span>
+        <span class="rev-text">${esc(r.text || '')}</span>
+        <span class="row-sub"><span>${esc(r.car_label || '')}</span><span>${dayLabel(String(r.created_at).slice(0,10))}</span></span></span>
+      <span class="row-end"><button class="link" data-act="web-review" data-id="${r.review_id}" data-v="${r.status === 'HIDDEN' ? 'PUBLISHED' : 'HIDDEN'}">${r.status === 'HIDDEN' ? 'إظهار' : 'إخفاء'}</button></span></div>`).join('')}</div>`
+      : `<div class="card empty">${ic('users')}<b>لا تقييمات بعد</b><span class="hint">يكتبها الزبون من رابط متابعته بعد استلام سيارته فقط.</span></div>`}
+  </div>`;
+}
+
+function webSaveAll(el){
+  const settings = {};
+  document.querySelectorAll('[data-ws]').forEach(i => { settings[i.dataset.ws] = i.value.trim(); });
+  setBtnBusy(el, true);
+  api('webSaveSettings', { settings })
+    .then(r => { S.webAdm.settings = r.settings; setBtnBusy(el, false); toast('حُفظت إعدادات الموقع'); })
+    .catch(x => { setBtnBusy(el, false); toast(x.message, true); });
+}
+
+function openWebOffice(id){
+  const W = S.webAdm || {};
+  const o = (W.offices || []).find(x => x.office_id === id) || { wilaya_code:16, open_time:'09:00', close_time:'18:00', closed_days:'5', reply_minutes:15 };
+  const closed = String(o.closed_days || '').split(',').filter(String);
+  openSheet(`${sheetHead(id ? 'تعديل المكتب' : 'مكتب جديد')}<div class="sheet-body">
+    <div class="field"><label class="field-l" for="woName">الاسم كما يراه الزبون</label><input class="input" id="woName" value="${esc(o.name || '')}" placeholder="مكتب البليدة"></div>
+    <div class="field"><label class="field-l" for="woWil">الولاية</label><select class="input" id="woWil">
+      ${WILAYAS.map((n, i) => `<option value="${i + 1}" ${o.wilaya_code === i + 1 ? 'selected' : ''}>${String(i + 1).padStart(2, '0')} ${n}</option>`).join('')}</select></div>
+    <div class="field"><label class="field-l" for="woAddr">العنوان</label><input class="input" id="woAddr" value="${esc(o.address || '')}"></div>
+    <div style="display:flex;gap:10px">
+      <div class="field" style="flex:1"><label class="field-l" for="woPhone">الهاتف</label><input class="input num" id="woPhone" dir="ltr" inputmode="tel" value="${esc(o.phone || '')}"></div>
+      <div class="field" style="flex:1"><label class="field-l" for="woWa">واتساب</label><input class="input num" id="woWa" dir="ltr" inputmode="tel" value="${esc(o.whatsapp || '')}" placeholder="نفس الهاتف"></div></div>
+    <div style="display:flex;gap:10px">
+      <div class="field" style="flex:1"><label class="field-l" for="woOpen">يفتح</label><input class="input num" type="time" id="woOpen" value="${esc(o.open_time)}"></div>
+      <div class="field" style="flex:1"><label class="field-l" for="woClose">يغلق</label><input class="input num" type="time" id="woClose" value="${esc(o.close_time)}"></div></div>
+    <div class="field"><span class="field-l">أيام الإغلاق</span><div class="chips wrap" id="woDays">
+      ${[6,0,1,2,3,4,5].map(d => `<button type="button" class="chip" data-day="${d}" aria-pressed="${closed.indexOf(String(d)) !== -1}">${WEEK_AR[d]}</button>`).join('')}</div></div>
+    <div class="field"><label class="field-l" for="woReply">يرد عادةً خلال (دقائق)</label><input class="input num" id="woReply" inputmode="numeric" value="${esc(String(o.reply_minutes || ''))}"></div>
+    <div class="field"><span class="field-l">صندوق هذا المكتب</span><div class="chips wrap" id="woBox">
+      <button type="button" class="chip" data-wbox="" aria-pressed="${!o.box_id}">بلا ربط</button>
+      ${(W.boxes || []).map(b => `<button type="button" class="chip" data-wbox="${b.box_id}" aria-pressed="${o.box_id === b.box_id}">${esc(b.name)}</button>`).join('')}</div>
+      <div class="hint">زبائن هذا الصندوق يرون هذا المكتب وهاتفه في رابط متابعتهم.</div></div>
+    ${id ? `<button class="btn-text" style="width:100%;color:var(--out)" data-act="web-office-del" data-id="${id}">حذف المكتب من الموقع</button>` : ''}
+  </div>
+  <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="web-office-save" data-id="${id || ''}">حفظ</button></div>`,
+  { full:true, onMount: sh => {
+    sh._box = o.box_id || '';
+    sh.addEventListener('click', e => {
+      const d = e.target.closest('[data-day]'); if (d) d.setAttribute('aria-pressed', d.getAttribute('aria-pressed') !== 'true');
+      const b = e.target.closest('[data-wbox]');
+      if (b){ sh._box = b.dataset.wbox; sh.querySelectorAll('[data-wbox]').forEach(x => x.setAttribute('aria-pressed', x === b)); }
+    });
+  } });
+}
+
+function webOfficeSave(id, el){
+  const sh = el.closest('.sheet');
+  const p = { name:$('#woName').value.trim(), wilaya_code:Number($('#woWil').value), address:$('#woAddr').value.trim(),
+    phone:$('#woPhone').value.trim(), whatsapp:$('#woWa').value.trim(), open_time:$('#woOpen').value, close_time:$('#woClose').value,
+    closed_days:[...sh.querySelectorAll('[data-day][aria-pressed="true"]')].map(x => x.dataset.day).join(','),
+    reply_minutes:Number($('#woReply').value) || 0, box_id: sh._box || '' };
+  if (id) p.office_id = id;
+  if (!p.name) return toast('اكتب اسم المكتب', true);
+  if (!p.phone) return toast('اكتب هاتف المكتب', true);
+  setBtnBusy(el, true);
+  api('webSaveOffice', p).then(() => { closeSheet(); toast('حُفظ المكتب'); loadWebAdmin(); })
+    .catch(x => { setBtnBusy(el, false); toast(x.message, true); });
 }
 
 /* ---------- نماذج ---------- */
@@ -3227,9 +3640,13 @@ function openStagePicker(orderId){
   const o = S.order;
   const stages = S.stages || { ORDERED:'طلبية', PAID_SUPPLIER:'مدفوعة للمورد', SHIPPED:'مشحونة',
     AT_PORT:'في الميناء', CLEARED:'مجمركة', DELIVERED:'مسلَّمة' };
+  const group = (o.group_count || 1) > 1;
   openSheet(`${sheetHead('مرحلة السيارة')}<div class="sheet-body">
+    ${group ? `<label class="vy-group" style="margin:0 0 12px"><input type="checkbox" id="stGroup" checked>
+      <span><b>تطبيق على كل سيارات الحاوية (${o.group_count})</b><small>السيارة التي سبقت لا تُعاد إلى الوراء</small></span></label>` : ''}
     ${Object.keys(stages).map(k => `<button class="pick" data-act="stage-set" data-id="${orderId}" data-stage="${k}" aria-pressed="${o.stage===k}">
-      <span class="radio"></span><span class="row-main"><b>${esc(stages[k])}</b></span></button>`).join('')}
+      <span class="radio"></span><span class="row-main"><b>${esc(stages[k])}</b>${k === 'SHIPPED' ? '<small class="hint" style="display:block;margin:2px 0 0">يسأل عن الباخرة وموعد الوصول</small>' : ''}</span></button>`).join('')}
+    <p class="hint" style="margin-top:10px">${ic('globe')} الزبون يرى المرحلة الجديدة في رابط متابعته فوراً.</p>
   </div>`);
 }
 
@@ -3478,11 +3895,11 @@ function bindWizard(sh){
   sh.addEventListener('click', e => {
     const gvu = e.target.closest('[data-gvu]');
     if (gvu && !gvu.disabled){
-      const id = gvu.dataset.gvu;
+      const gid = gvu.dataset.gvu;
       S._gv = S._gv || [];
-      const i = S._gv.indexOf(id);
-      if (i === -1) S._gv.push(id); else S._gv.splice(i, 1);
-      gvu.setAttribute('aria-pressed', i === -1);
+      const gi = S._gv.indexOf(gid);
+      if (gi === -1) S._gv.push(gid); else S._gv.splice(gi, 1);
+      gvu.setAttribute('aria-pressed', gi === -1);
       return;
     }
     const cs = e.target.closest('[data-catstatus]');
@@ -4165,6 +4582,8 @@ async function openCatalogCar(id){
   const admin = S.me.user.role === 'ADMIN';
   openSheet(`${sheetHead(esc(c.title))}<div class="sheet-body">
     <div class="cat-dot big ${c.status.toLowerCase()}">${catStatus(c)}</div>
+    <div style="margin-top:10px">${catWebSummary(c)}</div>
+    ${c.photo_url ? `<img class="vy-prev" style="margin-top:12px" src="${esc(c.photo_url)}" alt="">` : ''}
     ${(c.interests || []).length && c.status !== 'RESERVED' ? `<div class="cat-list" style="margin-top:12px">
       <span class="cat-list-h">${ic('clock')}المكاتب التي تتفاوض عليها</span>
       ${c.interests.map(i => `<span class="cat-who ${i.user_id === S.me.user.user_id ? 'me' : ''}">
@@ -4331,7 +4750,7 @@ function openCatalogForm(id){
   if (S._cfDraft){
     const d = S._cfDraft; S._cfDraft = null;
     c = Object.assign(c, { brand:d.brand, name:d.name, model_year:d.year, color:d.color,
-      gearbox:d.gear, specs:d.specs, price_dzd:d.price, link:d.link });
+      gearbox:d.gear, specs:d.specs, price_dzd:d.price, link:d.link }, d.web || {});
   }
   const forced = gearFromName([c.brand, c.name].filter(Boolean).join(' '));
   const g = forced || c.gearbox || 'AUTO';
@@ -4357,10 +4776,12 @@ function openCatalogForm(id){
       <div class="hint" id="cfCent">${c.price_dzd ? centimes(c.price_dzd) : ''}</div></div>
     <div class="field"><label class="field-l" for="cfLink">رابط المورد</label>
       <input class="input" id="cfLink" dir="ltr" value="${esc(c.link||'')}" placeholder="https://"></div>
+    ${catWebFieldsHtml(c)}
   </div>
   <div class="sheet-foot"><button class="btn btn-primary btn-block" data-act="cat-save" data-id="${id||''}">${id?'حفظ التعديلات':'إضافة السيارة'}</button></div>`,
   { full:true, onMount: sh => {
     sh.dataset.gear = g;
+    catWebBind(sh, c);
     sh.addEventListener('click', e => {
       const b = e.target.closest('[data-gear]');
       if (b){ sh.dataset.gear = b.dataset.gear; sh.querySelectorAll('[data-gear]').forEach(x => x.setAttribute('aria-pressed', x===b)); }
@@ -5078,9 +5499,46 @@ document.addEventListener('click', async e => {
       break; }
     case 'stage': openStagePicker(id); break;
     case 'stage-set': {
+      if (el.dataset.stage === 'SHIPPED'){ openVoyageForm(id, 'SHIPPED'); break; }
+      const grp = !!($('#stGroup') && $('#stGroup').checked);
       if (S.order && S.order.order_id === id){ S.order.stage = el.dataset.stage; S.order.stage_label = ''; }
-      bgRun('setOrderStage', { order_id:id, stage:el.dataset.stage }, { after: () => openOrder(id) });
+      bgRun('setOrderStage', { order_id:id, stage:el.dataset.stage, apply_group: grp },
+        { okMsg: grp ? 'تغيرت مرحلة سيارات الحاوية كلها' : '', after: () => openOrder(id) });
       break; }
+    case 'voyage-edit': openVoyageForm(id, ''); break;
+    case 'vy-photo': pickPhoto(data => {
+        const sh = el.closest('.sheet'); if (!sh) return;
+        sh._vy.photo = data; const im = $('#vyPrev'); im.src = data; im.hidden = false;
+        el.innerHTML = ic('camera') + 'تغيير الصورة'; });
+      break;
+    case 'vy-save': voyageSave(id, el.dataset.stage, el); break;
+    case 'trk-open': openTrackLink(id, false); break;
+    case 'trk-rotate': openTrackRotate(id); break;
+    case 'trk-rotate-go': openTrackLink(id, true); break;
+    case 'trk-sent': {
+      if (S.order && S.order.order_id === id) S.order.link_sent_at = new Date().toISOString().slice(0,10);
+      if (S.ov && S.ov.web_followup) S.ov.web_followup.no_link = (S.ov.web_followup.no_link || []).filter(x => x.order_id !== id);
+      api('markLinkSent', { order_id:id }).then(() => { if (S.order && S.order.order_id === id && $('#ordBody')) renderOrderSheet(S.order); }).catch(x => toast(x.message, true));
+      break; }
+    case 'trk-copy': if (S._trk) copyText(el.dataset.v === 'family' ? S._trk.family_url : S._trk.message); break;
+    case 'web-fu': openWebFollowList(el.dataset.v); break;
+    case 'adm-web': S.view = 'admin-web'; S.webAdm = null; renderShell(false); window.scrollTo(0,0); break;
+    case 'web-reload': S.webAdm = null; rerender(); break;
+    case 'web-save': webSaveAll(el); break;
+    case 'web-office': openWebOffice(id); break;
+    case 'web-office-save': webOfficeSave(id, el); break;
+    case 'web-office-del': bgRun('webSaveOffice', { office_id:id, delete:true }, { okMsg:'حُذف المكتب من الموقع', refresh:false, after: () => loadWebAdmin() }); break;
+    case 'web-review': {
+      const rv = ((S.webAdm || {}).reviews || []).find(r => r.review_id === id); if (rv) rv.status = el.dataset.v;
+      rerender();
+      bgRun('webSetReviewStatus', { review_id:id, status:el.dataset.v }, { closeSheet:false, refresh:false,
+        okMsg: el.dataset.v === 'HIDDEN' ? 'أُخفي التقييم من الموقع' : 'عاد التقييم إلى الموقع' });
+      break; }
+    case 'cf-photo': pickPhoto(data => {
+        const sh = el.closest('.sheet'); if (!sh) return;
+        sh._web.photo = data; const im = $('#cfPrev'); im.src = data; im.hidden = false;
+        el.innerHTML = ic('camera') + 'تغيير الصورة'; });
+      break;
     case 'pay-flow': openPayFlow(); break;
     case 'pf-cust': openPayFlowCars(id); break;
     case 'followup': openFollowUp(); break;
@@ -5101,6 +5559,8 @@ document.addEventListener('click', async e => {
       S._cfDraft = { brand:$('#cfBrand').value, name:$('#cfName').value, year:$('#cfYear').value,
                      color:$('#cfColor').value, gear:el.closest('.sheet').dataset.gear,
                      specs:$('#cfSpecs').value, price:$('#cfPrice').value, link:$('#cfLink').value };
+      { const sw = el.closest('.sheet')._web || {}; const wp = catWebPayload(el.closest('.sheet'));
+        S._cfDraft.web = { web_show: wp.web_show, voyage: wp.voyage, vessel: wp.vessel || '', port: wp.port || sw.port, eta: wp.eta || '' }; }
       const editId = cid && cid.id ? cid.id : '';
       openCarPicker(sel => {
         S._cfDraft.brand = sel.brand; S._cfDraft.name = sel.model;
@@ -5181,6 +5641,7 @@ document.addEventListener('click', async e => {
       const payload = { brand:$('#cfBrand').value.trim(), name:$('#cfName').value.trim(),
         model_year:$('#cfYear').value.trim(), color:$('#cfColor').value.trim(), gearbox:shc.dataset.gear,
         specs:$('#cfSpecs').value.trim(), price_dzd:Number(rawNum($('#cfPrice')) || 0), link:$('#cfLink').value.trim() };
+      Object.assign(payload, catWebPayload(shc));
       if (id) payload.car_id = id;
       bgRun(id ? 'catalogUpdate' : 'catalogCreate', payload,
         { okMsg: id ? 'تم الحفظ' : 'أُضيفت السيارة', refresh:false, after: () => loadCatalog(true) });
@@ -5811,8 +6272,9 @@ const Mock = (() => {
     { order_id:'ORD1', customer_id:'CUS1', owner_box_id:'B1', created_by:'U1', car_model:'كولوراي لاتوت', color:'قري', trim:'', agreed_price:3570000,
       customs_expected:1000000, customs_actual:980000, stage:'CLEARED', status:'ACTIVE', sold_at:'', notes:'', created_at:'' },
     { order_id:'ORD2', customer_id:'CUS2', owner_box_id:'B2', created_by:'U2', car_model:'MG5', color:'أبيض', trim:'', agreed_price:2900000,
-      customs_expected:900000, customs_actual:'', stage:'AT_PORT', status:'ACTIVE', sold_at:'', notes:'', created_at:'',
-      ship_date: localDate(new Date(Date.now() + 2*86400000)), notified_at:'' },
+      customs_expected:900000, customs_actual:'', stage:'SHIPPED', status:'ACTIVE', sold_at:'', notes:'', created_at:'',
+      ship_date: localDate(new Date(Date.now() + 2*86400000)), notified_at:'',
+      vessel:'Blue Horizon', container_no:'CMAU3308154', port:'DZORN', eta: localDate(new Date(Date.now() + 19*86400000)) },
     { order_id:'ORD3', customer_id:'CUS3', owner_box_id:'B3', created_by:'U3', car_model:'كولوراي باتل', color:'أسود', trim:'', agreed_price:3800000,
       customs_expected:1000000, customs_actual:'', stage:'ORDERED', status:'ACTIVE', sold_at:'', notes:'', created_at:'',
       ship_date: localDate(new Date(Date.now() + 86400000)), notified_at:'' }
@@ -5865,11 +6327,11 @@ const Mock = (() => {
   const CATLOG = [];
   const NTC = [];
   const PEXP = [
-    { entry_id:'EXP1', entry_date:'', created_at:'2026-11-16 14:20:00', box_id:'B1', box_name:'صندوق القايد',
+    { entry_id:'EXP1', entry_date:'', created_at:'2026-11-18 14:20:00', box_id:'B1', box_name:'صندوق القايد',
       amount:8500, currency:'DZD', category_id:'C4', category_name:'أكل وضيافة', description:'غداء مع زبون',
       by_user:'U3', by_name:'أنور بابا طاهر', by_role:'KEEPER', approval:'PENDING', approval_label:'بانتظار الموافقة',
       approved_by_name:'', approved_at:'', reject_reason:'', status:'ACTIVE' },
-    { entry_id:'EXP2', entry_date:'', created_at:'2026-11-16 11:05:00', box_id:'B2', box_name:'منزل نبيل',
+    { entry_id:'EXP2', entry_date:'', created_at:'2026-11-18 11:05:00', box_id:'B2', box_name:'منزل نبيل',
       amount:3200, currency:'DZD', category_id:'C7', category_name:'تنقل', description:'تاكسي للميناء',
       by_user:'U2', by_name:'نبيل', by_role:'KEEPER', approval:'PENDING', approval_label:'بانتظار الموافقة',
       approved_by_name:'', approved_at:'', reject_reason:'', status:'ACTIVE' }
@@ -5908,13 +6370,24 @@ const Mock = (() => {
     stage:o.stage, stage_label:{ORDERED:'طلبية',DEPOSIT_PAID:'عربون مدفوع',PAID:'مدفوعة بالكامل',SHIPPED:'مشحونة',ARRIVED:'وصلت'}[o.stage],
     status:o.status, notes:o.notes, created_at:o.created_at });
 
+  const WEBS = { 'web.site_url':'https://sanad.example/', 'web.pay_shipped_pct':'70' };
+  const WOFF = [{ office_id:'OFC1', wilaya_code:16, name:'مكتب الجزائر', address:'باب الزوار', phone:'0550111222', whatsapp:'0550111222',
+    box_id:'B1', open_time:'09:00', close_time:'18:00', closed_days:'5', reply_minutes:10, status:'ACTIVE' }];
+  const WREV = [{ review_id:'REV1', order_id:'ORD1', rating:5, text:'وصلت في موعدها بالضبط، والمتابعة من الرابط ريّحتني.', display_name:'الياس',
+    wilaya:'ورقلة', car_label:'كولوراي لاتوت قري', created_at:'2026-11-02 10:00:00', status:'PUBLISHED' }];
   const ordView = o => Object.assign({
     order_id:o.order_id, customer_id:o.customer_id,
     customer_name:(CUS.find(c => c.customer_id === o.customer_id)||{}).full_name || '',
     car_model:o.car_model, color:o.color, car_label:[o.car_model, o.color].filter(Boolean).join(' '),
     customs_expected:o.customs_expected || null, stage:o.stage, stage_label:STAGE_AR[o.stage], sold_at:o.sold_at,
     status:o.status, notes:o.notes, ship_date:o.ship_date || '', notified_at:o.notified_at || '',
-    days_to_ship: o.ship_date ? dUntil(o.ship_date) : null
+    days_to_ship: o.ship_date ? dUntil(o.ship_date) : null,
+    vessel:o.vessel || '', container_no:o.container_no || '', port:o.port || '', port_label:WEB_PORTS[o.port] || '',
+    eta:o.eta || '', days_to_arrive:o.eta ? dUntil(o.eta) : null, stage_at:o.stage_at || {}, has_link:true,
+    link_sent_at:o.link_sent_at || '', link_viewed_at:o.link_viewed_at || '', has_proof:!!o.has_proof, proof_url:'',
+    group_count: o.container_no ? ORD.filter(x => x.container_no === o.container_no).length : 1,
+    due_now: (() => { const t = ordTotals(o); const r = ['ORDERED','PAID_SUPPLIER','SHIPPED','AT_PORT','CLEARED','DELIVERED'].indexOf(o.stage);
+      const target = r >= 3 ? t.agreed_price : r >= 2 ? Math.round(t.agreed_price * 0.7) : 0; return Math.max(0, target - t.price_paid); })()
   }, ordTotals(o));
 
   add({ box_id:'B1', entry_date:d(2), created_at:ts(2,'11:25'), direction:'IN', amount:170000, entry_type:'CUSTOMER_PAYMENT',
@@ -5971,7 +6444,13 @@ const Mock = (() => {
         my_expense_updates: PEXP.filter(e => e.by_user === cur && e.approval !== 'APPROVED'),
         can_see_global: staff(),
         recent_entries: sorted().filter(e=>v.some(b=>b.box_id===e.box_id)).reverse().slice(0,15).map(enrich),
-        today, alerts:[]
+        today, alerts:[],
+        web_followup: { no_link: ORD.filter(o => !o.link_sent_at && o.stage !== 'DELIVERED' && ownsOrder(o)).map(o => ({ order_id:o.order_id,
+            customer_name:(CUS.find(c => c.customer_id === o.customer_id) || {}).full_name || '', car_label:[o.car_model, o.color].join(' '),
+            stage:o.stage, stage_label:STAGE_AR[o.stage] })),
+          late: ORD.filter(o => o.stage === 'SHIPPED' && o.eta && dUntil(o.eta) < -3 && ownsOrder(o)).map(o => ({ order_id:o.order_id,
+            customer_name:(CUS.find(c => c.customer_id === o.customer_id) || {}).full_name || '', car_label:[o.car_model, o.color].join(' '),
+            eta:o.eta, days_late:-dUntil(o.eta) })), stale: [] }
       };
     },
     listEntries: p => {
@@ -6138,8 +6617,24 @@ const Mock = (() => {
     },
     markOrderNotified: p => { const o = ORD.find(x => x.order_id === p.order_id); o.notified_at = now(); return ordView(o); },
     getShippingAlerts: () => shipAlerts(),
-    updateOrder: p => { const o = ORD.find(x => x.order_id === p.order_id); Object.assign(o, p); return ordView(o); },
-    setOrderStage: p => { const o = ORD.find(x => x.order_id === p.order_id); o.stage = p.stage; return ordView(o); },
+    updateOrder: p => { const o = ORD.find(x => x.order_id === p.order_id); const q = Object.assign({}, p); if (q.photo){ o.has_proof = true; delete q.photo; } Object.assign(o, q); return ordView(o); },
+    setOrderStage: p => { const o = ORD.find(x => x.order_id === p.order_id); o.stage = p.stage;
+      ['vessel','container_no','port','eta'].forEach(k => { if (p[k] !== undefined) o[k] = p[k]; }); if (p.photo) o.has_proof = true;
+      o.stage_at = Object.assign({}, o.stage_at || {}, { [p.stage]: localDate(new Date()) }); return ordView(o); },
+    getTrackLink: p => { const o = ORD.find(x => x.order_id === p.order_id); if (!o.tok || p.rotate) o.tok = Math.random().toString(36).slice(2, 15) + Math.random().toString(36).slice(2, 15);
+      const c = CUS.find(x => x.customer_id === o.customer_id) || {}; const url = 'https://sanad.example/#t=' + o.tok;
+      if (p.rotate) o.link_sent_at = '';
+      return { order_id:o.order_id, track_url:url, family_url:'https://sanad.example/#t=f' + o.tok, phone:c.phone || '',
+        message:'السلام عليكم،\nهذا رابط متابعة سيارتك ' + [o.car_model, o.color].join(' ') + ' من سند كارز:\n' + url + '\nفيه مكان سيارتك الآن وموعد وصولها وحسابك معنا.' }; },
+    markLinkSent: p => { const o = ORD.find(x => x.order_id === p.order_id); o.link_sent_at = now(); return { order_id:o.order_id }; },
+    webGetSettings: () => { requireAdmin(); return { settings: WEBS, defaults:{ 'web.pay_shipped_pct':70 }, offices: WOFF, reviews: WREV,
+      boxes: boxes.filter(b => b.type !== 'SYSTEM').map(b => ({ box_id:b.box_id, name:b.name })), ports:{},
+      stats:{ active_orders: ORD.length, links_sent: ORD.filter(o => o.link_sent_at).length, links_viewed: 1 } }; },
+    webSaveSettings: p => { requireAdmin(); Object.assign(WEBS, p.settings || {}); return { settings: WEBS }; },
+    webSaveOffice: p => { requireAdmin(); if (p.delete){ const i = WOFF.findIndex(o => o.office_id === p.office_id); if (i >= 0) WOFF.splice(i, 1); return { deleted:true }; }
+      const o = WOFF.find(x => x.office_id === p.office_id) || (WOFF.push({ office_id:'OFC' + (WOFF.length + 1) }), WOFF[WOFF.length - 1]);
+      Object.assign(o, p, { whatsapp: p.whatsapp || p.phone, status:'ACTIVE' }); delete o.delete; return o; },
+    webSetReviewStatus: p => { requireAdmin(); const r = WREV.find(x => x.review_id === p.review_id); r.status = p.status; return r; },
     setCustomsActual: p => { const o = ORD.find(x => x.order_id === p.order_id); o.customs_actual = Number(p.customs_actual); return ordView(o); },
     recordCustomerPayment: p => { const o = ORD.find(x => x.order_id === p.order_id);
       const before = ordTotals(o);
