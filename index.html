@@ -1269,22 +1269,34 @@ const OFFLINE_OK = {
   voidEntry: 'إلغاء عملية', recordCustomerPayment: 'دفعة زبون', recordCustomerRefund: 'إرجاع لزبون',
   createOrder: 'تسجيل سيارة', createCustomer: 'تسجيل زبون', markOrderNotified: 'إغلاق تنبيه'
 };
+/* كل قراءة تُحفَظ آخر نسخة منها، فتُرسم الشاشة من المحفوظ في جزء من الثانية
+   ويمضي التحديث خلفها. Apps Script بطيء ومتتابع، فانتظار الخادم قبل الرسم
+   يعني شاشة فارغة أمام الموظف ثواني. */
 const CACHEABLE = ['getMe', 'getOverview', 'listCustomers', 'listOrders', 'listEntries', 'listTransfers',
-  'listCategories', 'listTransferTargets'];
+  'listCategories', 'listTransferTargets', 'catalogList', 'listSuppliers', 'listBrokers',
+  'adminListUsers', 'getGlobalView', 'getOrder'];
 
 const isOnline = () => navigator.onLine !== false;
 
 /* ---------- الذاكرة المحلية ---------- */
 function cacheKey_(action, payload){
   const p = payload || {};
-  const bits = [p.box_id, p.customer_id, p.order_id].filter(Boolean).join('|');
+  const bits = [p.box_id, p.customer_id, p.order_id, p.q, p.status].filter(Boolean).join('|');
   return action + (bits ? ':' + bits : '');
 }
 function cacheAll_(){ try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); } catch(e){ return {}; } }
+/* الذاكرة المحفوظة ملك صاحب الجلسة وحده: جلسة أخرى على نفس الجهاز لا ترث شيئاً. */
+function cacheOwned_(){
+  const c = cacheAll_();
+  if (c.__tok && S.token && c.__tok === S.token) return true;
+  if (c.__tok || Object.keys(c).length) cacheClear_();
+  return false;
+}
 function cachePut_(action, payload, data){
   if (CACHEABLE.indexOf(action) === -1) return;
   try {
     const c = cacheAll_();
+    c.__tok = S.token;
     c[cacheKey_(action, payload)] = { at: Date.now(), data: data };
     localStorage.setItem(CACHE_KEY, JSON.stringify(c));
   } catch(e){ /* الذاكرة ممتلئة: نتجاهل */ }
@@ -1294,6 +1306,24 @@ function cacheGet_(action, payload){
   return hit || null;
 }
 function cacheClear_(){ try { localStorage.removeItem(CACHE_KEY); } catch(e){} }
+
+/* تعبئة كل الشاشات من آخر نسخة محفوظة قبل أول رسم.
+   الشاشة تظهر بمحتواها الحقيقي فوراً، و«قديم» يعني: اعرضه الآن وحدّثه خلفه. */
+function hydrateFromCache(){
+  if (S.demo) return;
+  const take = (a, p) => { const h = cacheGet_(a, p || {}); return h ? h.data : null; };
+  const warm = (st, data, fill) => { if (!data || st.loaded) return; fill(data); st.loaded = true; st.stale = true; };
+
+  warm(S.cust, take('listCustomers'), d => { S.cust.items = d; });
+  warm(S.trf,  take('listTransfers'), d => { S.trf.items = d.items || []; });
+  warm(S.sup,  take('listSuppliers'), d => { S.sup.items = d; S.sup.brokers = take('listBrokers') || []; });
+  warm(S.cat,  take('catalogList'),   d => { S.cat.items = d.items || []; S.cat.counts = d.counts || {}; });
+  warm(S.adm,  take('adminListUsers'), d => { S.adm.users = d.users || []; S.adm.boxes = d.boxes || []; });
+
+  const g = take('getGlobalView'); if (g && !S.glob.data){ S.glob.data = g; S.glob.stale = true; }
+  if (!S.cats)    S.cats    = take('listCategories') || null;
+  if (!S.targets) S.targets = take('listTransferTargets') || null;
+}
 
 /* ---------- صندوق الصادر ---------- */
 function outbox(){ try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]'); } catch(e){ return []; } }
@@ -1791,9 +1821,27 @@ function paintClear(box){
 }
 
 /* ---------------- API ---------------- */
-async function api(action, payload={}){
+/* ---------- أولوية الموظف على الخلفية ----------
+   Apps Script ينفّذ طلبات المستخدم الواحد واحداً بعد الآخر. فطلب خلفي
+   (نبضة، تحميل مسبق، مراقبة الكتالوج) يُرسَل في اللحظة الخطأ يؤخّر الشاشة
+   التي ينتظرها الموظف أمامه. الطلب الخلفي ينتظر حتى تهدأ الشاشة. */
+let _fgBusy = 0, _fgLast = 0;
+
+function uiBusy(){ return _fgBusy > 0 || (Date.now() - _fgLast) < 600; }
+
+async function apiBg(action, payload={}){
+  for (let i = 0; i < 60 && uiBusy(); i++) await new Promise(r => setTimeout(r, 200));
+  return api(action, payload, true);
+}
+
+async function api(action, payload={}, bg){
   if (S.decoy) throw Object.assign(new Error('غير متاح'), { code:'DECOY' });
   if (S.demo) return Mock.handle(action, payload, S.token);
+  if (!bg){ _fgBusy++; try { return await apiCore_(action, payload); } finally { _fgBusy--; _fgLast = Date.now(); } }
+  return apiCore_(action, payload);
+}
+
+async function apiCore_(action, payload){
 
   // كتابة بدون اتصال: تُحفظ على الجهاز وتُرسل عند عودة الشبكة
   if (!isOnline() && OFFLINE_OK[action]){
@@ -1896,13 +1944,33 @@ function signOutLocal(){
   NAV.length = 0;
   S.token = null; S.me = null; S.ov = null; S.locked = false; S.pinAsked = null;
   localStorage.removeItem(LS.token); localStorage.removeItem(PIN_KEY); sessClear_();
-  S.hist = { filter:'all', items:[], total:0, loaded:false }; S.trf = { tab:'wait', items:[], loaded:false };
-  S.adm = { loaded:false, users:[], boxes:[] }; S._pw = null; S.view = 'home';
+  // الجهاز قد يستعمله موظف آخر: لا يبقى من السابق شيء محفوظ ولا معروض
+  cacheClear_();
+  S.hist = { filter:'all', items:[], total:0, loaded:false, boxId:null };
+  S.trf = { tab:'wait', items:[], loaded:false };
+  S.cust = { items:[], loaded:false, q:'' };
+  S.sup = { items:[], brokers:[], loaded:false };
+  S.cat = { items:[], counts:{}, loaded:false, q:'', status:'', sig:'' };
+  S.glob = { data:null };
+  S.adm = { loaded:false, users:[], boxes:[] };
+  S.cats = null; S.targets = null; S.order = null; S.so = null;
+  S.boxId = null; S.ovRaw = null; S.sig = null; S._prefetched = false;
+  S._pw = null; S.view = 'home';
   renderLogin();
+}
+
+/* سجل الصندوق محفوظ بمفتاح الصندوق، فيُعبَّأ بعد معرفة الصندوق الحالي. */
+function hydrateHistory_(){
+  if (S.demo || !S.boxId || S.hist.loaded) return;
+  const h = cacheGet_('listEntries', { box_id: S.boxId });
+  if (!h) return;
+  S.hist.items = h.data.items || []; S.hist.total = h.data.total || 0;
+  S.hist.boxId = S.boxId; S.hist.loaded = true; S.hist.stale = true;
 }
 
 async function loadApp(){
   // عرض فوري من آخر نسخة محفوظة: لا ينتظر الموظف الخادم ليرى صندوقه
+  if (cacheOwned_()) hydrateFromCache();
   const cm = cacheGet_('getMe', {}), co = cacheGet_('getOverview', {});
   let warm = false;
   if (!S.demo && cm && co && !S.me){
@@ -1912,9 +1980,11 @@ async function loadApp(){
     S.stale = co.at;
     warm = true;
     pickBox_();                         // الصندوق قبل الرسم، وإلا ظهرت الشاشة فارغة
+    hydrateHistory_();
     startPulse();
     renderShell(false);                 // الشاشة جاهزة في جزء من الثانية
-    refresh(true).catch(() => {});      // والتحديث يمضي خلفها
+    // لا تحديث إضافي هنا: getBoot أسفله طلب واحد يجلب كل شيء،
+    // وطلب ثانٍ معه يعني انتظاراً مضاعفاً لأن Apps Script يُنفّذ بالتتابع.
   }
 
   if (!warm) renderShell(true);
@@ -1935,6 +2005,7 @@ async function loadApp(){
       if (boot.categories && boot.categories.length){ S.cats = boot.categories; cachePut_('listCategories', {}, boot.categories); }
       if (boot.targets && boot.targets.length){ S.targets = boot.targets; cachePut_('listTransferTargets', {}, boot.targets); }
       pickBox_();                               // نفس منطق البداية القديم بالضبط
+      hydrateHistory_();
       S._pw = null;
       startPulse();
       if (outboxCount()) setTimeout(() => syncOutbox(), 1500);
@@ -1989,8 +2060,8 @@ async function refresh(silent){
     S.ov = applyOutboxToOverview(S.ovRaw);
     S.sig = S.ov.pulse_sig || S.sig;
     if (!currentBox()) pickBox_();
-    if (!S._prefetched) setTimeout(() => prefetchForOffline(), 1500);
-    S.hist.loaded = false; S.trf.loaded = false;
+    if (!S._prefetched) setTimeout(() => prefetchForOffline(), 2500);
+    S.hist.stale = true; S.trf.stale = true;   // تُحدَّث خلف الشاشة، لا هيكل انتظار
     renderShell(false);
     if (!silent) toast('تم التحديث');
   } catch(x){ toast(x.message, true); }
@@ -2002,9 +2073,11 @@ async function refresh(silent){
 async function prefetchForOffline(){
   if (!isOnline() || S.demo) return;
   S._prefetched = true;
-  try { S.cats = await api('listCategories'); } catch(e){}
-  try { S.targets = await api('listTransferTargets'); } catch(e){}
-  try { const c = await api('listCustomers', {}); S.cust.items = c; S.cust.loaded = true; } catch(e){}
+  try { S.cats = await apiBg('listCategories'); } catch(e){}
+  try { S.targets = await apiBg('listTransferTargets'); } catch(e){}
+  try { const c = await apiBg('listCustomers', {}); S.cust.items = c; S.cust.loaded = true; S.cust.stale = false; } catch(e){}
+  // التحويلات في الشريط السفلي: تُجلب خلفاً حتى لا ينتظرها الموظف أول مرة
+  try { const t = await apiBg('listTransfers', { limit:100 }); S.trf.items = t.items; S.trf.loaded = true; S.trf.stale = false; } catch(e){}
   syncAvatars();
 }
 
@@ -2016,7 +2089,7 @@ let _pulseTimer = null;
 async function pulse(force){
   if (S.decoy || !S.token || S.locked || S.busy || document.hidden) return;
   try {
-    const p = await api('getPulse');
+    const p = await apiBg('getPulse');
     if (S.sig === null || S.sig === undefined){ S.sig = p.sig; return; }
     if (p.sig !== S.sig){ S.sig = p.sig; await refresh(true); }
     else if (force) { /* لا جديد */ }
@@ -2081,12 +2154,13 @@ function afterRender(){
   document.querySelectorAll('.search').forEach(paintClear);
   animateOdo();
   runNumberAnimations();
-  if (S.view === 'history' && !S.hist.loaded) loadHistory();
-  if (S.view === 'customers' && !S.cust.loaded) loadCustomers();
-  if (S.view === 'suppliers' && !S.sup.loaded) loadSuppliers();
-  if (S.view === 'global' && !S.glob.data) loadGlobal();
+  // «قديم» يعني: المعروض من الذاكرة، فحدّثه خلف الشاشة بلا هيكل انتظار
+  if (S.view === 'history' && (!S.hist.loaded || S.hist.stale)) loadHistory();
+  if (S.view === 'customers' && (!S.cust.loaded || S.cust.stale)) loadCustomers();
+  if (S.view === 'suppliers' && (!S.sup.loaded || S.sup.stale)) loadSuppliers();
+  if (S.view === 'global' && (!S.glob.data || S.glob.stale)) loadGlobal(!!S.glob.data);
   if (S.view === 'catalog'){
-    if (!S.cat.loaded) loadCatalog();
+    if (!S.cat.loaded || S.cat.stale) loadCatalog(S.cat.loaded);
     catalogWatch(true);
     const cq = $('#catQ');
     if (cq) cq.addEventListener('input', e => {
@@ -2098,8 +2172,8 @@ function afterRender(){
   const cq = $('#custQ');
   if (cq) cq.addEventListener('input', e => { S.cust.q = e.target.value; const v = e.target.value;
     clearTimeout(S._cq); S._cq = setTimeout(() => { rerender(); const el = $('#custQ'); if (el){ el.focus(); el.setSelectionRange(v.length, v.length); } }, 250); });
-  if (S.view === 'transfers' && !S.trf.loaded) loadTransfers();
-  if (S.view.startsWith('admin') && !S.adm.loaded) loadAdmin();
+  if (S.view === 'transfers' && (!S.trf.loaded || S.trf.stale)) loadTransfers();
+  if (S.view.startsWith('admin') && (!S.adm.loaded || S.adm.stale)) loadAdmin();
 }
 function skeleton(){
   // هيكل يشبه الشاشة الحقيقية: الفراغ المطابق يبدو أسرع من مربعات عشوائية
@@ -2463,6 +2537,7 @@ function viewHistory(){
   </div>`;
 }
 async function loadHistory(more){
+  S.hist.stale = false;
   if (!S.boxId) { S.hist.loaded = true; return rerender(); }
   try {
     const r = await api('listEntries', { box_id:S.boxId, limit:60, offset: more ? S.hist.items.length : 0 });
@@ -2494,6 +2569,7 @@ function viewTransfers(){
   </div>`;
 }
 async function loadTransfers(){
+  S.trf.stale = false;
   try { const r = await api('listTransfers', { limit:100 }); S.trf.items = r.items; S.trf.loaded = true; if (S.view==='transfers') rerender(); }
   catch(x){ S.trf.loaded = true; toast(x.message, true); }
 }
@@ -2965,7 +3041,7 @@ function customerRow(c){
   return `<button class="row" data-act="cust" data-id="${c.customer_id}">
     <span class="row-ic ${due > 0 ? 'out' : 'in'}">${ic('user')}</span>
     <span class="row-main"><span class="row-title">${esc(c.full_name)}</span>
-      <span class="row-sub"><span>${c.orders_count} سيارة</span>${c.wilaya?`<span>${esc(c.wilaya)}</span>`:''}
+      <span class="row-sub"><span>${c.orders_count || 0} سيارة</span>${c.wilaya?`<span>${esc(c.wilaya)}</span>`:''}
       ${c.type==='DEALER'?'<span class="tag grey">تاجر</span>':''}</span></span>
     <span class="row-end">
       ${due > 0 ? `<span class="amt out">${fmt(due)}</span><span class="row-bal">باقٍ عليه</span>`
@@ -2975,6 +3051,7 @@ function customerRow(c){
 }
 
 async function loadCustomers(){
+  S.cust.stale = false;
   try {
     S.cust.items = await api('listCustomers', {});
     S.cust.loaded = true;
@@ -2987,11 +3064,14 @@ async function openCustomer(id){
   const c = S.cust.items.find(x => x.customer_id === id);
   openSheet(`${sheetHead(c ? esc(c.full_name) : 'الزبون')}
     <div class="sheet-body" id="custBody"><div class="sk" style="height:220px;border-radius:14px"></div></div>`, { full:true });
+  // آخر نسخة محفوظة تُرسم فوراً، والخادم يصحّحها خلفها
+  const hit = c ? cacheGet_('listOrders', { customer_id:id }) : null;
+  if (hit && $('#custBody')) renderCustomerSheet(c, hit.data.items || []);
   try {
     const r = await api('listOrders', { customer_id:id, limit:100 });
     if (!$('#custBody')) return;
     renderCustomerSheet(c, r.items);
-  } catch(x){ closeSheet(); toast(x.message, true); }
+  } catch(x){ if (hit) return; closeSheet(); toast(x.message, true); }
 }
 
 function renderCustomerSheet(c, orders){
@@ -3033,12 +3113,14 @@ function orderRow(o){
 /* ---------- بطاقة السيارة ---------- */
 async function openOrder(id){
   openSheet(`${sheetHead('السيارة')}<div class="sheet-body" id="ordBody"><div class="sk" style="height:300px;border-radius:14px"></div></div>`, { full:true });
+  const hit = cacheGet_('getOrder', { order_id:id });
+  if (hit && $('#ordBody')){ S.order = hit.data; renderOrderSheet(hit.data); }
   try {
     const o = await api('getOrder', { order_id:id });
     if (!$('#ordBody')) return;
     S.order = o;
     renderOrderSheet(o);
-  } catch(x){ closeSheet(); toast(x.message, true); }
+  } catch(x){ if (hit) return; closeSheet(); toast(x.message, true); }
 }
 
 function renderOrderSheet(o){
@@ -4109,7 +4191,7 @@ function supplierRow(s){
   return `<button class="row" data-act="sup" data-id="${s.supplier_id}">
     <span class="row-ic ${s.remaining_usd > 0 ? 'out' : 'in'}">${ic('box')}</span>
     <span class="row-main"><span class="row-title">${esc(s.name)}</span>
-      <span class="row-sub"><span>${s.orders_count} طلبية</span>${s.country?`<span>${esc(s.country)}</span>`:''}
+      <span class="row-sub"><span>${s.orders_count || 0} طلبية</span>${s.country?`<span>${esc(s.country)}</span>`:''}
         ${s.due_soon?`<span class="tag amber">${s.due_soon} استحقاق قريب</span>`:''}</span></span>
     <span class="row-end">${s.remaining_usd > 0
       ? `<span class="amt out">${fmt(s.remaining_usd)} $</span><span class="row-bal">علينا له</span>`
@@ -4117,6 +4199,7 @@ function supplierRow(s){
 }
 
 async function loadSuppliers(){
+  S.sup.stale = false;
   try {
     const [items, brokers] = await Promise.all([api('listSuppliers', {}), api('listBrokers', {})]);
     S.sup.items = items; S.sup.brokers = brokers; S.sup.loaded = true;
@@ -4554,6 +4637,7 @@ function catalogCard(c){
 }
 
 async function loadCatalog(silent){
+  S.cat.stale = false;
   try {
     const r = await api('catalogList', { q: S.cat.q, status: S.cat.status });
     S.cat.items = r.items; S.cat.counts = r.counts; S.cat.sig = r.sig; S.cat.loaded = true;
@@ -4569,7 +4653,7 @@ function catalogWatch(on){
   _catTimer = setInterval(async () => {
     if (S.view !== 'catalog' || document.hidden || !S.token || S.decoy) return;
     try {
-      const r = await api('catalogPulse', {});
+      const r = await apiBg('catalogPulse', {});
       if (r && r.sig && r.sig !== S.cat.sig) loadCatalog(true);
     } catch(e){}
   }, 10000);
@@ -4836,6 +4920,7 @@ function viewGlobal(){
 }
 
 async function loadGlobal(silent){
+  S.glob.stale = false;
   try {
     S.glob.data = await api('getGlobalView', {});
     if (S.view === 'global') rerender();
@@ -5805,6 +5890,7 @@ function renderForcePassword(){
 
 /* ---------- تحميل بيانات الإدارة ---------- */
 async function loadAdmin(){
+  S.adm.stale = false;
   try {
     const r = await api('adminListUsers');
     S.adm = { loaded:true, users:r.users, boxes:r.boxes };
